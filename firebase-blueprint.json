@@ -1,0 +1,38 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account profile document",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "UserFinanceData": {
+      "title": "UserFinanceData",
+      "description": "User's encrypted/private financial records including incomes, expenses, budgets, goals, investments, debts, and emergency fund",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "currency": { "type": "string" },
+        "currentPeriod": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User account profile"
+    },
+    "/users/{userId}/finance/{docId}": {
+      "schema": "UserFinanceData",
+      "description": "Private financial records isolated strictly to the authenticated user"
+    }
+  }
+}

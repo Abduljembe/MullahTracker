@@ -1,0 +1,8 @@
+{
+  "name": "NjiaFedha - Personal Financial Journey",
+  "description": "Comprehensive dark-mode personal finance tracker with income, expenses, budget, savings goals, emergency fund, investments, debt tracking, and Financial Freedom (FIRE) calculator.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
