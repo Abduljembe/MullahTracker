@@ -1,0 +1,17 @@
+{
+  "name": "MullahTracker - Your Financial Journey",
+  "short_name": "MullahTracker",
+  "description": "Comprehensive personal finance tracker with M-Pesa SMS parsing, KRA tax calculator, Chama manager, 12-month cashflow forecast, and FIRE calculator.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070b14",
+  "theme_color": "#07101d",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

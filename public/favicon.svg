@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a1526" />
+      <stop offset="50%" stop-color="#07101d" />
+      <stop offset="100%" stop-color="#030811" />
+    </linearGradient>
+
+    <!-- Neon Teal Gradient -->
+    <linearGradient id="tealGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="45%" stop-color="#10b981" />
+      <stop offset="80%" stop-color="#0df2c9" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+
+    <!-- Secondary Cyan/Blue Accent -->
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0df2c9" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Inner Shadow / Border Stroke Gradient -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0df2c9" stop-opacity="0.8" />
+      <stop offset="50%" stop-color="#38bdf8" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.6" />
+    </linearGradient>
+  </defs>
+
+  <!-- Squircle Base Container -->
+  <rect x="24" y="24" width="464" height="464" rx="116" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="8" />
+
+  <!-- Ambient Glow Behind Symbol -->
+  <circle cx="256" cy="256" r="140" fill="#0df2c9" opacity="0.12" filter="url(#glow)" />
+
+  <!-- Outer Orbit / Compass Ring Segments -->
+  <circle cx="256" cy="256" r="168" fill="none" stroke="url(#tealGrad)" stroke-width="6" stroke-dasharray="14 12" opacity="0.4" />
+  <circle cx="256" cy="256" r="192" fill="none" stroke="#38bdf8" stroke-width="3" stroke-dasharray="6 28" opacity="0.3" />
+
+  <!-- Dynamic Geometric M & Compass / Wealth Growth Chevron Mark -->
+  <g filter="url(#glow)">
+    <!-- Upward Trend Chevrons / Growth Wing Left -->
+    <path
+      d="M136 348 L204 192 L256 268 L208 348 Z"
+      fill="url(#tealGrad)"
+      opacity="0.9"
+    />
+
+    <!-- Upward Trend Chevrons / Growth Wing Right (Leading High Growth) -->
+    <path
+      d="M376 348 L308 192 L256 268 L304 348 Z"
+      fill="url(#tealGrad)"
+      opacity="0.9"
+    />
+
+    <!-- Top North Compass Star Peak / Sovereign Arrow -->
+    <path
+      d="M256 108 L286 216 L256 252 L226 216 Z"
+      fill="url(#cyanGrad)"
+    />
+
+    <!-- Bottom Anchor Core -->
+    <path
+      d="M256 388 L232 308 L256 276 L280 308 Z"
+      fill="#059669"
+      opacity="0.75"
+    />
+
+    <!-- Central Diamond Nexus (Spark of Wealth) -->
+    <polygon
+      points="256,220 284,256 256,292 228,256"
+      fill="#ffffff"
+    />
+    <circle cx="256" cy="256" r="6" fill="#0df2c9" />
+
+    <!-- Leading Peak Sparks -->
+    <circle cx="256" cy="108" r="7" fill="#ffffff" />
+    <circle cx="308" cy="192" r="5" fill="#38bdf8" />
+    <circle cx="204" cy="192" r="5" fill="#10b981" />
+  </g>
+</svg>

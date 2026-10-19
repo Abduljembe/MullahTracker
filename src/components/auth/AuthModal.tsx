@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.tsx';
+import { AppLogoIcon } from '../common/AppLogo.tsx';
 
 export const AuthModal: React.FC = () => {
   const {
@@ -87,10 +88,8 @@ export const AuthModal: React.FC = () => {
       <div className="bg-[#0e1626] border border-[#1e2d48] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
         {/* Modal Top Header */}
         <div className="flex items-center justify-between p-5 border-b border-[#162237] bg-[#0b121f]">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-[#0df2c9]">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
+          <div className="flex items-center gap-3">
+            <AppLogoIcon sizePx={34} />
             <div>
               <h3 className="text-sm font-bold text-white">
                 {authMode === 'login' ? 'Welcome Back to MullahTracker' : 'Create Your Secure Vault'}

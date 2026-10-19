@@ -9,7 +9,12 @@ export type TabType =
   | 'investments'
   | 'debt'
   | 'calculator'
-  | 'reports';
+  | 'reports'
+  | 'mpesa'
+  | 'tax'
+  | 'chama'
+  | 'cashflow'
+  | 'milestones';
 
 export type CurrencyCode = 'KES' | 'USD' | 'EUR' | 'GBP' | 'TZS' | 'UGX';
 
@@ -43,6 +48,7 @@ export interface ExpenseItem {
   paymentMethod: 'M-Pesa' | 'Card' | 'Cash' | 'Bank' | 'Other';
   isRecurring: boolean;
   notes?: string;
+  mpesaRef?: string;
 }
 
 export interface BudgetCategory {
@@ -76,14 +82,14 @@ export interface InvestmentItem {
   currentValue: number;
   investedAmount: number;
   expectedAnnualYieldPercent: number;
-  provider: string; // e.g. CIC, Sanlam, Britam, Stima SACCO, Safaricom, Central Bank of Kenya
+  provider: string;
   lastUpdated: string;
 }
 
 export interface DebtItem {
   id: string;
   name: string;
-  lender: string; // e.g. Fuliza, M-Shwari, Hustler Fund, KCB, Equity Bank, HELB, Credit Card
+  lender: string;
   principal: number;
   remainingAmount: number;
   interestRatePercent: number;
@@ -99,7 +105,7 @@ export interface EmergencyFundConfig {
 }
 
 export interface FinancialHealth {
-  score: number; // 0 - 100
+  score: number;
   status: 'Critical' | 'Needs work' | 'Fair' | 'Good' | 'Excellent';
   color: string;
   savingsRateScore: number;
@@ -107,4 +113,37 @@ export interface FinancialHealth {
   debtScore: number;
   budgetScore: number;
   tips: string[];
+}
+
+export interface ChamaItem {
+  id: string;
+  name: string;
+  contributionAmount: number;
+  frequency: 'monthly' | 'weekly' | 'bi-weekly';
+  totalMembers: number;
+  payoutDate: string;
+  payoutAmount: number;
+  type: 'Merry-Go-Round' | 'Table Banking / Investment' | 'Welfare';
+  notes?: string;
+}
+
+export interface ParsedMpesaMessage {
+  refCode: string;
+  amount: number;
+  type: 'sent' | 'paid' | 'received' | 'withdraw';
+  counterparty: string;
+  date: string;
+  time: string;
+  suggestedCategory: ExpenseItem['category'];
+  balance?: number;
+}
+
+export interface MilestoneBadge {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  unlockedAt?: string;
+  progress: number; // 0 - 100
 }

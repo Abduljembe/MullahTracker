@@ -19,9 +19,14 @@ import {
   EyeOff,
   User,
   Mail,
+  Smartphone,
+  Users,
+  Award,
+  CalendarDays,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useFinance } from '../../context/FinanceContext.tsx';
+import { AppLogo } from '../common/AppLogo.tsx';
 
 interface LandingPageProps {
   onEnterApp: () => void;
@@ -98,19 +103,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       {/* Top Navigation */}
       <header className="relative z-20 border-b border-[#141e30] bg-[#070b14]/85 backdrop-blur-md sticky top-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-[#0df2c9]">
-              <Compass className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-lg font-bold tracking-tight text-[#0df2c9]">
-                MullahTracker
-              </span>
-              <span className="hidden sm:inline-block text-[11px] text-slate-400 font-medium ml-2 border-l border-slate-700 pl-2">
-                Your financial journey
-              </span>
-            </div>
-          </div>
+          <AppLogo size="md" subtext="Your financial journey" />
 
           <div className="flex items-center gap-3">
             {user ? (
@@ -431,70 +424,92 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Feature 1 */}
-          <div className="p-6 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-teal-500/30 transition-all space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-[#0df2c9]">
-              <Banknote className="w-5 h-5" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Feature 1: M-Pesa Parser */}
+          <div className="p-5 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-emerald-500/40 transition-all space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <Smartphone className="w-4 h-4" />
             </div>
-            <h3 className="text-base font-bold text-white">Multi-Stream Income Tracking</h3>
+            <h3 className="text-sm font-bold text-white">M-Pesa SMS Auto-Parser</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Log salary, consulting gigs, SACCO dividends, and rental revenue. Differentiate between monthly recurring inflows and ad-hoc windfalls.
+              No manual typing. Paste raw Safaricom M-Pesa messages; MullahTracker auto-extracts amount, vendor, ref code, and category.
             </p>
           </div>
 
-          {/* Feature 2 */}
-          <div className="p-6 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-rose-500/30 transition-all space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-[#ff4b6b]">
-              <Receipt className="w-5 h-5" />
+          {/* Feature 2: KRA Tax Calc */}
+          <div className="p-5 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-teal-500/40 transition-all space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-[#0df2c9]">
+              <Calculator className="w-4 h-4" />
             </div>
-            <h3 className="text-base font-bold text-white">Expense & Budget Guardrails</h3>
+            <h3 className="text-sm font-bold text-white">KRA PAYE & Net Salary</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Categorize M-Pesa, card, and cash expenses. Set proactive category limits with live progress bars and alert thresholds before you overspend.
+              Calculates 2025/2026 progressive PAYE bands, SHIF (2.75%), Affordable Housing (1.5%), and NSSF Tiers I & II in 1 click.
             </p>
           </div>
 
-          {/* Feature 3 */}
-          <div className="p-6 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-indigo-500/30 transition-all space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-              <ShieldCheck className="w-5 h-5" />
+          {/* Feature 3: Chama Manager */}
+          <div className="p-5 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-amber-500/40 transition-all space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <Users className="w-4 h-4" />
             </div>
-            <h3 className="text-base font-bold text-white">3-to-12 Month Emergency Runway</h3>
+            <h3 className="text-sm font-bold text-white">Chama & Merry-Go-Round</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Calculate the exact liquidity cushion required for unexpected emergencies and track your progress parking cash in high-yield MMFs.
+              Track contributions, table banking pools, member turns, and receive countdowns for your next lump-sum payout rotation.
             </p>
           </div>
 
-          {/* Feature 4 */}
-          <div className="p-6 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-amber-500/30 transition-all space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <TrendingUp className="w-5 h-5" />
+          {/* Feature 4: Cashflow Simulator */}
+          <div className="p-5 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-blue-500/40 transition-all space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+              <CalendarDays className="w-4 h-4" />
             </div>
-            <h3 className="text-base font-bold text-white">Kenyan Investment Portfolio</h3>
+            <h3 className="text-sm font-bold text-white">12-Month Cash Flow Forecast</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Monitor Money Market Funds (MMFs), SACCO deposits, Nairobi Securities Exchange (NSE) shares, and CBK Infrastructure Bonds in one dashboard.
+              Forward-looking liquidity simulator. Stress-test income shocks, cost of living inflation, and compound interest growth.
             </p>
           </div>
 
-          {/* Feature 5 */}
-          <div className="p-6 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-cyan-500/30 transition-all space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-[#00d2ff]">
-              <Flame className="w-5 h-5" />
+          {/* Feature 5: Milestones Badges */}
+          <div className="p-5 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-purple-500/40 transition-all space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+              <Award className="w-4 h-4" />
             </div>
-            <h3 className="text-base font-bold text-white">Financial Freedom (FIRE) Engine</h3>
+            <h3 className="text-sm font-bold text-white">Milestones & Badges</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Interactive calculator projecting your retirement age, Coast FIRE, and Fat FIRE numbers adjusted for Kenyan CPI inflation and compound interest.
+              Gamified wealth-building journey with 11 milestones from "First Shilling" and "Safety Shield" to "Mullah Millionaire".
             </p>
           </div>
 
-          {/* Feature 6 */}
-          <div className="p-6 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-purple-500/30 transition-all space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
-              <BarChart2 className="w-5 h-5" />
+          {/* Feature 6: Investments */}
+          <div className="p-5 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-teal-500/40 transition-all space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-300">
+              <TrendingUp className="w-4 h-4" />
             </div>
-            <h3 className="text-base font-bold text-white">One-Click CSV & Balance Sheets</h3>
+            <h3 className="text-sm font-bold text-white">Kenyan Investment Portfolio</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Export comprehensive monthly income vs expense cashflow statements, net worth balances, and print-ready financial health summaries.
+              Monitor Money Market Funds (MMFs), SACCO deposits, NSE stocks, and Treasury Infrastructure Bonds in one dashboard.
+            </p>
+          </div>
+
+          {/* Feature 7: Emergency Fund */}
+          <div className="p-5 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-indigo-500/40 transition-all space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-bold text-white">Emergency Fund Runway</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Calculate essential monthly runway (3, 6, 9, or 12 months) and track liquidity reserves parked safely in liquid assets.
+            </p>
+          </div>
+
+          {/* Feature 8: FIRE Engine */}
+          <div className="p-5 rounded-2xl bg-[#0c1424] border border-[#18263e] hover:border-amber-500/40 transition-all space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-300">
+              <Flame className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-bold text-white">FIRE Freedom Calculator</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Interactive target calculator projecting years to financial freedom, Coast FIRE, and Fat FIRE in Kenyan Shillings.
             </p>
           </div>
         </div>
@@ -535,11 +550,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       {/* Footer */}
       <footer className="relative z-10 border-t border-[#141e30] py-8 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-[#0df2c9]" />
-            <span className="font-bold text-slate-300">MullahTracker</span>
-            <span>· Your Financial Journey</span>
-          </div>
+          <AppLogo size="xs" subtext="Your Financial Journey" />
           <div>
             Built with secure Firebase Firestore authentication & zero-trust privacy
           </div>

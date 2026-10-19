@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Banknote,
   Receipt,
@@ -15,6 +14,12 @@ import {
   Calendar,
   Wallet,
   AlertCircle,
+  Smartphone,
+  Users,
+  Award,
+  CalendarDays,
+  Calculator,
+  Compass,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext.tsx';
 
@@ -32,6 +37,9 @@ export const DashboardView: React.FC = () => {
     expenses,
     investments,
     emergencyFund,
+    dailySafeToSpend,
+    badges,
+    chamas,
     setActiveTab,
     setIsQuickAddOpen,
     setIsHealthModalOpen,
@@ -76,8 +84,76 @@ export const DashboardView: React.FC = () => {
     ? (totalEmergencyFund / emergencyFund.monthlyEssentialExpenses).toFixed(1)
     : '0';
 
+  const unlockedBadges = badges.filter((b) => b.unlocked).length;
+
   return (
     <div className="space-y-6">
+      {/* Top Smart Intelligence Banner: Safe to Spend & M-Pesa Quick Assistant */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* Widget 1: Daily Safe to Spend */}
+        <div
+          onClick={() => setActiveTab('budget')}
+          className="bg-gradient-to-r from-[#0c1c2e] to-[#0e2438] border border-teal-500/30 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:border-teal-400/50 transition-all shadow-md group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-[#0df2c9] shrink-0">
+              <Wallet className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-teal-300">
+                Safe to Spend Today
+              </div>
+              <div className="text-xl font-extrabold text-white font-mono mt-0.5">
+                {dailySafeToSpend > 0 ? `${formatCurrency(dailySafeToSpend)} / day` : 'Set Income / Budget'}
+              </div>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-teal-400 transition-colors" />
+        </div>
+
+        {/* Widget 2: M-Pesa SMS Auto-Parser */}
+        <div
+          onClick={() => setActiveTab('mpesa')}
+          className="bg-[#0e1626] border border-[#19273f] hover:border-emerald-500/40 rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all shadow-md group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                M-Pesa SMS Parser
+              </div>
+              <div className="text-sm font-bold text-slate-200 mt-0.5">
+                Paste SMS & Import Live
+              </div>
+            </div>
+          </div>
+          <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+        </div>
+
+        {/* Widget 3: Milestones & Badges */}
+        <div
+          onClick={() => setActiveTab('milestones')}
+          className="bg-[#0e1626] border border-[#19273f] hover:border-amber-500/40 rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all shadow-md group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+              <Award className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Financial Milestones
+              </div>
+              <div className="text-sm font-bold text-amber-300 font-mono mt-0.5">
+                {unlockedBadges} of {badges.length} Badges Unlocked
+              </div>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-colors" />
+        </div>
+      </div>
+
       {/* 6 Key Stat Cards matching the exact uploaded image */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
         {/* Card 1: Monthly Income */}
@@ -260,18 +336,39 @@ export const DashboardView: React.FC = () => {
             <span>Record Entry</span>
           </button>
           <button
-            onClick={() => setActiveTab('calculator')}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-[#14233c] hover:bg-[#1a2d4d] border border-[#213554] text-slate-200 font-medium text-xs transition-colors"
+            onClick={() => setActiveTab('mpesa')}
+            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#14233c] hover:bg-[#1a2d4d] border border-[#213554] text-slate-200 font-medium text-xs transition-colors"
           >
-            <Percent className="w-4 h-4 text-teal-400" />
-            <span>Calculate FIRE</span>
+            <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Parse M-Pesa</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('tax')}
+            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#14233c] hover:bg-[#1a2d4d] border border-[#213554] text-slate-200 font-medium text-xs transition-colors"
+          >
+            <Calculator className="w-3.5 h-3.5 text-teal-400" />
+            <span>KRA Tax</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('chama')}
+            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#14233c] hover:bg-[#1a2d4d] border border-[#213554] text-slate-200 font-medium text-xs transition-colors"
+          >
+            <Users className="w-3.5 h-3.5 text-amber-400" />
+            <span>Chamas ({chamas.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('cashflow')}
+            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#14233c] hover:bg-[#1a2d4d] border border-[#213554] text-slate-200 font-medium text-xs transition-colors"
+          >
+            <CalendarDays className="w-3.5 h-3.5 text-blue-400" />
+            <span>Forecast</span>
           </button>
           <button
             onClick={() => setIsHealthModalOpen(true)}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-[#14233c] hover:bg-[#1a2d4d] border border-[#213554] text-slate-200 font-medium text-xs transition-colors"
+            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#14233c] hover:bg-[#1a2d4d] border border-[#213554] text-slate-200 font-medium text-xs transition-colors"
           >
-            <AlertCircle className="w-4 h-4 text-rose-400" />
-            <span>View Health Report</span>
+            <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+            <span>Health</span>
           </button>
         </div>
       </div>

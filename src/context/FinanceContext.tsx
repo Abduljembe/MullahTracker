@@ -13,6 +13,8 @@ import {
   DebtItem,
   EmergencyFundConfig,
   FinancialHealth,
+  ChamaItem,
+  MilestoneBadge,
 } from '../types/finance.ts';
 
 interface FinanceContextType {
@@ -32,6 +34,7 @@ interface FinanceContextType {
   investments: InvestmentItem[];
   debts: DebtItem[];
   emergencyFund: EmergencyFundConfig;
+  chamas: ChamaItem[];
 
   // Actions
   addIncome: (income: Omit<IncomeItem, 'id'>) => void;
@@ -50,8 +53,10 @@ interface FinanceContextType {
   deleteDebt: (id: string) => void;
   updateEmergencyFund: (config: Partial<EmergencyFundConfig>) => void;
   depositToEmergencyFund: (amount: number) => void;
+  addChama: (chama: Omit<ChamaItem, 'id'>) => void;
+  deleteChama: (id: string) => void;
 
-  // Aggregated totals
+  // Aggregated totals & new metrics
   totalMonthlyIncome: number;
   totalMonthlyExpenses: number;
   savingsThisMonth: number;
@@ -61,6 +66,8 @@ interface FinanceContextType {
   totalDebt: number;
   totalSavingsGoals: number;
   netWorth: number;
+  dailySafeToSpend: number;
+  badges: MilestoneBadge[];
 
   // Health
   financialHealth: FinancialHealth;
@@ -114,6 +121,7 @@ const INITIAL_EMPTY_STATE = {
     targetMonths: 6,
     currentAmount: 0,
   },
+  chamas: [] as ChamaItem[],
 };
 
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -131,6 +139,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [investments, setInvestments] = useState<InvestmentItem[]>([]);
   const [debts, setDebts] = useState<DebtItem[]>([]);
   const [emergencyFund, setEmergencyFund] = useState<EmergencyFundConfig>(INITIAL_EMPTY_STATE.emergencyFund);
+  const [chamas, setChamas] = useState<ChamaItem[]>([]);
 
   // Load from localStorage on mount, removing any leftover sample items
   useEffect(() => {
@@ -170,6 +179,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
           const real = parsed.debts.filter((d: DebtItem) => !SAMPLE_IDS.has(d.id));
           setDebts(real);
         }
+        if (Array.isArray(parsed.chamas)) {
+          setChamas(parsed.chamas);
+        }
         if (parsed.emergencyFund && parsed.emergencyFund.currentAmount !== 280000) {
           // If it was the exact sample fund 280000, reset to 0
           setEmergencyFund(parsed.emergencyFund);
@@ -202,6 +214,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
           if (Array.isArray(parsed.savingsGoals)) setSavingsGoals(parsed.savingsGoals);
           if (Array.isArray(parsed.investments)) setInvestments(parsed.investments);
           if (Array.isArray(parsed.debts)) setDebts(parsed.debts);
+          if (Array.isArray(parsed.chamas)) setChamas(parsed.chamas);
           if (parsed.emergencyFund) setEmergencyFund(parsed.emergencyFund);
         }
       } catch (e) {
@@ -228,6 +241,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
           if (Array.isArray(data.savingsGoals)) setSavingsGoals(data.savingsGoals);
           if (Array.isArray(data.investments)) setInvestments(data.investments);
           if (Array.isArray(data.debts)) setDebts(data.debts);
+          if (Array.isArray(data.chamas)) setChamas(data.chamas);
           if (data.emergencyFund) setEmergencyFund(data.emergencyFund);
         } else if (!snap.exists() && !isCancelled) {
           await setDoc(
@@ -242,6 +256,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
               investments,
               debts,
               emergencyFund,
+              chamas,
               updatedAt: new Date().toISOString(),
             },
             { merge: true }
@@ -276,6 +291,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         investments,
         debts,
         emergencyFund,
+        chamas,
       };
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_${user.uid}`, JSON.stringify(stateToSave));
     } catch {
@@ -300,6 +316,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
             investments,
             debts,
             emergencyFund,
+            chamas,
             updatedAt: new Date().toISOString(),
           },
           { merge: true }
@@ -310,7 +327,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     }, 1000);
 
     return () => clearTimeout(timeout);
-  }, [user, currency, currentPeriod, incomes, expenses, budgets, savingsGoals, investments, debts, emergencyFund]);
+  }, [user, currency, currentPeriod, incomes, expenses, budgets, savingsGoals, investments, debts, emergencyFund, chamas]);
 
   // Save changes to localStorage
   useEffect(() => {
@@ -325,12 +342,13 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         investments,
         debts,
         emergencyFund,
+        chamas,
       };
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (e) {
       console.error('Error saving finance state:', e);
     }
-  }, [currency, currentPeriod, incomes, expenses, budgets, savingsGoals, investments, debts, emergencyFund]);
+  }, [currency, currentPeriod, incomes, expenses, budgets, savingsGoals, investments, debts, emergencyFund, chamas]);
 
   const formatCurrency = (amount: number): string => {
     const formatted = Math.round(amount).toLocaleString('en-US');
@@ -436,6 +454,18 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setEmergencyFund((prev) => ({ ...prev, currentAmount: prev.currentAmount + amount }));
   };
 
+  const addChama = (chama: Omit<ChamaItem, 'id'>) => {
+    const newChama: ChamaItem = {
+      ...chama,
+      id: 'user-chama-' + Date.now(),
+    };
+    setChamas((prev) => [...prev, newChama]);
+  };
+
+  const deleteChama = (id: string) => {
+    setChamas((prev) => prev.filter((c) => c.id !== id));
+  };
+
   // Reset / Clear all data to fresh zero state
   const clearAllData = () => {
     setIncomes([]);
@@ -445,6 +475,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setInvestments([]);
     setDebts([]);
     setEmergencyFund(INITIAL_EMPTY_STATE.emergencyFund);
+    setChamas([]);
     try {
       localStorage.removeItem(LOCAL_STORAGE_KEY);
       LEGACY_STORAGE_KEYS.forEach((k) => localStorage.removeItem(k));
@@ -469,6 +500,125 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   // Net Worth = (Cash/Savings + Emergency + Investments + Goals) - Debts
   const liquidSavings = Math.max(0, savingsThisMonth);
   const netWorth = (liquidSavings + totalEmergencyFund + totalInvestments + totalSavingsGoals) - totalDebt;
+
+  // Safe to Spend Today
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysRemaining = Math.max(1, daysInMonth - now.getDate() + 1);
+  const dailySafeToSpend = totalMonthlyIncome > 0
+    ? Math.max(0, Math.round(Math.max(0, totalMonthlyIncome - totalMonthlyExpenses) / daysRemaining))
+    : 0;
+
+  // Dynamic Badges Engine
+  const badges: MilestoneBadge[] = React.useMemo(() => {
+    const list: MilestoneBadge[] = [];
+    const totalTransactions = incomes.length + expenses.length;
+    const essentialExpenses = emergencyFund.monthlyEssentialExpenses || (totalMonthlyExpenses > 0 ? totalMonthlyExpenses : 30000);
+    const monthsSaved = essentialExpenses > 0 ? totalEmergencyFund / essentialExpenses : 0;
+    const completedGoals = savingsGoals.filter((g) => g.currentAmount >= g.targetAmount && g.targetAmount > 0);
+    const activeBudgets = budgets.filter((b) => b.monthlyLimit > 0);
+
+    list.push({
+      id: 'first-entry',
+      title: 'First Shilling',
+      description: 'Record your very first income or expense transaction',
+      icon: 'Wallet',
+      unlocked: totalTransactions > 0,
+      progress: totalTransactions > 0 ? 100 : 0,
+    });
+
+    list.push({
+      id: 'budget-disciplined',
+      title: 'Budget Master',
+      description: 'Define limits for at least 3 core spending categories',
+      icon: 'SlidersHorizontal',
+      unlocked: activeBudgets.length >= 3,
+      progress: Math.min(100, Math.round((activeBudgets.length / 3) * 100)),
+    });
+
+    list.push({
+      id: 'emergency-starter',
+      title: 'Safety Shield',
+      description: 'Accumulate at least 1 month of essential expenses in emergency cash',
+      icon: 'Shield',
+      unlocked: monthsSaved >= 1,
+      progress: Math.min(100, Math.round(monthsSaved * 100)),
+    });
+
+    list.push({
+      id: 'financial-fortress',
+      title: 'Financial Fortress',
+      description: 'Build a bulletproof 6-month living expense runway',
+      icon: 'ShieldCheck',
+      unlocked: monthsSaved >= 6,
+      progress: Math.min(100, Math.round((monthsSaved / 6) * 100)),
+    });
+
+    list.push({
+      id: 'active-investor',
+      title: 'Wealth Builder',
+      description: 'Invest into compound interest assets (MMF, SACCOs, Bonds, Stocks)',
+      icon: 'TrendingUp',
+      unlocked: totalInvestments > 0,
+      progress: totalInvestments > 0 ? 100 : 0,
+    });
+
+    list.push({
+      id: 'super-saver',
+      title: 'Savvy Saver',
+      description: 'Achieve a monthly savings rate of 30% or higher',
+      icon: 'Sparkles',
+      unlocked: savingsRate >= 30,
+      progress: Math.min(100, Math.round((savingsRate / 30) * 100)),
+    });
+
+    list.push({
+      id: 'goal-crusher',
+      title: 'Goal Crusher',
+      description: 'Fully fund any savings milestone target',
+      icon: 'Target',
+      unlocked: completedGoals.length > 0,
+      progress: completedGoals.length > 0 ? 100 : savingsGoals.length > 0 ? 50 : 0,
+    });
+
+    list.push({
+      id: 'debt-slayer',
+      title: 'Debt Free Life',
+      description: 'Zero high-interest debt liabilities',
+      icon: 'CreditCard',
+      unlocked: debts.length === 0 && (incomes.length > 0 || totalInvestments > 0),
+      progress: debts.length === 0 ? 100 : 40,
+    });
+
+    list.push({
+      id: 'chama-champion',
+      title: 'Chama Pillar',
+      description: 'Join and manage a community Chama or Table Banking circle',
+      icon: 'Users',
+      unlocked: chamas.length > 0,
+      progress: chamas.length > 0 ? 100 : 0,
+    });
+
+    list.push({
+      id: 'centurion',
+      title: '100K Club',
+      description: 'Surpass KES 100,000 in combined Net Worth',
+      icon: 'Award',
+      unlocked: netWorth >= 100000,
+      progress: Math.min(100, Math.max(0, Math.round((netWorth / 100000) * 100))),
+    });
+
+    list.push({
+      id: 'mullah-millionaire',
+      title: 'Mullah Millionaire',
+      description: 'Reach seven-figure Net Worth milestone (KES 1,000,000+)',
+      icon: 'Crown',
+      unlocked: netWorth >= 1000000,
+      progress: Math.min(100, Math.max(0, Math.round((netWorth / 1000000) * 100))),
+    });
+
+    return list;
+  }, [incomes, expenses, budgets, savingsGoals, emergencyFund, totalEmergencyFund, totalMonthlyExpenses, totalInvestments, savingsRate, debts, chamas, netWorth]);
 
   // Calculate Financial Health Score (0 - 100)
   const calculateFinancialHealth = (): FinancialHealth => {
@@ -578,6 +728,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         investments,
         debts,
         emergencyFund,
+        chamas,
         addIncome,
         deleteIncome,
         addExpense,
@@ -594,6 +745,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         deleteDebt,
         updateEmergencyFund,
         depositToEmergencyFund,
+        addChama,
+        deleteChama,
         totalMonthlyIncome,
         totalMonthlyExpenses,
         savingsThisMonth,
@@ -603,6 +756,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         totalDebt,
         totalSavingsGoals,
         netWorth,
+        dailySafeToSpend,
+        badges,
         financialHealth,
         isCloudSyncing,
         clearAllData,

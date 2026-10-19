@@ -19,6 +19,11 @@ import { InvestmentsView } from './components/views/InvestmentsView.tsx';
 import { DebtTrackerView } from './components/views/DebtTrackerView.tsx';
 import { FFCalculatorView } from './components/views/FFCalculatorView.tsx';
 import { ReportsView } from './components/views/ReportsView.tsx';
+import { MpesaView } from './components/views/MpesaView.tsx';
+import { TaxCalculatorView } from './components/views/TaxCalculatorView.tsx';
+import { ChamaView } from './components/views/ChamaView.tsx';
+import { CashflowForecastView } from './components/views/CashflowForecastView.tsx';
+import { MilestonesView } from './components/views/MilestonesView.tsx';
 import { QuickAddModal } from './components/modals/QuickAddModal.tsx';
 import { HealthScoreModal } from './components/modals/HealthScoreModal.tsx';
 import { AuthModal } from './components/auth/AuthModal.tsx';
@@ -46,12 +51,16 @@ const MainContent: React.FC = () => {
         return <DashboardView />;
       case 'insights':
         return <InsightsView />;
+      case 'cashflow':
+        return <CashflowForecastView />;
       case 'income':
         return <IncomeView />;
       case 'expenses':
         return <ExpensesView />;
       case 'budget':
         return <BudgetView />;
+      case 'mpesa':
+        return <MpesaView />;
       case 'savings':
         return <SavingsGoalsView />;
       case 'emergency':
@@ -60,6 +69,14 @@ const MainContent: React.FC = () => {
         return <InvestmentsView />;
       case 'debt':
         return <DebtTrackerView />;
+      case 'chama':
+        return <ChamaView />;
+      case 'milestones':
+        return <MilestonesView />;
+      case 'cashflow':
+        return <CashflowForecastView />;
+      case 'tax':
+        return <TaxCalculatorView />;
       case 'calculator':
         return <FFCalculatorView />;
       case 'reports':

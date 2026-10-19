@@ -16,11 +16,15 @@ import {
   Lock,
   LogOut,
   User as UserIcon,
-  CloudCheck,
+  Smartphone,
+  Users,
+  Award,
+  CalendarDays,
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { TabType } from '../types/finance.ts';
+import { AppLogo } from './common/AppLogo.tsx';
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -48,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'insights', label: 'Insights', icon: Lightbulb },
+        { id: 'cashflow', label: 'Cash Flow Forecast', icon: CalendarDays },
       ],
     },
     {
@@ -56,21 +61,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
         { id: 'income', label: 'Income', icon: Wallet },
         { id: 'expenses', label: 'Expenses', icon: FileText },
         { id: 'budget', label: 'Budget', icon: SlidersHorizontal },
+        { id: 'mpesa', label: 'M-Pesa SMS Parser', icon: Smartphone },
       ],
     },
     {
-      group: 'GOALS',
+      group: 'GOALS & WEALTH',
       items: [
         { id: 'savings', label: 'Savings Goals', icon: Target },
         { id: 'emergency', label: 'Emergency Fund', icon: Shield },
         { id: 'investments', label: 'Investments', icon: TrendingUp },
         { id: 'debt', label: 'Debt Tracker', icon: CreditCard },
+        { id: 'chama', label: 'Chama & Groups', icon: Users },
+        { id: 'milestones', label: 'Milestones & Badges', icon: Award },
       ],
     },
     {
-      group: 'TOOLS',
+      group: 'TOOLS & REPORTS',
       items: [
-        { id: 'calculator', label: 'FF Calculator', icon: Calculator },
+        { id: 'cashflow', label: 'Cash Flow Forecast', icon: CalendarDays },
+        { id: 'tax', label: 'KRA Tax & PAYE', icon: Calculator },
+        { id: 'calculator', label: 'FF Calculator', icon: Compass },
         { id: 'reports', label: 'Reports', icon: BarChart2 },
       ],
     },
@@ -84,20 +94,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
   const sidebarContent = (
     <div className="flex flex-col h-full bg-[#0b111c] border-r border-[#152033] text-slate-300 w-64 select-none">
       {/* Brand Header */}
-      <div className="p-6 pb-5 flex items-center justify-between border-b border-[#141e30]/80">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
-              <Compass className="w-4 h-4" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-[#0df2c9] drop-shadow-sm">
-              MullahTracker
-            </h1>
-          </div>
-          <p className="text-xs text-slate-400 font-medium tracking-wide mt-1 pl-0.5">
-            Your financial journey
-          </p>
-        </div>
+      <div className="p-5 pb-4 flex items-center justify-between border-b border-[#141e30]/80">
+        <AppLogo size="md" subtext="Your financial journey" />
         {mobileOpen && (
           <button
             onClick={() => setMobileOpen(false)}

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
+import { AppLogoIcon } from './common/AppLogo.tsx';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -65,6 +66,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
         return 'Investments Portfolio';
       case 'debt':
         return 'Debt Payoff Tracker';
+      case 'mpesa':
+        return 'M-Pesa SMS Statement Parser';
+      case 'tax':
+        return 'KRA PAYE & Net Salary Calculator';
+      case 'chama':
+        return 'Chama & Group Savings Tracker';
+      case 'cashflow':
+        return '12-Month Cash Flow Forecast';
+      case 'milestones':
+        return 'Milestones & Achievement Badges';
       case 'calculator':
         return 'Financial Freedom (FIRE) Calculator';
       case 'reports':
@@ -111,10 +122,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
         <div className="flex items-center gap-3">
           <button
             onClick={onOpenMobileMenu}
-            className="md:hidden p-2 -ml-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/60"
+            className="md:hidden p-2 -ml-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/60 flex items-center gap-2"
             aria-label="Open navigation menu"
           >
             <Menu className="w-5 h-5" />
+            <AppLogoIcon sizePx={24} />
           </button>
 
           <div>
