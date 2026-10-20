@@ -14,7 +14,7 @@ import { useFinance } from '../../context/FinanceContext.tsx';
 import { IncomeItem } from '../../types/finance.ts';
 
 export const IncomeView: React.FC = () => {
-  const { incomes, addIncome, deleteIncome, formatCurrency, totalMonthlyIncome } = useFinance();
+  const { incomes, addIncome, deleteIncome, formatCurrency, totalMonthlyIncome, currency } = useFinance();
 
   const [isAdding, setIsAdding] = useState(false);
   const [source, setSource] = useState('');

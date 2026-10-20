@@ -16,15 +16,40 @@ import {
   ChamaItem,
   MilestoneBadge,
 } from '../types/finance.ts';
+import {
+  ExchangeRates,
+  DEFAULT_RATES,
+  CURRENCY_SYMBOLS,
+  CURRENCY_NAMES,
+  getStoredExchangeRates,
+  fetchLiveExchangeRates,
+  getExchangeRate,
+  convertCurrency,
+  formatCurrencyWithSymbol,
+} from '../utils/currency.ts';
+
+export interface CurrencyNotice {
+  from: CurrencyCode;
+  to: CurrencyCode;
+  rate: number;
+  message: string;
+}
 
 interface FinanceContextType {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   currency: CurrencyCode;
-  setCurrency: (c: CurrencyCode) => void;
-  formatCurrency: (amount: number) => string;
+  currencySymbol: string;
+  setCurrency: (c: CurrencyCode, convertData?: boolean) => void;
+  formatCurrency: (amount: number, options?: { showSymbol?: boolean; decimals?: number }) => string;
   currentPeriod: string;
   setCurrentPeriod: (p: string) => void;
+
+  // Real-time FX Rates & Notices
+  exchangeRates: ExchangeRates;
+  refreshExchangeRates: () => Promise<void>;
+  currencyNotice: CurrencyNotice | null;
+  dismissCurrencyNotice: () => void;
 
   // Data collections
   incomes: IncomeItem[];
@@ -102,7 +127,7 @@ const getDynamicCurrentPeriod = () => {
 };
 
 const INITIAL_EMPTY_STATE = {
-  currency: 'KES' as CurrencyCode,
+  currency: 'USD' as CurrencyCode,
   currentPeriod: getDynamicCurrentPeriod(),
   incomes: [] as IncomeItem[],
   expenses: [] as ExpenseItem[],
@@ -126,10 +151,19 @@ const INITIAL_EMPTY_STATE = {
 
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
-  const [currency, setCurrency] = useState<CurrencyCode>('KES');
+  const [currency, setCurrencyState] = useState<CurrencyCode>('USD');
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRates>(getStoredExchangeRates());
+  const [currencyNotice, setCurrencyNotice] = useState<CurrencyNotice | null>(null);
   const [currentPeriod, setCurrentPeriod] = useState<string>(getDynamicCurrentPeriod());
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
+
+  // Load latest live exchange rates on mount
+  useEffect(() => {
+    fetchLiveExchangeRates().then((rates) => {
+      if (rates) setExchangeRates(rates);
+    });
+  }, []);
 
   // Collections starting blank
   const [incomes, setIncomes] = useState<IncomeItem[]>([]);
@@ -152,7 +186,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed.currency) setCurrency(parsed.currency);
+        if (parsed.currency) setCurrencyState(parsed.currency);
         if (parsed.currentPeriod) setCurrentPeriod(parsed.currentPeriod);
 
         // Filter out any sample demo IDs so only real user entries exist
@@ -206,7 +240,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         const stored = localStorage.getItem(userScopedKey);
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (parsed.currency) setCurrency(parsed.currency);
+          if (parsed.currency) setCurrencyState(parsed.currency);
           if (parsed.currentPeriod) setCurrentPeriod(parsed.currentPeriod);
           if (Array.isArray(parsed.incomes)) setIncomes(parsed.incomes);
           if (Array.isArray(parsed.expenses)) setExpenses(parsed.expenses);
@@ -233,7 +267,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         const snap = await getDoc(ref);
         if (snap.exists() && !isCancelled) {
           const data = snap.data();
-          if (data.currency) setCurrency(data.currency);
+          if (data.currency) setCurrencyState(data.currency);
           if (data.currentPeriod) setCurrentPeriod(data.currentPeriod);
           if (Array.isArray(data.incomes)) setIncomes(data.incomes);
           if (Array.isArray(data.expenses)) setExpenses(data.expenses);
@@ -350,9 +384,105 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, [currency, currentPeriod, incomes, expenses, budgets, savingsGoals, investments, debts, emergencyFund, chamas]);
 
-  const formatCurrency = (amount: number): string => {
-    const formatted = Math.round(amount).toLocaleString('en-US');
-    return `${currency} ${formatted}`;
+  const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
+
+  const dismissCurrencyNotice = () => setCurrencyNotice(null);
+
+  const refreshExchangeRates = async () => {
+    const fresh = await fetchLiveExchangeRates();
+    if (fresh) {
+      setExchangeRates(fresh);
+    }
+  };
+
+  const setCurrency = (newCurrency: CurrencyCode, convertData = true) => {
+    if (newCurrency === currency) return;
+
+    if (convertData) {
+      const rate = getExchangeRate(currency, newCurrency, exchangeRates);
+
+      if (rate > 0 && Math.abs(rate - 1) > 0.0001) {
+        // Convert all active recorded monetary figures across all categories
+        setIncomes((prev) =>
+          prev.map((i) => ({
+            ...i,
+            amount: Math.round(i.amount * rate * 100) / 100,
+          }))
+        );
+
+        setExpenses((prev) =>
+          prev.map((e) => ({
+            ...e,
+            amount: Math.round(e.amount * rate * 100) / 100,
+          }))
+        );
+
+        setBudgets((prev) =>
+          prev.map((b) => ({
+            ...b,
+            monthlyLimit: Math.round(b.monthlyLimit * rate * 100) / 100,
+          }))
+        );
+
+        setSavingsGoals((prev) =>
+          prev.map((g) => ({
+            ...g,
+            targetAmount: Math.round(g.targetAmount * rate * 100) / 100,
+            currentAmount: Math.round(g.currentAmount * rate * 100) / 100,
+          }))
+        );
+
+        setInvestments((prev) =>
+          prev.map((inv) => ({
+            ...inv,
+            currentValue: Math.round(inv.currentValue * rate * 100) / 100,
+            investedAmount: Math.round(inv.investedAmount * rate * 100) / 100,
+          }))
+        );
+
+        setDebts((prev) =>
+          prev.map((d) => ({
+            ...d,
+            principal: Math.round(d.principal * rate * 100) / 100,
+            remainingAmount: Math.round(d.remainingAmount * rate * 100) / 100,
+            minimumMonthlyPayment: Math.round(d.minimumMonthlyPayment * rate * 100) / 100,
+          }))
+        );
+
+        setEmergencyFund((prev) => ({
+          ...prev,
+          monthlyEssentialExpenses: Math.round(prev.monthlyEssentialExpenses * rate * 100) / 100,
+          currentAmount: Math.round(prev.currentAmount * rate * 100) / 100,
+        }));
+
+        setChamas((prev) =>
+          prev.map((ch) => ({
+            ...ch,
+            contributionAmount: Math.round(ch.contributionAmount * rate * 100) / 100,
+            payoutAmount: Math.round(ch.payoutAmount * rate * 100) / 100,
+          }))
+        );
+
+        const rateFormatted =
+          rate < 0.01 ? rate.toFixed(4) : rate < 10 ? rate.toFixed(3) : rate.toFixed(2);
+
+        setCurrencyNotice({
+          from: currency,
+          to: newCurrency,
+          rate,
+          message: `Converted portfolio from ${currency} to ${newCurrency} (1 ${currency} = ${rateFormatted} ${newCurrency})`,
+        });
+      }
+    }
+
+    setCurrencyState(newCurrency);
+  };
+
+  const formatCurrency = (
+    amount: number,
+    options?: { showSymbol?: boolean; decimals?: number }
+  ): string => {
+    return formatCurrencyWithSymbol(amount, currency, options);
   };
 
   // Actions
@@ -717,10 +847,15 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         activeTab,
         setActiveTab,
         currency,
+        currencySymbol,
         setCurrency,
         formatCurrency,
         currentPeriod,
         setCurrentPeriod,
+        exchangeRates,
+        refreshExchangeRates,
+        currencyNotice,
+        dismissCurrencyNotice,
         incomes,
         expenses,
         budgets,

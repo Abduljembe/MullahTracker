@@ -12,6 +12,9 @@ import {
   LogOut,
   Cloud,
   Globe,
+  RefreshCw,
+  ArrowRightLeft,
+  X,
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -37,6 +40,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
     debts,
     currency,
     setCurrency,
+    exchangeRates,
+    refreshExchangeRates,
+    currencyNotice,
+    dismissCurrencyNotice,
     isCloudSyncing,
   } = useFinance();
 
@@ -116,9 +123,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
   const healthBadge = getHealthBadge();
 
   return (
-    <header className="sticky top-0 z-20 backdrop-blur-md bg-[#080d17]/85 border-b border-[#141e30] px-4 md:px-8 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-      {/* Top Left: Title, Subtitle, and Health Pill matching screenshot */}
-      <div className="flex items-center justify-between">
+    <header className="sticky top-0 z-20 backdrop-blur-md bg-[#080d17]/90 border-b border-[#141e30] px-4 md:px-8 py-3 flex flex-col gap-2">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        {/* Top Left: Title, Subtitle, and Health Pill matching screenshot */}
+        <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={onOpenMobileMenu}
@@ -184,21 +192,51 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
           </button>
         )}
 
-        {/* Currency Switcher */}
-        <div className="flex items-center bg-[#0d1524] border border-[#1a273e] rounded-lg p-0.5 text-slate-300">
-          {(['KES', 'USD', 'EUR'] as const).map((c) => (
+        {/* Currency Switcher & Real-time Rates */}
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center bg-[#0d1524] border border-[#1a273e] rounded-lg p-0.5 text-slate-300">
+            {(['USD', 'KES', 'EUR'] as const).map((c) => {
+              const symbol = c === 'USD' ? '$' : c === 'KES' ? 'KSh' : '€';
+              return (
+                <button
+                  key={c}
+                  onClick={() => setCurrency(c)}
+                  title={`Switch active currency to ${c} (auto-converts recorded balances)`}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1 ${
+                    currency === c
+                      ? 'bg-gradient-to-r from-teal-500/25 to-cyan-500/25 text-[#0df2c9] border border-teal-500/40 shadow-sm shadow-teal-500/10'
+                      : 'hover:text-white hover:bg-slate-800/40'
+                  }`}
+                >
+                  <span className="text-[10px] text-teal-400 font-normal">{symbol}</span>
+                  <span>{c}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Real-time FX Rates Ticker */}
+          <div
+            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#0a1220] border border-[#17253b] text-[11px] text-slate-400"
+            title="Real-time mid-market exchange rates"
+          >
+            <span className="text-teal-400 font-mono font-medium">1 USD</span>
+            <span className="text-slate-600">=</span>
+            <span className="text-slate-200 font-mono font-medium">
+              {exchangeRates.KES ? `${exchangeRates.KES.toFixed(2)} KES` : '129.79 KES'}
+            </span>
+            <span className="text-slate-600">·</span>
+            <span className="text-slate-200 font-mono font-medium">
+              {exchangeRates.EUR ? `${exchangeRates.EUR.toFixed(2)} EUR` : '0.89 EUR'}
+            </span>
             <button
-              key={c}
-              onClick={() => setCurrency(c)}
-              className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-colors ${
-                currency === c
-                  ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40'
-                  : 'hover:text-white'
-              }`}
+              onClick={() => refreshExchangeRates()}
+              className="p-0.5 ml-0.5 hover:text-teal-300 text-slate-500 transition-colors"
+              title="Refresh live exchange rates"
             >
-              {c}
+              <RefreshCw className="w-3 h-3" />
             </button>
-          ))}
+          </div>
         </div>
 
         {/* Reset / Clear Data */}
@@ -302,6 +340,28 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
           </button>
         )}
       </div>
+      </div>
+
+      {/* Real-time Currency Conversion Notification Banner */}
+      {currencyNotice && (
+        <div className="flex items-center justify-between gap-3 px-3 py-1.5 rounded-lg bg-gradient-to-r from-teal-950/70 via-[#0b2430]/70 to-[#0e1f32]/70 border border-teal-500/40 text-teal-200 text-xs shadow-lg shadow-teal-950/30">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="flex h-2 w-2 relative shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0df2c9]"></span>
+            </span>
+            <ArrowRightLeft className="w-3.5 h-3.5 text-[#0df2c9] shrink-0" />
+            <span className="truncate font-medium">{currencyNotice.message}</span>
+          </div>
+          <button
+            onClick={dismissCurrencyNotice}
+            className="p-1 hover:text-white hover:bg-teal-500/20 rounded-md transition-colors text-teal-400/80 cursor-pointer shrink-0"
+            title="Dismiss notification"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
     </header>
   );
 };

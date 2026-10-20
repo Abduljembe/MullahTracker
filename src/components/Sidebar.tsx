@@ -43,7 +43,7 @@ interface NavGroup {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) => {
-  const { activeTab, setActiveTab } = useFinance();
+  const { activeTab, setActiveTab, currency, currencySymbol } = useFinance();
   const { user, setIsAuthModalOpen, setAuthMode, logout } = useAuth();
 
   const navGroups: NavGroup[] = [
@@ -188,8 +188,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
 
         <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
           <span>Active Currency</span>
-          <span className="font-mono text-teal-400 font-semibold px-1.5 py-0.5 rounded bg-teal-950/60 border border-teal-800/40 text-[10px]">
-            KES
+          <span className="font-mono text-teal-400 font-semibold px-2 py-0.5 rounded bg-teal-950/60 border border-teal-800/40 text-[10px]">
+            {currencySymbol} {currency}
           </span>
         </div>
       </div>
