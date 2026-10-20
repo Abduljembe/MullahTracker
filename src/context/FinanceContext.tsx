@@ -35,6 +35,11 @@ export interface CurrencyNotice {
   message: string;
 }
 
+export interface DataNotice {
+  type: 'success' | 'info' | 'warning';
+  message: string;
+}
+
 interface FinanceContextType {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
@@ -97,10 +102,16 @@ interface FinanceContextType {
   // Health
   financialHealth: FinancialHealth;
 
-  // Utilities
+  // Utilities & Data Management
   isCloudSyncing: boolean;
-  clearAllData: () => void;
-  resetToZeroState: () => void;
+  hasAnyData: boolean;
+  clearAllData: () => Promise<void> | void;
+  resetToZeroState: () => Promise<void> | void;
+  loadDemoData: () => void;
+  isClearDataModalOpen: boolean;
+  setIsClearDataModalOpen: (open: boolean) => void;
+  dataNotice: DataNotice | null;
+  dismissDataNotice: () => void;
   isQuickAddOpen: boolean;
   setIsQuickAddOpen: (open: boolean) => void;
   isHealthModalOpen: boolean;
@@ -157,6 +168,10 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [currentPeriod, setCurrentPeriod] = useState<string>(getDynamicCurrentPeriod());
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
+  const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
+  const [dataNotice, setDataNotice] = useState<DataNotice | null>(null);
+
+  const dismissDataNotice = () => setDataNotice(null);
 
   // Load latest live exchange rates on mount
   useEffect(() => {
@@ -597,7 +612,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   // Reset / Clear all data to fresh zero state
-  const clearAllData = () => {
+  const clearAllData = async () => {
+    // 1. Reset state
     setIncomes([]);
     setExpenses([]);
     setBudgets(INITIAL_EMPTY_STATE.budgets);
@@ -606,15 +622,270 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setDebts([]);
     setEmergencyFund(INITIAL_EMPTY_STATE.emergencyFund);
     setChamas([]);
+
+    // 2. Clear all local storage keys
     try {
       localStorage.removeItem(LOCAL_STORAGE_KEY);
-      LEGACY_STORAGE_KEYS.forEach((k) => localStorage.removeItem(k));
+      LEGACY_STORAGE_KEYS.forEach((k) => {
+        try { localStorage.removeItem(k); } catch { /* ignore */ }
+      });
+      if (user?.uid) {
+        try { localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${user.uid}`); } catch { /* ignore */ }
+      }
+      Object.keys(localStorage).forEach((key) => {
+        if (
+          key.startsWith('mullahtracker_') ||
+          key.startsWith('mullah_') ||
+          key.startsWith('njiafedha_')
+        ) {
+          try { localStorage.removeItem(key); } catch { /* ignore */ }
+        }
+      });
     } catch (e) {
-      /* ignore */
+      console.warn('Could not clear local storage:', e);
     }
+
+    // 3. Clear cloud Firestore data if logged in
+    if (user?.provider === 'firebase' && auth.currentUser) {
+      try {
+        setIsCloudSyncing(true);
+        const ref = doc(db, 'users', auth.currentUser.uid, 'finance', 'main');
+        await setDoc(ref, {
+          currency,
+          currentPeriod,
+          incomes: [],
+          expenses: [],
+          budgets: INITIAL_EMPTY_STATE.budgets,
+          savingsGoals: [],
+          investments: [],
+          debts: [],
+          emergencyFund: INITIAL_EMPTY_STATE.emergencyFund,
+          chamas: [],
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.warn('Error clearing Firestore document:', err);
+      } finally {
+        setIsCloudSyncing(false);
+      }
+    }
+
+    setDataNotice({
+      type: 'success',
+      message: 'All recorded financial data has been cleared. You are starting with a clean blank slate.',
+    });
   };
 
   const resetToZeroState = clearAllData;
+
+  // Load realistic demo data
+  const loadDemoData = () => {
+    const isKes = currency === 'KES';
+    const isEur = currency === 'EUR';
+    const mult = isKes ? 130 : isEur ? 0.9 : 1;
+    const roundVal = (v: number) => Math.round(v * mult);
+
+    const demoIncomes: IncomeItem[] = [
+      {
+        id: 'demo-inc-' + (Date.now() + 1),
+        source: isKes ? 'Tech Salary (Monthly)' : 'Senior Software Engineer Salary',
+        amount: isKes ? 180000 : roundVal(1450),
+        category: 'Salary',
+        frequency: 'monthly',
+        date: new Date().toISOString().split('T')[0],
+        paymentMethod: 'Bank Transfer',
+        notes: 'Monthly direct payroll deposit',
+      },
+      {
+        id: 'demo-inc-' + (Date.now() + 2),
+        source: 'Consulting & Freelance Retainer',
+        amount: isKes ? 45000 : roundVal(350),
+        category: 'Freelance',
+        frequency: 'monthly',
+        date: new Date().toISOString().split('T')[0],
+        paymentMethod: 'M-Pesa',
+        notes: 'Advisory and design retainer',
+      },
+      {
+        id: 'demo-inc-' + (Date.now() + 3),
+        source: isKes ? 'Safaricom Dividend Yield' : 'Index Fund Dividend Yield',
+        amount: isKes ? 12000 : roundVal(95),
+        category: 'Dividends',
+        frequency: 'one-time',
+        date: new Date().toISOString().split('T')[0],
+        paymentMethod: 'Bank Transfer',
+        notes: 'Quarterly dividend payout',
+      },
+    ];
+
+    const demoExpenses: ExpenseItem[] = [
+      {
+        id: 'demo-exp-' + (Date.now() + 1),
+        title: isKes ? 'Apartment Rent (Kilimani)' : 'Apartment Rent & Living Space',
+        amount: isKes ? 45000 : roundVal(420),
+        category: 'Rent & Housing',
+        date: new Date().toISOString().split('T')[0],
+        paymentMethod: 'Bank',
+        isRecurring: true,
+      },
+      {
+        id: 'demo-exp-' + (Date.now() + 2),
+        title: 'Monthly Food & Groceries (Carrefour)',
+        amount: isKes ? 22000 : roundVal(180),
+        category: 'Food & Groceries',
+        date: new Date().toISOString().split('T')[0],
+        paymentMethod: 'M-Pesa',
+        isRecurring: false,
+      },
+      {
+        id: 'demo-exp-' + (Date.now() + 3),
+        title: 'Fuel & Uber Commutes',
+        amount: isKes ? 12000 : roundVal(95),
+        category: 'Transport & Fuel',
+        date: new Date().toISOString().split('T')[0],
+        paymentMethod: 'M-Pesa',
+        isRecurring: false,
+      },
+      {
+        id: 'demo-exp-' + (Date.now() + 4),
+        title: 'Electricity, Water & High-speed Fiber',
+        amount: isKes ? 7500 : roundVal(60),
+        category: 'Utilities & Bills',
+        date: new Date().toISOString().split('T')[0],
+        paymentMethod: 'M-Pesa',
+        isRecurring: true,
+      },
+      {
+        id: 'demo-exp-' + (Date.now() + 5),
+        title: 'Weekend Dining & Socializing',
+        amount: isKes ? 8000 : roundVal(65),
+        category: 'Entertainment & Dining',
+        date: new Date().toISOString().split('T')[0],
+        paymentMethod: 'Card',
+        isRecurring: false,
+      },
+    ];
+
+    const demoBudgets: BudgetCategory[] = [
+      { id: 'b1', category: 'Rent & Housing', monthlyLimit: isKes ? 50000 : roundVal(450) },
+      { id: 'b2', category: 'Food & Groceries', monthlyLimit: isKes ? 25000 : roundVal(220) },
+      { id: 'b3', category: 'Transport & Fuel', monthlyLimit: isKes ? 15000 : roundVal(120) },
+      { id: 'b4', category: 'Utilities & Bills', monthlyLimit: isKes ? 10000 : roundVal(80) },
+      { id: 'b5', category: 'Entertainment & Dining', monthlyLimit: isKes ? 12000 : roundVal(100) },
+    ];
+
+    const demoSavings: SavingsGoal[] = [
+      {
+        id: 'demo-goal-' + (Date.now() + 1),
+        title: isKes ? 'Prime Plot / Land Deposit' : 'Real Estate Down Payment',
+        targetAmount: isKes ? 600000 : roundVal(4500),
+        currentAmount: isKes ? 240000 : roundVal(1800),
+        deadline: '2026-12-31',
+        category: 'Land & Property',
+        color: '#0df2c9',
+      },
+      {
+        id: 'demo-goal-' + (Date.now() + 2),
+        title: 'High Performance Laptop & Workstation',
+        targetAmount: isKes ? 180000 : roundVal(1350),
+        currentAmount: isKes ? 110000 : roundVal(825),
+        deadline: '2026-11-30',
+        category: 'Gadget / Tech',
+        color: '#38bdf8',
+      },
+    ];
+
+    const demoInvestments: InvestmentItem[] = [
+      {
+        id: 'demo-inv-' + (Date.now() + 1),
+        name: isKes ? 'CIC / Sanlam Money Market Fund' : 'Daily Compound Money Market Fund (MMF)',
+        assetClass: 'Money Market Fund (MMF)',
+        currentValue: isKes ? 280000 : roundVal(2100),
+        investedAmount: isKes ? 250000 : roundVal(1900),
+        expectedAnnualYieldPercent: 14.5,
+        provider: isKes ? 'CIC Asset Management' : 'Vanguard / Fidelity',
+        lastUpdated: new Date().toISOString().split('T')[0],
+      },
+      {
+        id: 'demo-inv-' + (Date.now() + 2),
+        name: isKes ? 'Stima DT SACCO Deposits' : 'Credit Union High-Yield Shares',
+        assetClass: 'SACCO Deposits & Shares',
+        currentValue: isKes ? 190000 : roundVal(1450),
+        investedAmount: isKes ? 170000 : roundVal(1300),
+        expectedAnnualYieldPercent: 12.0,
+        provider: isKes ? 'Stima SACCO' : 'State Credit Union',
+        lastUpdated: new Date().toISOString().split('T')[0],
+      },
+      {
+        id: 'demo-inv-' + (Date.now() + 3),
+        name: isKes ? 'Central Bank Infrastructure Bond (IFB)' : '10-Yr Government Infrastructure Bond',
+        assetClass: 'Treasury Bills & Bonds',
+        currentValue: isKes ? 150000 : roundVal(1150),
+        investedAmount: isKes ? 150000 : roundVal(1150),
+        expectedAnnualYieldPercent: 16.5,
+        provider: 'Central Bank',
+        lastUpdated: new Date().toISOString().split('T')[0],
+      },
+    ];
+
+    const demoDebts: DebtItem[] = [
+      {
+        id: 'demo-debt-' + (Date.now() + 1),
+        name: isKes ? 'M-Shwari / Fuliza Short-term' : 'Credit Card Facility Balance',
+        lender: isKes ? 'NCBA / Safaricom' : 'Commercial Bank',
+        principal: isKes ? 20000 : roundVal(160),
+        remainingAmount: isKes ? 8500 : roundVal(65),
+        interestRatePercent: 7.5,
+        minimumMonthlyPayment: isKes ? 3500 : roundVal(28),
+        dueDate: '2026-10-28',
+        category: 'Mobile Loan',
+      },
+    ];
+
+    const demoEmergencyFund: EmergencyFundConfig = {
+      monthlyEssentialExpenses: isKes ? 65000 : roundVal(500),
+      targetMonths: 6,
+      currentAmount: isKes ? 195000 : roundVal(1500),
+    };
+
+    const demoChamas: ChamaItem[] = [
+      {
+        id: 'demo-chama-' + (Date.now() + 1),
+        name: isKes ? 'Nairobi Tech Professionals Chama' : 'Community Wealth Circle',
+        type: 'Merry-Go-Round',
+        totalMembers: 12,
+        frequency: 'monthly',
+        contributionAmount: isKes ? 10000 : roundVal(80),
+        payoutAmount: isKes ? 120000 : roundVal(960),
+        payoutDate: '2026-12-15',
+        notes: 'Monthly payout rotates among members',
+      },
+    ];
+
+    setIncomes(demoIncomes);
+    setExpenses(demoExpenses);
+    setBudgets(demoBudgets);
+    setSavingsGoals(demoSavings);
+    setInvestments(demoInvestments);
+    setDebts(demoDebts);
+    setEmergencyFund(demoEmergencyFund);
+    setChamas(demoChamas);
+
+    setDataNotice({
+      type: 'info',
+      message: 'Realistic demo financial dataset loaded. Explore dashboards, insights, and charts!',
+    });
+  };
+
+  const hasAnyData =
+    incomes.length > 0 ||
+    expenses.length > 0 ||
+    investments.length > 0 ||
+    debts.length > 0 ||
+    savingsGoals.length > 0 ||
+    chamas.length > 0 ||
+    emergencyFund.currentAmount > 0 ||
+    budgets.some((b) => b.monthlyLimit > 0);
 
   // Computed Totals
   const totalMonthlyIncome = incomes.reduce((sum, item) => sum + item.amount, 0);
@@ -895,8 +1166,14 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         badges,
         financialHealth,
         isCloudSyncing,
+        hasAnyData,
         clearAllData,
         resetToZeroState,
+        loadDemoData,
+        isClearDataModalOpen,
+        setIsClearDataModalOpen,
+        dataNotice,
+        dismissDataNotice,
         isQuickAddOpen,
         setIsQuickAddOpen,
         isHealthModalOpen,

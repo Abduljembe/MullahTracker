@@ -26,6 +26,7 @@ import { CashflowForecastView } from './components/views/CashflowForecastView.ts
 import { MilestonesView } from './components/views/MilestonesView.tsx';
 import { QuickAddModal } from './components/modals/QuickAddModal.tsx';
 import { HealthScoreModal } from './components/modals/HealthScoreModal.tsx';
+import { ClearDataModal } from './components/modals/ClearDataModal.tsx';
 import { AuthModal } from './components/auth/AuthModal.tsx';
 import { LandingPage } from './components/landing/LandingPage.tsx';
 
@@ -115,6 +116,7 @@ const MainContent: React.FC = () => {
       {/* Global Modals */}
       <QuickAddModal />
       <HealthScoreModal />
+      <ClearDataModal />
       <AuthModal />
     </div>
   );

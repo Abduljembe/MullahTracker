@@ -33,24 +33,21 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
     financialHealth,
     setIsQuickAddOpen,
     setIsHealthModalOpen,
-    clearAllData,
-    incomes,
-    expenses,
-    investments,
-    debts,
+    setIsClearDataModalOpen,
+    hasAnyData,
     currency,
     setCurrency,
     exchangeRates,
     refreshExchangeRates,
     currencyNotice,
     dismissCurrencyNotice,
+    dataNotice,
+    dismissDataNotice,
     isCloudSyncing,
   } = useFinance();
 
   const { user, setIsAuthModalOpen, setAuthMode, logout } = useAuth();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-
-  const hasAnyData = incomes.length > 0 || expenses.length > 0 || investments.length > 0 || debts.length > 0;
 
   // Title mapped from activeTab
   const getTabTitle = () => {
@@ -240,20 +237,18 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
         </div>
 
         {/* Reset / Clear Data */}
-        {hasAnyData && (
-          <button
-            onClick={() => {
-              if (window.confirm('Are you sure you want to clear all recorded entries and start completely blank?')) {
-                clearAllData();
-              }
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#111929] hover:bg-rose-950/40 border border-[#1d2d48] hover:border-rose-500/40 text-slate-300 hover:text-rose-300 transition-colors"
-            title="Clear all recorded entries"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400" />
-            <span className="hidden sm:inline">Clear Data</span>
-          </button>
-        )}
+        <button
+          onClick={() => setIsClearDataModalOpen(true)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+            hasAnyData
+              ? 'bg-[#111929] hover:bg-rose-950/40 border-[#1d2d48] hover:border-rose-500/40 text-slate-300 hover:text-rose-300'
+              : 'bg-[#0a1220] hover:bg-[#101b2d] border-[#15233c] text-slate-400 hover:text-slate-200'
+          }`}
+          title="Reset or clear recorded financial data"
+        >
+          <RotateCcw className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+          <span className="font-medium">Clear Data</span>
+        </button>
 
         {/* Period Selector */}
         <select
@@ -316,10 +311,21 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
 
                 <button
                   onClick={() => {
+                    setIsClearDataModalOpen(true);
+                    setShowUserDropdown(false);
+                  }}
+                  className="w-full flex items-center gap-2 p-2 mt-1 rounded-lg text-xs text-slate-300 hover:text-rose-300 hover:bg-rose-950/30 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Reset / Clear Data</span>
+                </button>
+
+                <button
+                  onClick={() => {
                     logout();
                     setShowUserDropdown(false);
                   }}
-                  className="w-full flex items-center gap-2 p-2 mt-1 rounded-lg text-xs text-rose-300 hover:bg-rose-950/40 transition-colors"
+                  className="w-full flex items-center gap-2 p-2 mt-1 rounded-lg text-xs text-rose-300 hover:bg-rose-950/40 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Sign Out</span>
@@ -356,6 +362,29 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
           <button
             onClick={dismissCurrencyNotice}
             className="p-1 hover:text-white hover:bg-teal-500/20 rounded-md transition-colors text-teal-400/80 cursor-pointer shrink-0"
+            title="Dismiss notification"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Data Notice Banner (e.g. data cleared or demo data loaded) */}
+      {dataNotice && (
+        <div
+          className={`flex items-center justify-between gap-3 px-3 py-1.5 rounded-lg border text-xs shadow-lg ${
+            dataNotice.type === 'success'
+              ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-200 shadow-emerald-950/30'
+              : 'bg-teal-950/80 border-teal-500/50 text-teal-200 shadow-teal-950/30'
+          }`}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="font-medium truncate">{dataNotice.message}</span>
+          </div>
+          <button
+            onClick={dismissDataNotice}
+            className="p-1 hover:text-white rounded-md transition-colors cursor-pointer shrink-0"
             title="Dismiss notification"
           >
             <X className="w-3.5 h-3.5" />

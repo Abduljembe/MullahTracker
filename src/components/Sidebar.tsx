@@ -20,6 +20,7 @@ import {
   Users,
   Award,
   CalendarDays,
+  RotateCcw,
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -43,7 +44,7 @@ interface NavGroup {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) => {
-  const { activeTab, setActiveTab, currency, currencySymbol } = useFinance();
+  const { activeTab, setActiveTab, currency, currencySymbol, setIsClearDataModalOpen } = useFinance();
   const { user, setIsAuthModalOpen, setAuthMode, logout } = useAuth();
 
   const navGroups: NavGroup[] = [
@@ -192,6 +193,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
             {currencySymbol} {currency}
           </span>
         </div>
+
+        <button
+          onClick={() => {
+            setIsClearDataModalOpen(true);
+            setMobileOpen(false);
+          }}
+          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[#0e1626] hover:bg-rose-950/20 border border-[#17253c] hover:border-rose-500/30 text-[11px] text-slate-400 hover:text-rose-300 transition-colors cursor-pointer group"
+          title="Reset or clear workspace data"
+        >
+          <div className="flex items-center gap-1.5">
+            <RotateCcw className="w-3 h-3 text-slate-500 group-hover:text-rose-400 transition-colors" />
+            <span>Reset / Clear Data</span>
+          </div>
+          <span className="text-[10px] text-slate-500 group-hover:text-rose-400">Manage</span>
+        </button>
       </div>
     </div>
   );

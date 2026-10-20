@@ -46,6 +46,7 @@ export const MpesaView: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [parsedMessages, setParsedMessages] = useState<ParsedMpesaMessage[]>([]);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
 
   const parseSingleMpesaText = (text: string): ParsedMpesaMessage | null => {
     const cleaned = text.trim();
@@ -198,9 +199,11 @@ export const MpesaView: React.FC = () => {
       setParsedMessages((prev) => [...results, ...prev]);
       setInputText('');
       setImportSuccess(`Successfully parsed ${results.length} M-Pesa transaction(s)!`);
+      setParseError(null);
       setTimeout(() => setImportSuccess(null), 4000);
     } else {
-      alert('Could not detect a valid Safaricom M-Pesa confirmation SMS. Try clicking one of the sample messages below to test!');
+      setParseError('Could not detect a valid Safaricom M-Pesa confirmation SMS. Try clicking one of the sample messages below to test!');
+      setTimeout(() => setParseError(null), 6000);
     }
   };
 
@@ -300,6 +303,14 @@ export const MpesaView: React.FC = () => {
         <div className="bg-teal-500/15 border border-teal-500/30 rounded-xl p-3.5 text-xs text-teal-300 flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-[#0df2c9] shrink-0" />
           <span>{importSuccess}</span>
+        </div>
+      )}
+
+      {/* Error Notification */}
+      {parseError && (
+        <div className="bg-rose-500/15 border border-rose-500/30 rounded-xl p-3.5 text-xs text-rose-300 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>{parseError}</span>
         </div>
       )}
 
