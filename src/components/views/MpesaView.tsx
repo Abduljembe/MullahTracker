@@ -17,6 +17,7 @@ import {
 import confetti from 'canvas-confetti';
 import { useFinance } from '../../context/FinanceContext.tsx';
 import { ExpenseItem, IncomeItem, ParsedMpesaMessage } from '../../types/finance.ts';
+import { convertCurrency, getExchangeRate, CURRENCY_SYMBOLS } from '../../utils/currency.ts';
 
 const SAMPLE_MPESA_MESSAGES = [
   {
@@ -42,7 +43,7 @@ const SAMPLE_MPESA_MESSAGES = [
 ];
 
 export const MpesaView: React.FC = () => {
-  const { addExpense, addIncome, formatCurrency } = useFinance();
+  const { addExpense, addIncome, formatCurrency, currency, exchangeRates } = useFinance();
   const [inputText, setInputText] = useState('');
   const [parsedMessages, setParsedMessages] = useState<ParsedMpesaMessage[]>([]);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
@@ -234,26 +235,37 @@ export const MpesaView: React.FC = () => {
     let incomeCount = 0;
 
     parsedMessages.forEach((item) => {
+      // M-PESA SMS messages are inherently in KES. Convert to active currency if not KES.
+      const finalAmount =
+        currency === 'KES'
+          ? item.amount
+          : Math.round(convertCurrency(item.amount, 'KES', currency, exchangeRates) * 100) / 100;
+
+      const fxNote =
+        currency !== 'KES'
+          ? ` (Originally KSh ${item.amount.toLocaleString()} converted to ${currency} @ 1 KES = ${getExchangeRate('KES', currency, exchangeRates).toFixed(4)} ${currency})`
+          : '';
+
       if (item.type === 'received') {
         addIncome({
           source: item.counterparty || 'M-Pesa Received',
-          amount: item.amount,
+          amount: finalAmount,
           category: 'Side Hustle',
           frequency: 'one-time',
           date: item.date,
           paymentMethod: 'M-Pesa',
-          notes: `Imported from M-Pesa SMS ref: ${item.refCode}`,
+          notes: `Imported from M-Pesa SMS ref: ${item.refCode}${fxNote}`,
         });
         incomeCount++;
       } else {
         addExpense({
           title: item.counterparty || 'M-Pesa Payment',
-          amount: item.amount,
+          amount: finalAmount,
           category: item.suggestedCategory,
           date: item.date,
           paymentMethod: 'M-Pesa',
           isRecurring: false,
-          notes: `Imported via M-Pesa ref: ${item.refCode} at ${item.time}`,
+          notes: `Imported via M-Pesa ref: ${item.refCode} at ${item.time}${fxNote}`,
           mpesaRef: item.refCode,
         });
         expenseCount++;
@@ -406,7 +418,10 @@ export const MpesaView: React.FC = () => {
                         {item.balance !== undefined && (
                           <>
                             <span>•</span>
-                            <span className="text-slate-500">M-Pesa Bal: {formatCurrency(item.balance)}</span>
+                            <span className="text-slate-500">
+                              M-Pesa Bal: KSh {item.balance.toLocaleString()}
+                              {currency !== 'KES' && ` (≈ ${formatCurrency(convertCurrency(item.balance, 'KES', currency, exchangeRates))})`}
+                            </span>
                           </>
                         )}
                       </div>
@@ -420,8 +435,13 @@ export const MpesaView: React.FC = () => {
                           isIncome ? 'text-emerald-400' : 'text-slate-100'
                         }`}
                       >
-                        {isIncome ? '+' : '-'}{formatCurrency(item.amount)}
+                        {isIncome ? '+' : '-'}KSh {item.amount.toLocaleString()}
                       </div>
+                      {currency !== 'KES' && (
+                        <div className="text-[11px] font-mono text-[#0df2c9] font-medium">
+                          ≈ {isIncome ? '+' : '-'}{formatCurrency(convertCurrency(item.amount, 'KES', currency, exchangeRates))}
+                        </div>
+                      )}
 
                       {!isIncome && (
                         <div className="mt-1">

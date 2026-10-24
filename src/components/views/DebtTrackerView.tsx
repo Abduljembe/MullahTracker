@@ -23,7 +23,7 @@ const DEBT_CATEGORIES: DebtItem['category'][] = [
 ];
 
 export const DebtTrackerView: React.FC = () => {
-  const { debts, addDebt, recordDebtPayment, deleteDebt, formatCurrency, totalDebt } = useFinance();
+  const { debts, addDebt, recordDebtPayment, deleteDebt, formatCurrency, totalDebt, currency } = useFinance();
 
   const [isAdding, setIsAdding] = useState(false);
   const [strategy, setStrategy] = useState<'snowball' | 'avalanche'>('avalanche');
@@ -150,12 +150,12 @@ export const DebtTrackerView: React.FC = () => {
             </p>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Payment Amount (KES)</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Payment Amount ({currency})</label>
               <input
                 type="number"
-                min="1"
+                min="0.01"
                 step="any"
-                placeholder="e.g. 5000"
+                placeholder={currency === 'KES' ? 'e.g. 5000' : 'e.g. 50'}
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
                 autoFocus
@@ -243,12 +243,12 @@ export const DebtTrackerView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Remaining Balance (KES)</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Remaining Balance ({currency})</label>
               <input
                 type="number"
                 min="0"
                 step="any"
-                placeholder="e.g. 50000"
+                placeholder={currency === 'KES' ? 'e.g. 50000' : 'e.g. 500'}
                 value={remainingAmount}
                 onChange={(e) => setRemainingAmount(e.target.value)}
                 required
@@ -257,12 +257,12 @@ export const DebtTrackerView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Original Principal (KES)</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Original Principal ({currency})</label>
               <input
                 type="number"
                 min="0"
                 step="any"
-                placeholder="e.g. 80000"
+                placeholder={currency === 'KES' ? 'e.g. 80000' : 'e.g. 800'}
                 value={principal}
                 onChange={(e) => setPrincipal(e.target.value)}
                 className="w-full bg-[#121c2e] border border-[#1d2c47] rounded-xl px-3 py-2 text-sm text-white font-mono placeholder-slate-500 focus:outline-none focus:border-rose-400"
@@ -282,12 +282,12 @@ export const DebtTrackerView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Monthly Payment (KES)</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Monthly Payment ({currency})</label>
               <input
                 type="number"
                 min="0"
                 step="any"
-                placeholder="e.g. 4500"
+                placeholder={currency === 'KES' ? 'e.g. 4500' : 'e.g. 45'}
                 value={minimumMonthlyPayment}
                 onChange={(e) => setMinimumMonthlyPayment(e.target.value)}
                 className="w-full bg-[#121c2e] border border-[#1d2c47] rounded-xl px-3 py-2 text-sm text-white font-mono placeholder-slate-500 focus:outline-none focus:border-rose-400"

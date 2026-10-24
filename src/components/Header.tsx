@@ -15,10 +15,12 @@ import {
   RefreshCw,
   ArrowRightLeft,
   X,
+  Database,
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { AppLogoIcon } from './common/AppLogo.tsx';
+import { PWAInstallButton } from './pwa/PWAInstallButton.tsx';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -34,6 +36,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
     setIsQuickAddOpen,
     setIsHealthModalOpen,
     setIsClearDataModalOpen,
+    setIsCurrencyConverterOpen,
+    setIsBackupRestoreOpen,
     hasAnyData,
     currency,
     setCurrency,
@@ -60,6 +64,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
         return 'Income Streams';
       case 'expenses':
         return 'Expense Tracker';
+      case 'wallets':
+        return 'Multi-Wallet Accounts & Balances';
+      case 'bills':
+        return 'Upcoming Bills & Subscriptions Calendar';
       case 'budget':
         return 'Monthly Budget';
       case 'savings':
@@ -82,6 +90,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
         return 'Milestones & Achievement Badges';
       case 'calculator':
         return 'Financial Freedom (FIRE) Calculator';
+      case 'sacco-mmf':
+        return 'SACCO Dividends & MMF Compounding Yield Calculator';
       case 'reports':
         return 'Reports & Cashflow';
       default:
@@ -212,29 +222,48 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
             })}
           </div>
 
-          {/* Real-time FX Rates Ticker */}
-          <div
-            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#0a1220] border border-[#17253b] text-[11px] text-slate-400"
-            title="Real-time mid-market exchange rates"
-          >
-            <span className="text-teal-400 font-mono font-medium">1 USD</span>
-            <span className="text-slate-600">=</span>
-            <span className="text-slate-200 font-mono font-medium">
-              {exchangeRates.KES ? `${exchangeRates.KES.toFixed(2)} KES` : '129.79 KES'}
-            </span>
-            <span className="text-slate-600">·</span>
-            <span className="text-slate-200 font-mono font-medium">
-              {exchangeRates.EUR ? `${exchangeRates.EUR.toFixed(2)} EUR` : '0.89 EUR'}
-            </span>
+          {/* Real-time FX Rates Ticker & Converter Trigger */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsCurrencyConverterOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#0a1220] hover:bg-[#121f33] border border-[#17253b] hover:border-teal-500/40 text-[11px] text-slate-400 hover:text-white transition-colors cursor-pointer group"
+              title="Open Live Currency Converter (convert any amount between USD, KES, EUR, GBP)"
+            >
+              <ArrowRightLeft className="w-3 h-3 text-[#0df2c9] group-hover:scale-110 transition-transform" />
+              <span className="hidden sm:inline font-medium text-teal-400">1 USD =</span>
+              <span className="font-mono text-slate-200 font-semibold">
+                {exchangeRates.KES ? `${exchangeRates.KES.toFixed(2)} KES` : '129.79 KES'}
+              </span>
+              <span className="hidden xl:inline text-slate-600">·</span>
+              <span className="hidden xl:inline font-mono text-slate-300">
+                {exchangeRates.EUR ? `${exchangeRates.EUR.toFixed(2)} EUR` : '0.89 EUR'}
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] bg-teal-500/15 text-[#0df2c9] font-semibold border border-teal-500/30 ml-0.5">
+                Convert
+              </span>
+            </button>
             <button
               onClick={() => refreshExchangeRates()}
-              className="p-0.5 ml-0.5 hover:text-teal-300 text-slate-500 transition-colors"
+              className="p-1.5 rounded-lg bg-[#0a1220] hover:bg-[#121f33] border border-[#17253b] hover:text-teal-300 text-slate-500 transition-colors"
               title="Refresh live exchange rates"
             >
               <RefreshCw className="w-3 h-3" />
             </button>
           </div>
         </div>
+
+        {/* Backup & Restore Data */}
+        <button
+          onClick={() => setIsBackupRestoreOpen(true)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#0e1626] hover:bg-[#142036] border border-[#17253c] hover:border-teal-500/40 text-slate-300 hover:text-teal-300 transition-colors cursor-pointer text-xs"
+          title="Backup or restore financial data in JSON"
+        >
+          <Database className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+          <span className="hidden sm:inline font-medium">Backup</span>
+        </button>
+
+        {/* PWA Install Button */}
+        <PWAInstallButton variant="compact" />
 
         {/* Reset / Clear Data */}
         <button

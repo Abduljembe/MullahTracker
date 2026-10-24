@@ -303,7 +303,7 @@ export const CashflowForecastView: React.FC = () => {
                   <td className="p-3.5 font-mono text-slate-200">{formatCurrency(m.endingLiquid)}</td>
                   <td className="p-3.5 font-mono text-amber-300">{formatCurrency(m.endingInvestments)}</td>
                   <td className="p-3.5 font-mono text-rose-300">
-                    {m.endingDebt > 0 ? formatCurrency(m.endingDebt) : 'KES 0'}
+                    {formatCurrency(m.endingDebt)}
                   </td>
                   <td className="p-3.5 font-mono font-extrabold text-right text-[#0df2c9]">
                     {formatCurrency(m.netWorth)}

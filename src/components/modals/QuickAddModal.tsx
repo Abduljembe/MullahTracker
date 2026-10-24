@@ -8,9 +8,12 @@ import {
   Shield,
   TrendingUp,
   CreditCard,
+  ArrowRightLeft,
+  Sparkles,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext.tsx';
-import { ExpenseItem, IncomeItem } from '../../types/finance.ts';
+import { ExpenseItem, IncomeItem, CurrencyCode } from '../../types/finance.ts';
+import { convertCurrency, getExchangeRate, CURRENCY_SYMBOLS } from '../../utils/currency.ts';
 
 type ModalTab = 'expense' | 'income' | 'emergency' | 'investment';
 
@@ -23,6 +26,7 @@ export const QuickAddModal: React.FC = () => {
     depositToEmergencyFund,
     addInvestment,
     currency,
+    exchangeRates,
   } = useFinance();
 
   const [activeType, setActiveType] = useState<ModalTab>('expense');
@@ -30,43 +34,65 @@ export const QuickAddModal: React.FC = () => {
   // Shared / Expense / Income state
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
+  const [entryCurrency, setEntryCurrency] = useState<CurrencyCode>(currency);
   const [category, setCategory] = useState<string>('Food & Groceries');
   const [paymentMethod, setPaymentMethod] = useState<string>('M-Pesa');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
+  // Keep entryCurrency in sync when active currency changes unless user deliberately picked another
+  React.useEffect(() => {
+    setEntryCurrency(currency);
+  }, [currency]);
+
   if (!isQuickAddOpen) return null;
+
+  const numAmount = parseFloat(amount);
+  const isValidAmount = !isNaN(numAmount) && numAmount > 0;
+
+  // Convert to active portfolio currency if user entered in a foreign currency
+  const convertedAmount =
+    isValidAmount && entryCurrency !== currency
+      ? Math.round(convertCurrency(numAmount, entryCurrency, currency, exchangeRates) * 100) / 100
+      : numAmount;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount <= 0) return;
+    if (!isValidAmount) return;
+
+    const finalAmount = convertedAmount;
+    const fxNote =
+      entryCurrency !== currency
+        ? ` (Originally ${CURRENCY_SYMBOLS[entryCurrency]} ${numAmount} ${entryCurrency} @ 1 ${entryCurrency} = ${getExchangeRate(entryCurrency, currency, exchangeRates).toFixed(2)} ${currency})`
+        : '';
 
     if (activeType === 'expense') {
       addExpense({
         title: title.trim() || 'General Expense',
-        amount: numAmount,
+        amount: finalAmount,
         category: category as any,
         date,
         paymentMethod: paymentMethod as any,
         isRecurring: false,
+        notes: fxNote ? fxNote.trim() : undefined,
       });
     } else if (activeType === 'income') {
       addIncome({
         source: title.trim() || 'Income',
-        amount: numAmount,
+        amount: finalAmount,
         category: (category as any) || 'Salary',
         frequency: 'monthly',
         date,
         paymentMethod: paymentMethod as any,
+        notes: fxNote ? fxNote.trim() : undefined,
       });
     } else if (activeType === 'emergency') {
-      depositToEmergencyFund(numAmount);
+      depositToEmergencyFund(finalAmount);
     } else if (activeType === 'investment') {
       addInvestment({
         name: title.trim() || 'Investment Holding',
         assetClass: 'Money Market Fund (MMF)',
-        currentValue: numAmount,
-        investedAmount: numAmount,
+        currentValue: finalAmount,
+        investedAmount: finalAmount,
         expectedAnnualYieldPercent: 14.0,
         provider: 'Asset Manager',
       });
@@ -163,20 +189,59 @@ export const QuickAddModal: React.FC = () => {
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">
-              Amount ({currency})
-            </label>
-            <input
-              type="number"
-              min="0.01"
-              step="any"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              autoFocus
-              required
-              className="w-full bg-[#121c2e] border border-[#1d2c47] rounded-xl px-4 py-2.5 text-xl font-bold font-mono text-white placeholder-slate-600 focus:outline-none focus:border-teal-400"
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-medium text-slate-400">
+                Amount
+              </label>
+              {entryCurrency !== currency && isValidAmount && (
+                <span className="text-[11px] font-mono text-[#0df2c9] flex items-center gap-1 font-semibold">
+                  <Sparkles className="w-3 h-3" />
+                  Auto-converts to {CURRENCY_SYMBOLS[currency]} {convertedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
+                </span>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono font-bold">
+                  {CURRENCY_SYMBOLS[entryCurrency]}
+                </span>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="any"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  autoFocus
+                  required
+                  className="w-full bg-[#121c2e] border border-[#1d2c47] rounded-xl pl-9 pr-4 py-2.5 text-xl font-bold font-mono text-white placeholder-slate-600 focus:outline-none focus:border-teal-400"
+                />
+              </div>
+
+              {/* Currency Picker */}
+              <select
+                value={entryCurrency}
+                onChange={(e) => setEntryCurrency(e.target.value as CurrencyCode)}
+                className="bg-[#121c2e] border border-[#1d2c47] rounded-xl px-3 py-2.5 text-xs font-bold text-teal-400 focus:outline-none focus:border-teal-400 cursor-pointer"
+                title="Select currency of this transaction"
+              >
+                {(['USD', 'KES', 'EUR', 'GBP', 'TZS', 'UGX'] as const).map((c) => (
+                  <option key={c} value={c}>
+                    {c} ({CURRENCY_SYMBOLS[c]})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {entryCurrency !== currency && isValidAmount && (
+              <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
+                <ArrowRightLeft className="w-3 h-3 text-teal-400 shrink-0" />
+                <span>
+                  1 {entryCurrency} = {getExchangeRate(entryCurrency, currency, exchangeRates).toFixed(2)} {currency} (live mid-market rate applied on submit)
+                </span>
+              </p>
+            )}
           </div>
 
           {activeType !== 'emergency' && (

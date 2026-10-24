@@ -19,7 +19,7 @@ import { useFinance } from '../../context/FinanceContext.tsx';
 import { ChamaItem } from '../../types/finance.ts';
 
 export const ChamaView: React.FC = () => {
-  const { chamas, addChama, deleteChama, addExpense, addIncome, formatCurrency } = useFinance();
+  const { chamas, addChama, deleteChama, addExpense, addIncome, formatCurrency, currency } = useFinance();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -390,11 +390,11 @@ export const ChamaView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-medium mb-1">Lump Sum Payout (KES)</label>
+                  <label className="block text-slate-300 font-medium mb-1">Lump Sum Payout ({currency})</label>
                   <input
                     type="number"
-                    min="100"
-                    step="500"
+                    min="1"
+                    step="any"
                     value={payoutAmount || ''}
                     onChange={(e) => setPayoutAmount(parseFloat(e.target.value) || 0)}
                     className="w-full bg-[#0a101d] border border-[#1b2b44] rounded-xl px-3.5 py-2 text-slate-100 font-mono focus:outline-none focus:border-teal-500"

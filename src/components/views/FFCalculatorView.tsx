@@ -9,14 +9,15 @@ import {
   Compass,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext.tsx';
+import { getExchangeRate } from '../../utils/currency.ts';
 
 export const FFCalculatorView: React.FC = () => {
-  const { formatCurrency, totalMonthlyExpenses, totalInvestments, savingsThisMonth } = useFinance();
+  const { formatCurrency, totalMonthlyExpenses, totalInvestments, savingsThisMonth, currency, exchangeRates } = useFinance();
 
   const [currentAge, setCurrentAge] = useState(29);
   const [targetAge, setTargetAge] = useState(48);
   const [monthlyExpenses, setMonthlyExpenses] = useState(
-    totalMonthlyExpenses > 0 ? totalMonthlyExpenses : 50000
+    totalMonthlyExpenses > 0 ? totalMonthlyExpenses : currency === 'KES' ? 50000 : 400
   );
   const [currentNetWorth, setCurrentNetWorth] = useState(
     totalInvestments > 0 ? totalInvestments : 0
@@ -24,6 +25,18 @@ export const FFCalculatorView: React.FC = () => {
   const [monthlyContribution, setMonthlyContribution] = useState(
     savingsThisMonth > 0 ? savingsThisMonth : 0
   );
+
+  // Automatically convert inputs if currency switches
+  const prevCurRef = React.useRef(currency);
+  React.useEffect(() => {
+    if (prevCurRef.current !== currency) {
+      const rate = getExchangeRate(prevCurRef.current, currency, exchangeRates);
+      setMonthlyExpenses((prev) => Math.round(prev * rate * 100) / 100);
+      setCurrentNetWorth((prev) => Math.round(prev * rate * 100) / 100);
+      setMonthlyContribution((prev) => Math.round(prev * rate * 100) / 100);
+      prevCurRef.current = currency;
+    }
+  }, [currency, exchangeRates]);
   const [expectedReturn, setExpectedReturn] = useState(12.5); // 12.5% p.a. average Kenya MMF / Bond
   const [inflationRate, setInflationRate] = useState(5.5); // 5.5% Kenya CPI inflation
   const [withdrawalRate, setWithdrawalRate] = useState(4.0); // 4% Trinity study rule
@@ -152,11 +165,11 @@ export const FFCalculatorView: React.FC = () => {
 
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">
-                Monthly Living Expenses (KES)
+                Monthly Living Expenses ({currency})
               </label>
               <input
                 type="number"
-                step="1000"
+                step="any"
                 value={monthlyExpenses}
                 onChange={(e) => setMonthlyExpenses(parseFloat(e.target.value) || 0)}
                 className="w-full bg-[#121c2e] border border-[#1d2c47] rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-teal-400"
@@ -165,11 +178,11 @@ export const FFCalculatorView: React.FC = () => {
 
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">
-                Current Invested Net Worth (KES)
+                Current Invested Net Worth ({currency})
               </label>
               <input
                 type="number"
-                step="10000"
+                step="any"
                 value={currentNetWorth}
                 onChange={(e) => setCurrentNetWorth(parseFloat(e.target.value) || 0)}
                 className="w-full bg-[#121c2e] border border-[#1d2c47] rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-teal-400"
@@ -178,7 +191,7 @@ export const FFCalculatorView: React.FC = () => {
 
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">
-                Monthly Future Savings Contribution (KES)
+                Monthly Future Savings Contribution ({currency})
               </label>
               <input
                 type="number"

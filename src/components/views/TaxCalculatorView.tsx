@@ -16,41 +16,56 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useFinance } from '../../context/FinanceContext.tsx';
+import { convertCurrency, getExchangeRate, CURRENCY_SYMBOLS } from '../../utils/currency.ts';
 
 export const TaxCalculatorView: React.FC = () => {
-  const { addIncome, formatCurrency } = useFinance();
+  const { addIncome, formatCurrency, currency, exchangeRates } = useFinance();
 
-  const [grossSalary, setGrossSalary] = useState<number>(100000);
+  const [grossSalary, setGrossSalary] = useState<number>(
+    currency === 'KES' ? 100000 : 800
+  );
   const [voluntaryPension, setVoluntaryPension] = useState<number>(0);
   const [mortgageInterest, setMortgageInterest] = useState<number>(0);
   const [importedNotice, setImportedNotice] = useState<string | null>(null);
 
-  // 1. NSSF Calculation (New rates Tier I & II)
-  // Tier I: 6% of lower limit (KES 7,000 to 8,000) = KES 420 - 480
-  // Tier II: 6% of upper limit (up to KES 72,000) = up to KES 1,740
-  const nssfTier1 = Math.min(480, grossSalary * 0.06);
-  const nssfTier2 = grossSalary > 8000 ? Math.min(1740, (grossSalary - 8000) * 0.06) : 0;
-  const totalNssf = Math.round(nssfTier1 + nssfTier2);
+  // Automatically convert grossSalary if currency switches
+  const prevCurRef = React.useRef(currency);
+  React.useEffect(() => {
+    if (prevCurRef.current !== currency) {
+      const rate = getExchangeRate(prevCurRef.current, currency, exchangeRates);
+      setGrossSalary((prev) => Math.round(prev * rate * 100) / 100);
+      setVoluntaryPension((prev) => Math.round(prev * rate * 100) / 100);
+      setMortgageInterest((prev) => Math.round(prev * rate * 100) / 100);
+      prevCurRef.current = currency;
+    }
+  }, [currency, exchangeRates]);
 
-  // 2. Affordable Housing Levy (AHL) = 1.5% of Gross
-  const housingLevy = Math.round(grossSalary * 0.015);
+  // Convert inputs to KES for the Kenya KRA statutory deduction algorithms
+  const grossSalaryInKes =
+    currency === 'KES' ? grossSalary : convertCurrency(grossSalary, currency, 'KES', exchangeRates);
+  const voluntaryPensionInKes =
+    currency === 'KES' ? voluntaryPension : convertCurrency(voluntaryPension, currency, 'KES', exchangeRates);
+  const mortgageInterestInKes =
+    currency === 'KES' ? mortgageInterest : convertCurrency(mortgageInterest, currency, 'KES', exchangeRates);
+
+  // 1. NSSF Calculation (New rates Tier I & II) in KES
+  const nssfTier1Kes = Math.min(480, grossSalaryInKes * 0.06);
+  const nssfTier2Kes = grossSalaryInKes > 8000 ? Math.min(1740, (grossSalaryInKes - 8000) * 0.06) : 0;
+  const totalNssfKes = Math.round(nssfTier1Kes + nssfTier2Kes);
+
+  // 2. Affordable Housing Levy (AHL) = 1.5% of Gross in KES
+  const housingLevyKes = Math.round(grossSalaryInKes * 0.015);
 
   // 3. SHIF (Social Health Insurance Fund) = 2.75% of Gross, min KES 300
-  const shif = Math.max(300, Math.round(grossSalary * 0.0275));
+  const shifKes = Math.max(300, Math.round(grossSalaryInKes * 0.0275));
 
-  // 4. Taxable Pay Calculation
-  // Allowable deductions: NSSF, Pension (max 20,000), Mortgage Interest (max 25,000)
-  const allowablePension = Math.min(20000, voluntaryPension);
-  const allowableMortgage = Math.min(25000, mortgageInterest);
-  const taxablePay = Math.max(0, grossSalary - totalNssf - allowablePension - allowableMortgage);
+  // 4. Taxable Pay Calculation in KES
+  const allowablePensionKes = Math.min(20000, voluntaryPensionInKes);
+  const allowableMortgageKes = Math.min(25000, mortgageInterestInKes);
+  const taxablePayKes = Math.max(0, grossSalaryInKes - totalNssfKes - allowablePensionKes - allowableMortgageKes);
 
-  // 5. Progressive PAYE Brackets (KRA 2024/2025/2026)
-  // First 24,000 @ 10%
-  // Next 8,333 (24,001 - 32,333) @ 25%
-  // Next 467,667 (32,334 - 500,000) @ 30%
-  // Next 300,000 (500,001 - 800,000) @ 32.5%
-  // Above 800,000 @ 35%
-  let remainingTaxable = taxablePay;
+  // 5. Progressive PAYE Brackets (KRA 2024/2025/2026) in KES
+  let remainingTaxable = taxablePayKes;
   let taxBand1 = 0;
   let taxBand2 = 0;
   let taxBand3 = 0;
@@ -81,17 +96,35 @@ export const TaxCalculatorView: React.FC = () => {
     taxBand5 = remainingTaxable * 0.35;
   }
 
-  const grossTax = Math.round(taxBand1 + taxBand2 + taxBand3 + taxBand4 + taxBand5);
+  const grossTaxKes = Math.round(taxBand1 + taxBand2 + taxBand3 + taxBand4 + taxBand5);
 
-  // 6. Tax Reliefs
-  const personalRelief = 2400; // Monthly standard KRA relief
-  const insuranceRelief = Math.min(5000, Math.round(shif * 0.15)); // 15% of SHIF/NHIF premium
-  const housingRelief = Math.min(9000 / 12, Math.round(housingLevy * 0.15)); // 15% of AHL contribution
+  // 6. Tax Reliefs in KES
+  const personalReliefKes = 2400; // Monthly standard KRA relief
+  const insuranceReliefKes = Math.min(5000, Math.round(shifKes * 0.15)); // 15% of SHIF/NHIF premium
+  const housingReliefKes = Math.min(9000 / 12, Math.round(housingLevyKes * 0.15)); // 15% of AHL contribution
 
-  const totalRelief = personalRelief + insuranceRelief + housingRelief;
-  const netPaye = Math.max(0, grossTax - totalRelief);
+  const totalReliefKes = personalReliefKes + insuranceReliefKes + housingReliefKes;
+  const netPayeKes = Math.max(0, grossTaxKes - totalReliefKes);
 
-  // 7. Net Take-Home Pay
+  // Convert all KES calculations to active user currency
+  const toCur = (valKes: number) =>
+    currency === 'KES'
+      ? valKes
+      : Math.round(convertCurrency(valKes, 'KES', currency, exchangeRates) * 100) / 100;
+
+  const nssfTier1 = toCur(nssfTier1Kes);
+  const nssfTier2 = toCur(nssfTier2Kes);
+  const totalNssf = toCur(totalNssfKes);
+  const housingLevy = toCur(housingLevyKes);
+  const shif = toCur(shifKes);
+  const grossTax = toCur(grossTaxKes);
+  const personalRelief = toCur(personalReliefKes);
+  const insuranceRelief = toCur(insuranceReliefKes);
+  const housingRelief = toCur(housingReliefKes);
+  const totalRelief = toCur(totalReliefKes);
+  const netPaye = toCur(netPayeKes);
+
+  // 7. Net Take-Home Pay in active currency
   const totalDeductions = netPaye + totalNssf + shif + housingLevy + voluntaryPension;
   const netTakeHome = Math.max(0, grossSalary - totalDeductions);
   const effectiveTaxRate = grossSalary > 0 ? ((totalDeductions / grossSalary) * 100).toFixed(1) : '0';
@@ -162,16 +195,16 @@ export const TaxCalculatorView: React.FC = () => {
 
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                Gross Basic Salary + Cash Allowances (KES)
+                Gross Basic Salary + Cash Allowances ({currency})
               </label>
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-teal-400">
-                  KES
+                  {CURRENCY_SYMBOLS[currency]}
                 </span>
                 <input
                   type="number"
                   min="0"
-                  step="1000"
+                  step={currency === 'KES' ? '1000' : '10'}
                   value={grossSalary || ''}
                   onChange={(e) => setGrossSalary(Math.max(0, parseFloat(e.target.value) || 0))}
                   className="w-full bg-[#0a101d] border border-[#1b2b44] rounded-xl pl-14 pr-4 py-3 text-base font-bold font-mono text-white focus:outline-none focus:border-teal-500"
@@ -183,7 +216,7 @@ export const TaxCalculatorView: React.FC = () => {
             <div>
               <span className="text-[11px] text-slate-500 block mb-2">Popular Salary Benchmarks:</span>
               <div className="flex flex-wrap gap-1.5">
-                {PRESET_SALARIES.map((preset) => (
+                {(currency === 'KES' ? [50000, 100000, 150000, 250000, 500000] : [500, 1000, 1500, 2500, 5000]).map((preset) => (
                   <button
                     key={preset}
                     onClick={() => setGrossSalary(preset)}
@@ -193,7 +226,7 @@ export const TaxCalculatorView: React.FC = () => {
                         : 'bg-[#14233c] text-slate-400 hover:text-white border border-[#213554]'
                     }`}
                   >
-                    KES {(preset / 1000).toFixed(0)}k
+                    {CURRENCY_SYMBOLS[currency]} {preset.toLocaleString()}
                   </button>
                 ))}
               </div>

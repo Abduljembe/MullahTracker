@@ -18,6 +18,7 @@ export const EmergencyFundView: React.FC = () => {
     depositToEmergencyFund,
     formatCurrency,
     totalMonthlyExpenses,
+    currency,
   } = useFinance();
 
   const [depositAmt, setDepositAmt] = useState('');
@@ -117,13 +118,13 @@ export const EmergencyFundView: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-3 items-end">
             <div className="flex-1 w-full">
               <label className="block text-xs font-medium text-slate-400 mb-1">
-                Deposit Amount (KES)
+                Deposit Amount ({currency})
               </label>
               <input
                 type="number"
-                min="1"
+                min="0.01"
                 step="any"
-                placeholder="e.g. 20000"
+                placeholder={currency === 'KES' ? 'e.g. 20000' : 'e.g. 200'}
                 value={depositAmt}
                 onChange={(e) => setDepositAmt(e.target.value)}
                 autoFocus
@@ -167,7 +168,7 @@ export const EmergencyFundView: React.FC = () => {
               <h4 className="text-xs font-bold text-teal-300">Set Monthly Living Needs & Runway</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Essential Monthly Cost (KES)</label>
+                  <label className="block text-xs text-slate-400 mb-1">Essential Monthly Cost ({currency})</label>
                   <input
                     type="number"
                     value={customMonthly}

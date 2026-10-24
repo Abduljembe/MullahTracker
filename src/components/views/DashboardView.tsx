@@ -20,6 +20,7 @@ import {
   CalendarDays,
   Calculator,
   Compass,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext.tsx';
 
@@ -43,6 +44,9 @@ export const DashboardView: React.FC = () => {
     setActiveTab,
     setIsQuickAddOpen,
     setIsHealthModalOpen,
+    setIsCurrencyConverterOpen,
+    currency,
+    exchangeRates,
     financialHealth,
   } = useFinance();
 
@@ -88,8 +92,8 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Smart Intelligence Banner: Safe to Spend & M-Pesa Quick Assistant */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Top Smart Intelligence Banner: Safe to Spend, M-Pesa, Currency Converter, & Badges */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Widget 1: Daily Safe to Spend */}
         <div
           onClick={() => setActiveTab('budget')}
@@ -132,7 +136,28 @@ export const DashboardView: React.FC = () => {
           <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-colors" />
         </div>
 
-        {/* Widget 3: Milestones & Badges */}
+        {/* Widget 3: Live FX Currency Converter */}
+        <div
+          onClick={() => setIsCurrencyConverterOpen(true)}
+          className="bg-[#0e1626] border border-[#19273f] hover:border-teal-500/40 rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all shadow-md group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-[#0df2c9] shrink-0">
+              <ArrowRightLeft className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            </div>
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Live FX Converter
+              </div>
+              <div className="text-sm font-bold text-teal-300 font-mono mt-0.5">
+                1 USD = {exchangeRates.KES ? `${exchangeRates.KES.toFixed(1)} KES` : '129.8 KES'}
+              </div>
+            </div>
+          </div>
+          <ArrowRightLeft className="w-4 h-4 text-slate-500 group-hover:text-teal-400 transition-colors" />
+        </div>
+
+        {/* Widget 4: Milestones & Badges */}
         <div
           onClick={() => setActiveTab('milestones')}
           className="bg-[#0e1626] border border-[#19273f] hover:border-amber-500/40 rounded-2xl p-4 flex items-center justify-between cursor-pointer transition-all shadow-md group"
@@ -146,7 +171,7 @@ export const DashboardView: React.FC = () => {
                 Financial Milestones
               </div>
               <div className="text-sm font-bold text-amber-300 font-mono mt-0.5">
-                {unlockedBadges} of {badges.length} Badges Unlocked
+                {unlockedBadges} of {badges.length} Unlocked
               </div>
             </div>
           </div>

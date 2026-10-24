@@ -24,9 +24,15 @@ import { TaxCalculatorView } from './components/views/TaxCalculatorView.tsx';
 import { ChamaView } from './components/views/ChamaView.tsx';
 import { CashflowForecastView } from './components/views/CashflowForecastView.tsx';
 import { MilestonesView } from './components/views/MilestonesView.tsx';
+import { BillsView } from './components/views/BillsView.tsx';
+import { WalletsView } from './components/views/WalletsView.tsx';
+import { SaccoMmfCalculatorView } from './components/views/SaccoMmfCalculatorView.tsx';
 import { QuickAddModal } from './components/modals/QuickAddModal.tsx';
 import { HealthScoreModal } from './components/modals/HealthScoreModal.tsx';
 import { ClearDataModal } from './components/modals/ClearDataModal.tsx';
+import { CurrencyConverterModal } from './components/modals/CurrencyConverterModal.tsx';
+import { BackupRestoreModal } from './components/modals/BackupRestoreModal.tsx';
+import { OfflineIndicator } from './components/pwa/OfflineIndicator.tsx';
 import { AuthModal } from './components/auth/AuthModal.tsx';
 import { LandingPage } from './components/landing/LandingPage.tsx';
 
@@ -58,6 +64,10 @@ const MainContent: React.FC = () => {
         return <IncomeView />;
       case 'expenses':
         return <ExpensesView />;
+      case 'wallets':
+        return <WalletsView />;
+      case 'bills':
+        return <BillsView />;
       case 'budget':
         return <BudgetView />;
       case 'mpesa':
@@ -68,14 +78,14 @@ const MainContent: React.FC = () => {
         return <EmergencyFundView />;
       case 'investments':
         return <InvestmentsView />;
+      case 'sacco-mmf':
+        return <SaccoMmfCalculatorView />;
       case 'debt':
         return <DebtTrackerView />;
       case 'chama':
         return <ChamaView />;
       case 'milestones':
         return <MilestonesView />;
-      case 'cashflow':
-        return <CashflowForecastView />;
       case 'tax':
         return <TaxCalculatorView />;
       case 'calculator':
@@ -117,7 +127,12 @@ const MainContent: React.FC = () => {
       <QuickAddModal />
       <HealthScoreModal />
       <ClearDataModal />
+      <CurrencyConverterModal />
+      <BackupRestoreModal />
       <AuthModal />
+
+      {/* PWA Network Status Alert */}
+      <OfflineIndicator />
     </div>
   );
 };

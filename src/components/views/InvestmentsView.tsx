@@ -24,7 +24,7 @@ const ASSET_CLASSES: InvestmentItem['assetClass'][] = [
 ];
 
 export const InvestmentsView: React.FC = () => {
-  const { investments, addInvestment, deleteInvestment, formatCurrency, totalInvestments } = useFinance();
+  const { investments, addInvestment, deleteInvestment, formatCurrency, totalInvestments, currency } = useFinance();
 
   const [isAdding, setIsAdding] = useState(false);
 
@@ -174,12 +174,12 @@ export const InvestmentsView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Current Value (KES)</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Current Value ({currency})</label>
               <input
                 type="number"
                 min="0"
                 step="any"
-                placeholder="e.g. 250000"
+                placeholder={currency === 'KES' ? 'e.g. 250000' : 'e.g. 2000'}
                 value={currentValue}
                 onChange={(e) => setCurrentValue(e.target.value)}
                 required
@@ -188,12 +188,12 @@ export const InvestmentsView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Original Invested Principal (KES)</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Original Invested Principal ({currency})</label>
               <input
                 type="number"
                 min="0"
                 step="any"
-                placeholder="e.g. 200000"
+                placeholder={currency === 'KES' ? 'e.g. 200000' : 'e.g. 1500'}
                 value={investedAmount}
                 onChange={(e) => setInvestedAmount(e.target.value)}
                 className="w-full bg-[#121c2e] border border-[#1d2c47] rounded-xl px-3 py-2 text-sm text-white font-mono placeholder-slate-500 focus:outline-none focus:border-amber-400"

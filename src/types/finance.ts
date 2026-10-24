@@ -4,9 +4,12 @@ export type TabType =
   | 'income'
   | 'expenses'
   | 'budget'
+  | 'wallets'
+  | 'bills'
   | 'savings'
   | 'emergency'
   | 'investments'
+  | 'sacco-mmf'
   | 'debt'
   | 'calculator'
   | 'reports'
@@ -146,4 +149,60 @@ export interface MilestoneBadge {
   unlocked: boolean;
   unlockedAt?: string;
   progress: number; // 0 - 100
+}
+
+export type BillCategory =
+  | 'Utilities & Power (KPLC)'
+  | 'Water & Sanitation'
+  | 'Internet & WiFi'
+  | 'Rent & Housing'
+  | 'Subscriptions & Streaming'
+  | 'Insurance'
+  | 'Chama & Welfare'
+  | 'Other';
+
+export interface BillItem {
+  id: string;
+  title: string;
+  amount: number;
+  dueDate: string; // YYYY-MM-DD
+  category: BillCategory;
+  frequency: 'monthly' | 'weekly' | 'yearly' | 'one-time';
+  accountNumberOrPaybill?: string;
+  isAutoPay?: boolean;
+  status: 'unpaid' | 'paid' | 'overdue';
+  lastPaidDate?: string;
+  notes?: string;
+}
+
+export type WalletType =
+  | 'M-PESA'
+  | 'Bank Account'
+  | 'SACCO FOSA'
+  | 'Cash / Physical'
+  | 'Credit Card'
+  | 'Crypto Wallet'
+  | 'Other';
+
+export interface WalletAccount {
+  id: string;
+  name: string;
+  type: WalletType;
+  balance: number;
+  accountNumber?: string;
+  institution?: string;
+  color: string;
+  isDefault?: boolean;
+  lastReconciled?: string;
+  notes?: string;
+}
+
+export interface WalletTransfer {
+  id: string;
+  fromWalletId: string;
+  toWalletId: string;
+  amount: number;
+  date: string;
+  fee?: number;
+  notes?: string;
 }

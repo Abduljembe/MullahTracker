@@ -15,6 +15,9 @@ import {
   FinancialHealth,
   ChamaItem,
   MilestoneBadge,
+  BillItem,
+  WalletAccount,
+  WalletTransfer,
 } from '../types/finance.ts';
 import {
   ExchangeRates,
@@ -65,6 +68,9 @@ interface FinanceContextType {
   debts: DebtItem[];
   emergencyFund: EmergencyFundConfig;
   chamas: ChamaItem[];
+  bills: BillItem[];
+  wallets: WalletAccount[];
+  transfers: WalletTransfer[];
 
   // Actions
   addIncome: (income: Omit<IncomeItem, 'id'>) => void;
@@ -85,6 +91,27 @@ interface FinanceContextType {
   depositToEmergencyFund: (amount: number) => void;
   addChama: (chama: Omit<ChamaItem, 'id'>) => void;
   deleteChama: (id: string) => void;
+
+  // Bills Actions
+  addBill: (bill: Omit<BillItem, 'id' | 'status'>) => void;
+  updateBill: (bill: BillItem) => void;
+  deleteBill: (id: string) => void;
+  markBillPaid: (id: string, paymentMethod?: ExpenseItem['paymentMethod']) => void;
+
+  // Wallets & Transfers Actions
+  addWallet: (wallet: Omit<WalletAccount, 'id'>) => void;
+  updateWallet: (wallet: WalletAccount) => void;
+  deleteWallet: (id: string) => void;
+  transferBetweenWallets: (params: {
+    fromWalletId: string;
+    toWalletId: string;
+    amount: number;
+    fee?: number;
+    notes?: string;
+    date?: string;
+  }) => boolean;
+  reconcileWalletBalance: (id: string, actualBalance: number) => void;
+  totalLiquidBalance: number;
 
   // Aggregated totals & new metrics
   totalMonthlyIncome: number;
@@ -116,6 +143,15 @@ interface FinanceContextType {
   setIsQuickAddOpen: (open: boolean) => void;
   isHealthModalOpen: boolean;
   setIsHealthModalOpen: (open: boolean) => void;
+  isCurrencyConverterOpen: boolean;
+  setIsCurrencyConverterOpen: (open: boolean) => void;
+  convertAmount: (amount: number, from: CurrencyCode, to: CurrencyCode) => number;
+
+  // Backup & Restore
+  isBackupRestoreOpen: boolean;
+  setIsBackupRestoreOpen: (open: boolean) => void;
+  exportBackupJSON: () => string;
+  importBackupJSON: (jsonString: string, mode: 'merge' | 'replace') => Promise<{ success: boolean; message: string }>;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -158,6 +194,9 @@ const INITIAL_EMPTY_STATE = {
     currentAmount: 0,
   },
   chamas: [] as ChamaItem[],
+  bills: [] as BillItem[],
+  wallets: [] as WalletAccount[],
+  transfers: [] as WalletTransfer[],
 };
 
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -169,9 +208,15 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
   const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
+  const [isCurrencyConverterOpen, setIsCurrencyConverterOpen] = useState(false);
+  const [isBackupRestoreOpen, setIsBackupRestoreOpen] = useState(false);
   const [dataNotice, setDataNotice] = useState<DataNotice | null>(null);
 
   const dismissDataNotice = () => setDataNotice(null);
+
+  const convertAmount = (amount: number, from: CurrencyCode, to: CurrencyCode): number => {
+    return convertCurrency(amount, from, to, exchangeRates);
+  };
 
   // Load latest live exchange rates on mount
   useEffect(() => {
@@ -189,6 +234,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [debts, setDebts] = useState<DebtItem[]>([]);
   const [emergencyFund, setEmergencyFund] = useState<EmergencyFundConfig>(INITIAL_EMPTY_STATE.emergencyFund);
   const [chamas, setChamas] = useState<ChamaItem[]>([]);
+  const [bills, setBills] = useState<BillItem[]>([]);
+  const [wallets, setWallets] = useState<WalletAccount[]>([]);
+  const [transfers, setTransfers] = useState<WalletTransfer[]>([]);
 
   // Load from localStorage on mount, removing any leftover sample items
   useEffect(() => {
@@ -231,6 +279,15 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         if (Array.isArray(parsed.chamas)) {
           setChamas(parsed.chamas);
         }
+        if (Array.isArray(parsed.bills)) {
+          setBills(parsed.bills);
+        }
+        if (Array.isArray(parsed.wallets)) {
+          setWallets(parsed.wallets);
+        }
+        if (Array.isArray(parsed.transfers)) {
+          setTransfers(parsed.transfers);
+        }
         if (parsed.emergencyFund && parsed.emergencyFund.currentAmount !== 280000) {
           // If it was the exact sample fund 280000, reset to 0
           setEmergencyFund(parsed.emergencyFund);
@@ -264,6 +321,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
           if (Array.isArray(parsed.investments)) setInvestments(parsed.investments);
           if (Array.isArray(parsed.debts)) setDebts(parsed.debts);
           if (Array.isArray(parsed.chamas)) setChamas(parsed.chamas);
+          if (Array.isArray(parsed.bills)) setBills(parsed.bills);
+          if (Array.isArray(parsed.wallets)) setWallets(parsed.wallets);
+          if (Array.isArray(parsed.transfers)) setTransfers(parsed.transfers);
           if (parsed.emergencyFund) setEmergencyFund(parsed.emergencyFund);
         }
       } catch (e) {
@@ -291,6 +351,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
           if (Array.isArray(data.investments)) setInvestments(data.investments);
           if (Array.isArray(data.debts)) setDebts(data.debts);
           if (Array.isArray(data.chamas)) setChamas(data.chamas);
+          if (Array.isArray(data.bills)) setBills(data.bills);
+          if (Array.isArray(data.wallets)) setWallets(data.wallets);
+          if (Array.isArray(data.transfers)) setTransfers(data.transfers);
           if (data.emergencyFund) setEmergencyFund(data.emergencyFund);
         } else if (!snap.exists() && !isCancelled) {
           await setDoc(
@@ -306,6 +369,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
               debts,
               emergencyFund,
               chamas,
+              bills,
+              wallets,
+              transfers,
               updatedAt: new Date().toISOString(),
             },
             { merge: true }
@@ -341,6 +407,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         debts,
         emergencyFund,
         chamas,
+        bills,
+        wallets,
+        transfers,
       };
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_${user.uid}`, JSON.stringify(stateToSave));
     } catch {
@@ -366,6 +435,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
             debts,
             emergencyFund,
             chamas,
+            bills,
+            wallets,
+            transfers,
             updatedAt: new Date().toISOString(),
           },
           { merge: true }
@@ -376,7 +448,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     }, 1000);
 
     return () => clearTimeout(timeout);
-  }, [user, currency, currentPeriod, incomes, expenses, budgets, savingsGoals, investments, debts, emergencyFund, chamas]);
+  }, [user, currency, currentPeriod, incomes, expenses, budgets, savingsGoals, investments, debts, emergencyFund, chamas, bills, wallets, transfers]);
 
   // Save changes to localStorage
   useEffect(() => {
@@ -392,12 +464,15 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         debts,
         emergencyFund,
         chamas,
+        bills,
+        wallets,
+        transfers,
       };
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (e) {
       console.error('Error saving finance state:', e);
     }
-  }, [currency, currentPeriod, incomes, expenses, budgets, savingsGoals, investments, debts, emergencyFund, chamas]);
+  }, [currency, currentPeriod, incomes, expenses, budgets, savingsGoals, investments, debts, emergencyFund, chamas, bills, wallets, transfers]);
 
   const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
 
@@ -475,6 +550,28 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
             ...ch,
             contributionAmount: Math.round(ch.contributionAmount * rate * 100) / 100,
             payoutAmount: Math.round(ch.payoutAmount * rate * 100) / 100,
+          }))
+        );
+
+        setBills((prev) =>
+          prev.map((b) => ({
+            ...b,
+            amount: Math.round(b.amount * rate * 100) / 100,
+          }))
+        );
+
+        setWallets((prev) =>
+          prev.map((w) => ({
+            ...w,
+            balance: Math.round(w.balance * rate * 100) / 100,
+          }))
+        );
+
+        setTransfers((prev) =>
+          prev.map((t) => ({
+            ...t,
+            amount: Math.round(t.amount * rate * 100) / 100,
+            fee: t.fee ? Math.round(t.fee * rate * 100) / 100 : undefined,
           }))
         );
 
@@ -611,6 +708,310 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setChamas((prev) => prev.filter((c) => c.id !== id));
   };
 
+  // --- Bills Actions ---
+  const addBill = (bill: Omit<BillItem, 'id' | 'status'>) => {
+    const today = new Date().toISOString().split('T')[0];
+    const status: BillItem['status'] = bill.dueDate < today ? 'overdue' : 'unpaid';
+    const newBill: BillItem = {
+      ...bill,
+      id: 'user-bill-' + Date.now(),
+      status,
+    };
+    setBills((prev) => [newBill, ...prev]);
+    setDataNotice({
+      type: 'success',
+      message: `Bill "${bill.title}" added successfully.`,
+    });
+  };
+
+  const updateBill = (updated: BillItem) => {
+    setBills((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+  };
+
+  const deleteBill = (id: string) => {
+    setBills((prev) => prev.filter((b) => b.id !== id));
+  };
+
+  const markBillPaid = (id: string, paymentMethod: ExpenseItem['paymentMethod'] = 'M-Pesa') => {
+    const bill = bills.find((b) => b.id === id);
+    if (!bill) return;
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // 1. Automatically log expense
+    const expenseCategory: ExpenseItem['category'] =
+      bill.category === 'Rent & Housing'
+        ? 'Rent & Housing'
+        : bill.category === 'Subscriptions & Streaming'
+        ? 'Entertainment & Dining'
+        : 'Utilities & Bills';
+
+    addExpense({
+      title: `Bill: ${bill.title}`,
+      amount: bill.amount,
+      category: expenseCategory,
+      date: today,
+      paymentMethod,
+      isRecurring: bill.frequency !== 'one-time',
+      notes: bill.accountNumberOrPaybill ? `Account/Meter: ${bill.accountNumberOrPaybill}` : bill.notes,
+    });
+
+    // 2. If recurring, compute next due date; if one-time, mark as paid
+    if (bill.frequency === 'one-time') {
+      setBills((prev) =>
+        prev.map((b) =>
+          b.id === id ? { ...b, status: 'paid', lastPaidDate: today } : b
+        )
+      );
+    } else {
+      const currentDue = new Date(bill.dueDate);
+      const nextDue = new Date(currentDue);
+
+      if (bill.frequency === 'monthly') {
+        nextDue.setMonth(nextDue.getMonth() + 1);
+      } else if (bill.frequency === 'weekly') {
+        nextDue.setDate(nextDue.getDate() + 7);
+      } else if (bill.frequency === 'yearly') {
+        nextDue.setFullYear(nextDue.getFullYear() + 1);
+      }
+
+      const nextDueStr = nextDue.toISOString().split('T')[0];
+      setBills((prev) =>
+        prev.map((b) =>
+          b.id === id
+            ? {
+                ...b,
+                dueDate: nextDueStr,
+                status: nextDueStr < today ? 'overdue' : 'unpaid',
+                lastPaidDate: today,
+              }
+            : b
+        )
+      );
+    }
+
+    setDataNotice({
+      type: 'success',
+      message: `Marked "${bill.title}" as paid! Recorded ${currency} ${bill.amount.toLocaleString()} in Expenses.`,
+    });
+  };
+
+  // --- Wallets Actions ---
+  const addWallet = (wallet: Omit<WalletAccount, 'id'>) => {
+    const newWallet: WalletAccount = {
+      ...wallet,
+      id: 'wallet-' + Date.now(),
+      lastReconciled: new Date().toISOString(),
+    };
+    setWallets((prev) => [...prev, newWallet]);
+  };
+
+  const updateWallet = (updated: WalletAccount) => {
+    setWallets((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
+  };
+
+  const deleteWallet = (id: string) => {
+    setWallets((prev) => prev.filter((w) => w.id !== id));
+  };
+
+  const transferBetweenWallets = ({
+    fromWalletId,
+    toWalletId,
+    amount,
+    fee = 0,
+    notes,
+    date,
+  }: {
+    fromWalletId: string;
+    toWalletId: string;
+    amount: number;
+    fee?: number;
+    notes?: string;
+    date?: string;
+  }): boolean => {
+    const from = wallets.find((w) => w.id === fromWalletId);
+    const to = wallets.find((w) => w.id === toWalletId);
+
+    if (!from || !to || from.id === to.id) {
+      setDataNotice({ type: 'warning', message: 'Please select two different valid accounts for transfer.' });
+      return false;
+    }
+
+    const transferDate = date || new Date().toISOString().split('T')[0];
+
+    // Deduct from source and add to destination
+    setWallets((prev) =>
+      prev.map((w) => {
+        if (w.id === fromWalletId) {
+          return { ...w, balance: Math.round((w.balance - (amount + fee)) * 100) / 100 };
+        }
+        if (w.id === toWalletId) {
+          return { ...w, balance: Math.round((w.balance + amount) * 100) / 100 };
+        }
+        return w;
+      })
+    );
+
+    // Record transfer
+    const newTransfer: WalletTransfer = {
+      id: 'transfer-' + Date.now(),
+      fromWalletId,
+      toWalletId,
+      amount,
+      fee: fee > 0 ? fee : undefined,
+      notes,
+      date: transferDate,
+    };
+    setTransfers((prev) => [newTransfer, ...prev]);
+
+    // If fee was charged, record as an expense
+    if (fee > 0) {
+      addExpense({
+        title: `Transfer Fee: ${from.name} -> ${to.name}`,
+        amount: fee,
+        category: 'Utilities & Bills',
+        date: transferDate,
+        paymentMethod: from.type === 'M-PESA' ? 'M-Pesa' : 'Bank',
+        isRecurring: false,
+        notes: `Transfer transaction fee for moving ${amount} to ${to.name}`,
+      });
+    }
+
+    setDataNotice({
+      type: 'success',
+      message: `Transferred ${currency} ${amount.toLocaleString()} from ${from.name} to ${to.name}${fee > 0 ? ` (fee: ${currency} ${fee})` : ''}.`,
+    });
+    return true;
+  };
+
+  const reconcileWalletBalance = (id: string, actualBalance: number) => {
+    setWallets((prev) =>
+      prev.map((w) =>
+        w.id === id
+          ? {
+              ...w,
+              balance: actualBalance,
+              lastReconciled: new Date().toISOString(),
+            }
+          : w
+      )
+    );
+    setDataNotice({
+      type: 'success',
+      message: 'Account balance successfully reconciled and saved.',
+    });
+  };
+
+  const totalLiquidBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
+
+  // --- Data Backup & Restore ---
+  const exportBackupJSON = (): string => {
+    const backupData = {
+      version: '1.0.0',
+      exportedAt: new Date().toISOString(),
+      app: 'MullahTracker',
+      currency,
+      currentPeriod,
+      incomes,
+      expenses,
+      budgets,
+      savingsGoals,
+      investments,
+      debts,
+      emergencyFund,
+      chamas,
+      bills,
+      wallets,
+      transfers,
+    };
+
+    const jsonString = JSON.stringify(backupData, null, 2);
+
+    try {
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.href = url;
+      a.download = `mullahtracker_backup_${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.warn('Auto download error, returning string:', e);
+    }
+
+    return jsonString;
+  };
+
+  const importBackupJSON = async (
+    jsonString: string,
+    mode: 'merge' | 'replace'
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Invalid JSON format.');
+      }
+
+      if (mode === 'replace') {
+        if (parsed.currency) setCurrencyState(parsed.currency);
+        if (parsed.currentPeriod) setCurrentPeriod(parsed.currentPeriod);
+        setIncomes(Array.isArray(parsed.incomes) ? parsed.incomes : []);
+        setExpenses(Array.isArray(parsed.expenses) ? parsed.expenses : []);
+        setBudgets(Array.isArray(parsed.budgets) ? parsed.budgets : INITIAL_EMPTY_STATE.budgets);
+        setSavingsGoals(Array.isArray(parsed.savingsGoals) ? parsed.savingsGoals : []);
+        setInvestments(Array.isArray(parsed.investments) ? parsed.investments : []);
+        setDebts(Array.isArray(parsed.debts) ? parsed.debts : []);
+        setEmergencyFund(parsed.emergencyFund || INITIAL_EMPTY_STATE.emergencyFund);
+        setChamas(Array.isArray(parsed.chamas) ? parsed.chamas : []);
+        setBills(Array.isArray(parsed.bills) ? parsed.bills : []);
+        setWallets(Array.isArray(parsed.wallets) ? parsed.wallets : []);
+        setTransfers(Array.isArray(parsed.transfers) ? parsed.transfers : []);
+      } else {
+        // Merge mode
+        const mergeById = <T extends { id: string }>(currentList: T[], newList: unknown[]): T[] => {
+          if (!Array.isArray(newList)) return currentList;
+          const map = new Map<string, T>();
+          currentList.forEach((item) => map.set(item.id, item));
+          newList.forEach((item) => {
+            if (item && typeof item === 'object' && 'id' in item) {
+              map.set((item as T).id, item as T);
+            }
+          });
+          return Array.from(map.values());
+        };
+
+        setIncomes((prev) => mergeById(prev, parsed.incomes));
+        setExpenses((prev) => mergeById(prev, parsed.expenses));
+        setSavingsGoals((prev) => mergeById(prev, parsed.savingsGoals));
+        setInvestments((prev) => mergeById(prev, parsed.investments));
+        setDebts((prev) => mergeById(prev, parsed.debts));
+        setChamas((prev) => mergeById(prev, parsed.chamas));
+        setBills((prev) => mergeById(prev, parsed.bills));
+        setWallets((prev) => mergeById(prev, parsed.wallets));
+        setTransfers((prev) => mergeById(prev, parsed.transfers));
+      }
+
+      setDataNotice({
+        type: 'success',
+        message: `Backup data successfully restored (${mode === 'replace' ? 'Full Replace' : 'Merged'}).`,
+      });
+
+      return {
+        success: true,
+        message: 'Data successfully restored.',
+      };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown parsing error';
+      return {
+        success: false,
+        message: `Failed to import backup: ${msg}`,
+      };
+    }
+  };
+
   // Reset / Clear all data to fresh zero state
   const clearAllData = async () => {
     // 1. Reset state
@@ -622,6 +1023,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setDebts([]);
     setEmergencyFund(INITIAL_EMPTY_STATE.emergencyFund);
     setChamas([]);
+    setBills([]);
+    setWallets([]);
+    setTransfers([]);
 
     // 2. Clear all local storage keys
     try {
@@ -661,6 +1065,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
           debts: [],
           emergencyFund: INITIAL_EMPTY_STATE.emergencyFund,
           chamas: [],
+          bills: [],
+          wallets: [],
+          transfers: [],
           updatedAt: new Date().toISOString(),
         });
       } catch (err) {
@@ -1135,6 +1542,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         debts,
         emergencyFund,
         chamas,
+        bills,
+        wallets,
+        transfers,
         addIncome,
         deleteIncome,
         addExpense,
@@ -1153,6 +1563,16 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         depositToEmergencyFund,
         addChama,
         deleteChama,
+        addBill,
+        updateBill,
+        deleteBill,
+        markBillPaid,
+        addWallet,
+        updateWallet,
+        deleteWallet,
+        transferBetweenWallets,
+        reconcileWalletBalance,
+        totalLiquidBalance,
         totalMonthlyIncome,
         totalMonthlyExpenses,
         savingsThisMonth,
@@ -1178,6 +1598,13 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         setIsQuickAddOpen,
         isHealthModalOpen,
         setIsHealthModalOpen,
+        isCurrencyConverterOpen,
+        setIsCurrencyConverterOpen,
+        convertAmount,
+        isBackupRestoreOpen,
+        setIsBackupRestoreOpen,
+        exportBackupJSON,
+        importBackupJSON,
       }}
     >
       {children}

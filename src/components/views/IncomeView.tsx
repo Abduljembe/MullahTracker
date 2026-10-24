@@ -125,12 +125,12 @@ export const IncomeView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Amount (KES)</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Amount ({currency})</label>
               <input
                 type="number"
                 min="0"
                 step="any"
-                placeholder="e.g. 120000"
+                placeholder={currency === 'KES' ? 'e.g. 120000' : 'e.g. 1200'}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required

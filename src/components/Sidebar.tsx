@@ -21,11 +21,17 @@ import {
   Award,
   CalendarDays,
   RotateCcw,
+  ArrowRightLeft,
+  CalendarClock,
+  Coins,
+  Database,
+  Download,
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { TabType } from '../types/finance.ts';
 import { AppLogo } from './common/AppLogo.tsx';
+import { PWAInstallButton } from './pwa/PWAInstallButton.tsx';
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -44,7 +50,16 @@ interface NavGroup {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) => {
-  const { activeTab, setActiveTab, currency, currencySymbol, setIsClearDataModalOpen } = useFinance();
+  const {
+    activeTab,
+    setActiveTab,
+    currency,
+    currencySymbol,
+    setCurrency,
+    setIsClearDataModalOpen,
+    setIsCurrencyConverterOpen,
+    setIsBackupRestoreOpen,
+  } = useFinance();
   const { user, setIsAuthModalOpen, setAuthMode, logout } = useAuth();
 
   const navGroups: NavGroup[] = [
@@ -61,6 +76,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
       items: [
         { id: 'income', label: 'Income', icon: Wallet },
         { id: 'expenses', label: 'Expenses', icon: FileText },
+        { id: 'wallets', label: 'Accounts & Wallets', icon: Coins },
+        { id: 'bills', label: 'Upcoming Bills & Subs', icon: CalendarClock },
         { id: 'budget', label: 'Budget', icon: SlidersHorizontal },
         { id: 'mpesa', label: 'M-Pesa SMS Parser', icon: Smartphone },
       ],
@@ -79,6 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
     {
       group: 'TOOLS & REPORTS',
       items: [
+        { id: 'sacco-mmf', label: 'SACCO & MMF Yields', icon: TrendingUp },
         { id: 'cashflow', label: 'Cash Flow Forecast', icon: CalendarDays },
         { id: 'tax', label: 'KRA Tax & PAYE', icon: Calculator },
         { id: 'calculator', label: 'FF Calculator', icon: Compass },
@@ -187,12 +205,57 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
           </button>
         )}
 
-        <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
-          <span>Active Currency</span>
-          <span className="font-mono text-teal-400 font-semibold px-2 py-0.5 rounded bg-teal-950/60 border border-teal-800/40 text-[10px]">
-            {currencySymbol} {currency}
-          </span>
+        {/* Currency Switcher & Converter */}
+        <div className="bg-[#0b121e] border border-[#162338] rounded-xl p-2 space-y-2">
+          <div className="flex items-center justify-between text-[11px] text-slate-400">
+            <span>Portfolio Currency</span>
+            <button
+              onClick={() => {
+                setIsCurrencyConverterOpen(true);
+                setMobileOpen(false);
+              }}
+              className="text-[10px] text-teal-400 hover:text-white flex items-center gap-1 font-semibold"
+              title="Open Live Currency Converter"
+            >
+              <ArrowRightLeft className="w-3 h-3" />
+              <span>Convert FX</span>
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {(['USD', 'KES', 'EUR'] as const).map((c) => (
+              <button
+                key={c}
+                onClick={() => setCurrency(c, true)}
+                className={`py-1 text-center rounded-lg text-[11px] font-bold font-mono transition-colors ${
+                  currency === c
+                    ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 shadow-sm'
+                    : 'bg-[#101a2d] hover:bg-[#16243f] text-slate-400 hover:text-white border border-transparent'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Backup & Restore */}
+        <button
+          onClick={() => {
+            setIsBackupRestoreOpen(true);
+            setMobileOpen(false);
+          }}
+          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[#0e1626] hover:bg-[#142036] border border-[#17253c] hover:border-teal-500/30 text-[11px] text-slate-400 hover:text-teal-300 transition-colors cursor-pointer group"
+          title="Backup or restore financial data in JSON"
+        >
+          <div className="flex items-center gap-1.5">
+            <Database className="w-3 h-3 text-slate-500 group-hover:text-teal-400 transition-colors" />
+            <span>Backup & Restore</span>
+          </div>
+          <span className="text-[10px] text-teal-400 font-mono">JSON</span>
+        </button>
+
+        {/* PWA Install Button */}
+        <PWAInstallButton variant="sidebar" />
 
         <button
           onClick={() => {

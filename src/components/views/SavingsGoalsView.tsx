@@ -25,7 +25,7 @@ const GOAL_CATEGORIES: SavingsGoal['category'][] = [
 ];
 
 export const SavingsGoalsView: React.FC = () => {
-  const { savingsGoals, addSavingsGoal, depositToGoal, deleteSavingsGoal, formatCurrency } = useFinance();
+  const { savingsGoals, addSavingsGoal, depositToGoal, deleteSavingsGoal, formatCurrency, currency } = useFinance();
 
   const [isAdding, setIsAdding] = useState(false);
   const [depositGoalId, setDepositGoalId] = useState<string | null>(null);
@@ -156,12 +156,12 @@ export const SavingsGoalsView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Target Amount (KES)</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Target Amount ({currency})</label>
               <input
                 type="number"
                 min="0"
                 step="any"
-                placeholder="e.g. 500000"
+                placeholder={currency === 'KES' ? 'e.g. 500000' : 'e.g. 5000'}
                 value={targetAmount}
                 onChange={(e) => setTargetAmount(e.target.value)}
                 required
@@ -246,12 +246,12 @@ export const SavingsGoalsView: React.FC = () => {
             </p>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Deposit Amount (KES)</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Deposit Amount ({currency})</label>
               <input
                 type="number"
-                min="1"
+                min="0.01"
                 step="any"
-                placeholder="e.g. 25000"
+                placeholder={currency === 'KES' ? 'e.g. 25000' : 'e.g. 250'}
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
                 autoFocus
