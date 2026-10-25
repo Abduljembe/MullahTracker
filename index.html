@@ -3,10 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MullahTracker - Your Financial Journey</title>
+    <title>NjiaFedha - Personal Financial Journey</title>
     <meta name="description" content="Comprehensive dark-mode personal finance tracker with income, expenses, budget, savings goals, emergency fund, investments, debt tracking, and Financial Freedom (FIRE) calculator." />
-    <meta property="og:title" content="MullahTracker - Your Financial Journey" />
+    <meta property="og:title" content="NjiaFedha - Personal Financial Journey" />
     <meta property="og:description" content="Comprehensive dark-mode personal finance tracker with income, expenses, budget, savings goals, emergency fund, investments, debt tracking, and Financial Freedom (FIRE) calculator." />
+    <script>
+      // Gracefully silence benign Vite HMR WebSocket connection errors in iframe proxy environment
+      window.addEventListener('error', function (e) {
+        if (e && e.message && (e.message.includes('WebSocket') || e.message.includes('vite'))) {
+          e.stopImmediatePropagation();
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function (e) {
+        if (e && e.reason && (String(e.reason).includes('WebSocket') || String(e.reason).includes('vite'))) {
+          e.stopImmediatePropagation();
+        }
+      }, true);
+    </script>
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
