@@ -76,6 +76,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
         return 'Emergency Fund';
       case 'investments':
         return 'Investments Portfolio';
+      case 'stocks':
+        return 'AI Stock Radar & Live Market Charts';
       case 'debt':
         return 'Debt Payoff Tracker';
       case 'mpesa':

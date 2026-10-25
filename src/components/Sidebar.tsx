@@ -88,6 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
         { id: 'savings', label: 'Savings Goals', icon: Target },
         { id: 'emergency', label: 'Emergency Fund', icon: Shield },
         { id: 'investments', label: 'Investments', icon: TrendingUp },
+        { id: 'stocks', label: 'AI Stock Radar & News', icon: BarChart2 },
         { id: 'debt', label: 'Debt Tracker', icon: CreditCard },
         { id: 'chama', label: 'Chama & Groups', icon: Users },
         { id: 'milestones', label: 'Milestones & Badges', icon: Award },

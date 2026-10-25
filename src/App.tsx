@@ -27,6 +27,7 @@ import { MilestonesView } from './components/views/MilestonesView.tsx';
 import { BillsView } from './components/views/BillsView.tsx';
 import { WalletsView } from './components/views/WalletsView.tsx';
 import { SaccoMmfCalculatorView } from './components/views/SaccoMmfCalculatorView.tsx';
+import { StockRadarView } from './components/views/StockRadarView.tsx';
 import { QuickAddModal } from './components/modals/QuickAddModal.tsx';
 import { HealthScoreModal } from './components/modals/HealthScoreModal.tsx';
 import { ClearDataModal } from './components/modals/ClearDataModal.tsx';
@@ -78,6 +79,8 @@ const MainContent: React.FC = () => {
         return <EmergencyFundView />;
       case 'investments':
         return <InvestmentsView />;
+      case 'stocks':
+        return <StockRadarView />;
       case 'sacco-mmf':
         return <SaccoMmfCalculatorView />;
       case 'debt':
