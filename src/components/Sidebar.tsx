@@ -33,11 +33,6 @@ import { TabType } from '../types/finance.ts';
 import { AppLogo } from './common/AppLogo.tsx';
 import { PWAInstallButton } from './pwa/PWAInstallButton.tsx';
 
-interface SidebarProps {
-  mobileOpen: boolean;
-  setMobileOpen: (open: boolean) => void;
-}
-
 interface NavItem {
   id: TabType;
   label: string;
@@ -49,7 +44,19 @@ interface NavGroup {
   items: NavItem[];
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) => {
+interface SidebarProps {
+  mobileOpen: boolean;
+  setMobileOpen: (open: boolean) => void;
+  collapsed?: boolean;
+  setCollapsed?: (collapsed: boolean) => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({
+  mobileOpen,
+  setMobileOpen,
+  collapsed = false,
+  setCollapsed,
+}) => {
   const {
     activeTab,
     setActiveTab,
@@ -278,8 +285,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
 
   return (
     <>
-      {/* Desktop static sidebar */}
-      <aside className="hidden md:block shrink-0 sticky top-0 h-screen z-30">
+      {/* Desktop collapsible sidebar */}
+      <aside
+        className={`hidden md:block shrink-0 sticky top-0 h-screen z-30 transition-all duration-300 ease-in-out ${
+          collapsed ? 'w-0 -translate-x-full overflow-hidden opacity-0 pointer-events-none' : 'w-64 opacity-100'
+        }`}
+      >
         {sidebarContent}
       </aside>
 

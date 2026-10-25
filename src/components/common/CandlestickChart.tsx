@@ -129,7 +129,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
     // Create TradingView Chart instance
     const chart = createChart(container, {
       width: container.clientWidth || 700,
-      height: isFullscreen ? window.innerHeight - 130 : 360,
+      height: isFullscreen ? window.innerHeight - 130 : 440,
       layout: {
         background: { type: ColorType.Solid, color: '#070b14' },
         textColor: '#94a3b8',
@@ -435,7 +435,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       if (chartContainerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
           width: chartContainerRef.current.clientWidth,
-          height: isFullscreen ? window.innerHeight - 130 : 360,
+          height: isFullscreen ? window.innerHeight - 130 : 440,
         });
       }
     };
@@ -764,7 +764,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
         {/* Lightweight Charts Canvas Host */}
         <div
           ref={chartContainerRef}
-          className={`w-full ${isFullscreen ? 'h-full' : 'h-[360px]'} cursor-crosshair`}
+          className={`w-full ${isFullscreen ? 'h-full' : 'h-[440px]'} cursor-crosshair`}
         />
 
         {/* Subtle Interactive Instruction Pill on bottom-left */}

@@ -44,6 +44,7 @@ const MainContent: React.FC = () => {
   // If user is logged in, default to app dashboard; otherwise landing page
   const [viewMode, setViewMode] = useState<'landing' | 'app'>('landing');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -110,18 +111,26 @@ const MainContent: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#070b14] text-slate-100">
+    <div className="flex min-h-screen bg-[#070b14] text-slate-100 w-full overflow-x-hidden">
       {/* Sidebar Navigation */}
-      <Sidebar mobileOpen={mobileMenuOpen} setMobileOpen={setMobileMenuOpen} />
+      <Sidebar
+        mobileOpen={mobileMenuOpen}
+        setMobileOpen={setMobileMenuOpen}
+        collapsed={sidebarCollapsed}
+        setCollapsed={setSidebarCollapsed}
+      />
 
-      {/* Main View Area with fine tech grid background matching screenshot */}
-      <div className="flex-1 flex flex-col min-w-0 fintech-grid-bg">
+      {/* Main View Area covering full screen width without artificial margins */}
+      <div className="flex-1 flex flex-col min-w-0 w-full fintech-grid-bg transition-all duration-300">
         <Header
           onOpenMobileMenu={() => setMobileMenuOpen(true)}
           onNavigateToLanding={() => setViewMode('landing')}
+          isSidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
         />
 
-        <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto pb-16">
+        {/* Full-width container covering left and right space */}
+        <main className="flex-1 p-3 sm:p-5 md:p-6 lg:p-8 w-full min-w-0 pb-16">
           {renderActiveView()}
         </main>
       </div>

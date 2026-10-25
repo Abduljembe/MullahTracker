@@ -16,6 +16,8 @@ import {
   ArrowRightLeft,
   X,
   Database,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -25,9 +27,16 @@ import { PWAInstallButton } from './pwa/PWAInstallButton.tsx';
 interface HeaderProps {
   onOpenMobileMenu: () => void;
   onNavigateToLanding?: () => void;
+  isSidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLanding }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onOpenMobileMenu,
+  onNavigateToLanding,
+  isSidebarCollapsed = false,
+  onToggleSidebar,
+}) => {
   const {
     activeTab,
     currentPeriod,
@@ -145,6 +154,24 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, onNavigateToLa
             <Menu className="w-5 h-5" />
             <AppLogoIcon sizePx={24} />
           </button>
+
+          {/* Desktop Full-Screen / Sidebar Toggle */}
+          {onToggleSidebar && (
+            <button
+              onClick={onToggleSidebar}
+              className="hidden md:flex items-center gap-1.5 p-2 rounded-xl bg-[#0d1624] hover:bg-[#132238] border border-[#1b2b42] text-slate-400 hover:text-white transition-all cursor-pointer group shadow-sm"
+              title={isSidebarCollapsed ? 'Expand Sidebar Navigation' : 'Collapse Sidebar to Full Screen'}
+            >
+              {isSidebarCollapsed ? (
+                <PanelLeftOpen className="w-4 h-4 text-[#0df2c9] group-hover:scale-110 transition-transform" />
+              ) : (
+                <PanelLeftClose className="w-4 h-4 text-slate-400 group-hover:text-white group-hover:scale-110 transition-transform" />
+              )}
+              <span className="text-[11px] font-semibold hidden lg:inline">
+                {isSidebarCollapsed ? 'Sidebar' : 'Full Screen'}
+              </span>
+            </button>
+          )}
 
           <div>
             <div className="flex items-center gap-3">

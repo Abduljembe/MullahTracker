@@ -286,8 +286,7 @@ export const StockRadarView: React.FC = () => {
 
       const data = await res.json();
       setAiReport(data);
-    } catch (err: any) {
-      console.warn('AI analysis error, loading fallback analytical profile:', err);
+    } catch {
       // Fallback analytical data so user always sees rich insights
       setAiReport({
         ticker: stock.ticker,
@@ -576,9 +575,9 @@ export const StockRadarView: React.FC = () => {
       </div>
 
       {/* Main Stock Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Interactive Chart & Ratios (7 cols) */}
-        <div className="lg:col-span-7 space-y-5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+        {/* Left Column: Interactive Chart & Ratios (7 cols on lg, 8 cols on xl screens) */}
+        <div className="lg:col-span-7 xl:col-span-8 space-y-5">
           {/* Main Chart Card */}
           <div className="p-5 rounded-2xl bg-[#0c1322] border border-[#18253b] space-y-4">
             {/* Header row */}
@@ -825,8 +824,8 @@ export const StockRadarView: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: AI Investment Report & Chat (5 cols) */}
-        <div className="lg:col-span-5 space-y-5">
+        {/* Right Column: AI Investment Report & Chat (5 cols on lg, 4 cols on xl) */}
+        <div className="lg:col-span-5 xl:col-span-4 space-y-5">
           {/* AI Verdict Card */}
           <div className="p-5 rounded-2xl bg-gradient-to-br from-[#0c182a] to-[#07111e] border border-teal-500/30 space-y-4 shadow-xl relative overflow-hidden">
             <div className="flex items-center justify-between">
