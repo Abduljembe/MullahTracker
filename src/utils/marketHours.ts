@@ -3,15 +3,103 @@ export interface MarketSessionInfo {
   status: 'LIVE' | 'CLOSED';
   statusBadge: string;
   exchangeName: string;
-  marketCode: 'NSE' | 'US';
+  marketCode: 'NSE' | 'US' | 'FOREX';
   timezone: string;
   exchangeTime: string;
   details: string;
   nextSessionText: string;
   tradingHours: string;
+  activeForexSession?: string;
 }
 
-export function getMarketSession(market: 'NSE' | 'US', now = new Date()): MarketSessionInfo {
+export function getMarketSession(market: 'NSE' | 'US' | 'FOREX', now = new Date()): MarketSessionInfo {
+  if (market === 'FOREX') {
+    // 24/5 global FX market: Sunday 22:00 UTC to Friday 22:00 UTC
+    const utcDay = now.getUTCDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+    const utcHours = now.getUTCHours();
+    const utcMinutes = now.getUTCMinutes();
+    const utcCurrentMins = utcHours * 60 + utcMinutes;
+
+    let isOpen = false;
+    if (utcDay >= 1 && utcDay <= 4) {
+      // Monday through Thursday is completely open
+      isOpen = true;
+    } else if (utcDay === 5) {
+      // Friday: open until 22:00 UTC
+      isOpen = utcCurrentMins < 22 * 60;
+    } else if (utcDay === 0) {
+      // Sunday: opens at 22:00 UTC (Sydney open)
+      isOpen = utcCurrentMins >= 22 * 60;
+    } else {
+      // Saturday: closed
+      isOpen = false;
+    }
+
+    // Determine active FX session(s)
+    const activeSessions: string[] = [];
+    // Sydney: 22:00 - 07:00 UTC
+    if (utcHours >= 22 || utcHours < 7) activeSessions.push('Sydney');
+    // Tokyo: 00:00 - 09:00 UTC
+    if (utcHours >= 0 && utcHours < 9) activeSessions.push('Tokyo (Asian)');
+    // London: 08:00 - 17:00 UTC
+    if (utcHours >= 8 && utcHours < 17) activeSessions.push('London (European)');
+    // New York: 13:00 - 22:00 UTC
+    if (utcHours >= 13 && utcHours < 22) activeSessions.push('New York (US)');
+
+    let sessionDetail = 'Global 24/5 FX Interbank Market';
+    if (isOpen) {
+      if (utcHours >= 13 && utcHours < 17) {
+        sessionDetail = 'London & New York Overlap • Peak Liquidity';
+      } else if (activeSessions.length > 0) {
+        sessionDetail = `Active Sessions: ${activeSessions.join(' + ')}`;
+      }
+    } else {
+      sessionDetail = 'Weekend • Global FX Markets Closed';
+    }
+
+    let nextSessionText = '';
+    if (isOpen) {
+      if (utcDay === 5) {
+        const untilClose = 22 * 60 - utcCurrentMins;
+        const h = Math.floor(untilClose / 60);
+        const m = untilClose % 60;
+        nextSessionText = `Closes for weekend in ${h}h ${m}m (22:00 UTC)`;
+      } else {
+        nextSessionText = 'Continuous 24h trading active';
+      }
+    } else {
+      if (utcDay === 6) {
+        nextSessionText = 'Opens Sunday 22:00 UTC (Sydney)';
+      } else {
+        const untilOpen = 22 * 60 - utcCurrentMins;
+        const h = Math.floor(untilOpen / 60);
+        const m = untilOpen % 60;
+        nextSessionText = `Opens in ${h}h ${m}m (22:00 UTC)`;
+      }
+    }
+
+    const utcTimeStr = now.toLocaleTimeString('en-US', {
+      timeZone: 'UTC',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+
+    return {
+      isOpen,
+      status: isOpen ? 'LIVE' : 'CLOSED',
+      statusBadge: isOpen ? 'MARKET LIVE' : 'MARKET CLOSED',
+      exchangeName: 'Global Interbank Forex (FX)',
+      marketCode: 'FOREX',
+      timezone: 'UTC',
+      exchangeTime: `${utcTimeStr} UTC`,
+      details: sessionDetail,
+      nextSessionText,
+      tradingHours: '24/5 Sun 22:00 UTC – Fri 22:00 UTC',
+      activeForexSession: activeSessions.join(' & ') || 'Closed',
+    };
+  }
+
   if (market === 'NSE') {
     // Nairobi Securities Exchange (EAT: UTC+3)
     const nairobiTimeStr = now.toLocaleString('en-US', { timeZone: 'Africa/Nairobi' });

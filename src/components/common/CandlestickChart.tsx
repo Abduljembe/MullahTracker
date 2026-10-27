@@ -14,7 +14,12 @@ import {
   Time,
   IPriceLine,
 } from 'lightweight-charts';
-import { Candle, Timeframe } from '../../utils/stockCandles.ts';
+import {
+  Candle,
+  Timeframe,
+  ALL_TRADINGVIEW_TIMEFRAMES,
+  TimeframeOption,
+} from '../../utils/stockCandles.ts';
 import { MarketSessionInfo } from '../../utils/marketHours.ts';
 import {
   Maximize2,
@@ -28,7 +33,18 @@ import {
   TrendingUp,
   Tag,
   Trash2,
-  ChevronRight,
+  ChevronDown,
+  Camera,
+  Download,
+  Copy,
+  Check,
+  FileSpreadsheet,
+  FileCode,
+  Share2,
+  Play,
+  Pause,
+  Clock,
+  Sparkles,
   Info,
 } from 'lucide-react';
 
@@ -39,10 +55,14 @@ interface CandlestickChartProps {
   currency: string;
   ticker: string;
   timeframe: Timeframe;
+  onTimeframeChange?: (tf: Timeframe) => void;
   isMarketLive?: boolean;
   marketSession?: MarketSessionInfo;
   chartType?: 'candlestick' | 'line';
   onChartTypeChange?: (type: 'candlestick' | 'line') => void;
+  isLiveStreaming?: boolean;
+  onToggleLiveStreaming?: () => void;
+  currentLivePrice?: number;
 }
 
 interface LegendValues {
@@ -66,8 +86,12 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   currency,
   ticker,
   timeframe,
+  onTimeframeChange,
   isMarketLive = false,
   marketSession,
+  isLiveStreaming = true,
+  onToggleLiveStreaming,
+  currentLivePrice,
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -87,6 +111,39 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
   const [showBollinger, setShowBollinger] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [priceLineAlerts, setPriceLineAlerts] = useState<number[]>([]);
+
+  // Timeframe dropdown menu state
+  const [showTfMenu, setShowTfMenu] = useState<boolean>(false);
+  const tfMenuRef = useRef<HTMLDivElement>(null);
+
+  // Extract / Export dropdown menu state
+  const [showExportMenu, setShowExportMenu] = useState<boolean>(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
+
+  // Live bar countdown timer (seconds remaining in current bar)
+  const [barCountdown, setBarCountdown] = useState<number>(45);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBarCountdown((prev) => (prev <= 1 ? 60 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Close menus on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (tfMenuRef.current && !tfMenuRef.current.contains(e.target as Node)) {
+        setShowTfMenu(false);
+      }
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Dynamic Hover Legend state
   const latestCandle = candles[candles.length - 1];
@@ -114,11 +171,52 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
     });
   }, [candles, latestCandle]);
 
+  // Track previous params to detect if we can do an in-place candle tick update
+  const prevTickerRef = useRef(ticker);
+  const prevTfRef = useRef(timeframe);
+  const prevStyleRef = useRef(chartStyle);
+  const prevCandleLenRef = useRef(candles.length);
+
   // Main Chart Initialization
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    // Clean previous instance
+    // Check if this is a live tick update (same ticker, timeframe, style, and candle length)
+    const isLiveTick =
+      chartRef.current &&
+      mainSeriesRef.current &&
+      prevTickerRef.current === ticker &&
+      prevTfRef.current === timeframe &&
+      prevStyleRef.current === chartStyle &&
+      prevCandleLenRef.current === candles.length &&
+      candles.length > 0;
+
+    prevTickerRef.current = ticker;
+    prevTfRef.current = timeframe;
+    prevStyleRef.current = chartStyle;
+    prevCandleLenRef.current = candles.length;
+
+    if (isLiveTick && mainSeriesRef.current) {
+      // In-place live series update for smooth TradingView tick animation
+      const last = candles[candles.length - 1];
+      if (chartStyle === 'line' || chartStyle === 'area') {
+        mainSeriesRef.current.update({
+          time: last.time as Time,
+          value: last.close,
+        });
+      } else {
+        mainSeriesRef.current.update({
+          time: last.time as Time,
+          open: last.open,
+          high: last.high,
+          low: last.low,
+          close: last.close,
+        });
+      }
+      return;
+    }
+
+    // Clean previous instance on structural change
     if (chartRef.current) {
       chartRef.current.remove();
       chartRef.current = null;
@@ -129,7 +227,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
     // Create TradingView Chart instance
     const chart = createChart(container, {
       width: container.clientWidth || 700,
-      height: isFullscreen ? window.innerHeight - 130 : 440,
+      height: isFullscreen ? window.innerHeight - 130 : 450,
       layout: {
         background: { type: ColorType.Solid, color: '#070b14' },
         textColor: '#94a3b8',
@@ -227,9 +325,9 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       );
     } else if (chartStyle === 'area') {
       mainSeries = chart.addSeries(AreaSeries, {
-        lineColor: '#0df2c9',
-        topColor: 'rgba(13, 242, 201, 0.35)',
+        topColor: 'rgba(13, 242, 201, 0.4)',
         bottomColor: 'rgba(13, 242, 201, 0.0)',
+        lineColor: '#0df2c9',
         lineWidth: 2,
       });
       mainSeries.setData(
@@ -266,6 +364,18 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       );
     }
     mainSeriesRef.current = mainSeries;
+
+    // Apply 4-decimal precision for small pip prices (Forex)
+    const isSmallPipPrice = candles[0]?.close && candles[0].close < 10;
+    if (isSmallPipPrice) {
+      mainSeries.applyOptions({
+        priceFormat: {
+          type: 'price',
+          precision: 4,
+          minMove: 0.0001,
+        },
+      });
+    }
 
     // 2. Add Volume Histogram
     if (showVolume) {
@@ -327,7 +437,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       ema50SeriesRef.current = ema50Series;
     }
 
-    // 5. Technical Indicators: Bollinger Bands
+    // 5. Technical Indicators: Bollinger Bands (Upper & Lower)
     if (showBollinger) {
       const bbUpper = chart.addSeries(LineSeries, {
         color: '#a855f7',
@@ -435,7 +545,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
       if (chartContainerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
           width: chartContainerRef.current.clientWidth,
-          height: isFullscreen ? window.innerHeight - 130 : 440,
+          height: isFullscreen ? window.innerHeight - 130 : 450,
         });
       }
     };
@@ -481,25 +591,105 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
     timeScale.applyOptions({ barSpacing: Math.max(3, currentSpacing * 0.75) });
   };
 
-  const handleScrollToRealtime = () => {
-    chartRef.current?.timeScale().scrollToRealTime();
-  };
-
   // Add Support/Resistance price line alert
   const handleAddPriceLine = () => {
     if (!latestCandle || !mainSeriesRef.current) return;
-    const newPrice = Math.round(latestCandle.close * 1.05 * 100) / 100;
-    setPriceLineAlerts((prev) => [...prev, newPrice]);
+    const currentClose = latestCandle.close;
+    setPriceLineAlerts((prev) => [...prev, currentClose]);
   };
 
   const handleClearPriceLines = () => {
     setPriceLineAlerts([]);
   };
 
+  // --- EXTRACT WHOLE CHART HANDLERS ---
+  const handleExtractPng = () => {
+    if (!chartRef.current) return;
+    try {
+      const canvas = chartRef.current.takeScreenshot();
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `${ticker}_${timeframe}_TradingView_Chart.png`;
+      link.href = dataUrl;
+      link.click();
+      setShowExportMenu(false);
+      setExportNotice('Chart PNG snapshot downloaded successfully!');
+      setTimeout(() => setExportNotice(null), 3000);
+    } catch {
+      setExportNotice('Failed to capture snapshot.');
+      setTimeout(() => setExportNotice(null), 3000);
+    }
+  };
+
+  const handleCopyChartImage = async () => {
+    if (!chartRef.current) return;
+    try {
+      const canvas = chartRef.current.takeScreenshot();
+      canvas.toBlob(async (blob) => {
+        if (blob && navigator.clipboard && window.ClipboardItem) {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          setShowExportMenu(false);
+          setExportNotice('Chart image copied to clipboard!');
+          setTimeout(() => setExportNotice(null), 3000);
+        } else {
+          handleExtractPng();
+        }
+      });
+    } catch {
+      handleExtractPng();
+    }
+  };
+
+  const handleExtractCsv = () => {
+    if (!candles || candles.length === 0) return;
+    const headers = 'UnixTimestamp,Date,Time,Open,High,Low,Close,Volume,EMA20,EMA50\n';
+    const rows = candles
+      .map(
+        (c) =>
+          `${c.time},"${c.fullDate}","${c.timeLabel}",${c.open},${c.high},${c.low},${c.close},${c.volume},${c.ema20 || ''},${c.ema50 || ''}`
+      )
+      .join('\n');
+    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${ticker}_${timeframe}_OHLCV_Dataset.csv`;
+    link.click();
+    setShowExportMenu(false);
+    setExportNotice('OHLCV CSV dataset exported!');
+    setTimeout(() => setExportNotice(null), 3000);
+  };
+
+  const handleExtractJson = () => {
+    if (!candles || candles.length === 0) return;
+    const jsonStr = JSON.stringify(
+      {
+        ticker,
+        currency,
+        timeframe,
+        exportedAt: new Date().toISOString(),
+        candleCount: candles.length,
+        candles,
+      },
+      null,
+      2
+    );
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${ticker}_${timeframe}_chart_data.json`;
+    link.click();
+    setShowExportMenu(false);
+    setExportNotice('Chart JSON data exported!');
+    setTimeout(() => setExportNotice(null), 3000);
+  };
+
   const formatPrice = (p: number) => {
     if (p >= 1000) return p.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     if (p >= 10) return p.toFixed(2);
-    return p.toFixed(3);
+    if (p >= 5) return p.toFixed(3);
+    return p.toFixed(4);
   };
 
   const formatVol = (v: number) => {
@@ -507,6 +697,20 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
     if (v >= 1000) return `${(v / 1000).toFixed(0)}K`;
     return v.toString();
   };
+
+  // Grouped timeframes for the menu
+  const timeframeCategories = useMemo(() => {
+    const cats: Record<string, TimeframeOption[]> = {
+      Minutes: [],
+      Hours: [],
+      'Days / Weeks': [],
+      Extended: [],
+    };
+    ALL_TRADINGVIEW_TIMEFRAMES.forEach((opt) => {
+      cats[opt.category].push(opt);
+    });
+    return cats;
+  }, []);
 
   return (
     <div
@@ -516,38 +720,128 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           : 'relative'
       }`}
     >
+      {/* Export Notification Toast */}
+      {exportNotice && (
+        <div className="absolute top-14 right-4 z-30 px-3.5 py-2 rounded-xl bg-teal-950/90 border border-teal-500/50 text-[#0df2c9] text-xs font-mono shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+          <Check className="w-4 h-4 text-[#0df2c9]" />
+          <span>{exportNotice}</span>
+        </div>
+      )}
+
       {/* TradingView Top Functional Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-xl bg-[#080e18] border border-[#142036] text-xs">
-        {/* Left Side: Ticker, Chart Styles, and Indicators */}
+        {/* Left Side: Ticker, Live Badge, Timeframes, Chart Styles, and Indicators */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {/* Ticker badge */}
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0f172a] border border-[#1e293b] font-mono">
-            <span className={`w-2 h-2 rounded-full ${isMarketLive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isLiveStreaming ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
+              }`}
+            />
             <span className="font-bold text-white">{ticker}</span>
             <span className="text-slate-500">•</span>
             <span className="text-[10px] text-teal-300 font-semibold uppercase">{timeframe}</span>
           </div>
 
-          {/* Live / Closed Market Session Pill */}
-          {isMarketLive ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 font-mono text-[10px] font-bold shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span>LIVE</span>
-              <span className="hidden sm:inline text-emerald-400/80 font-normal">• Session Open</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 text-slate-400 font-mono text-[10px] font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
-              <span>CLOSED</span>
-              <span className="hidden sm:inline text-slate-500 font-normal">• {marketSession?.nextSessionText || 'Session Inactive'}</span>
-            </div>
-          )}
+          {/* LIVE STREAMING TOGGLE PILL */}
+          <button
+            onClick={onToggleLiveStreaming}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold transition-all cursor-pointer ${
+              isLiveStreaming
+                ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+                : 'bg-slate-800/80 border border-slate-700 text-slate-400 hover:text-white'
+            }`}
+            title="Toggle Live Real-time Price Ticking Feed"
+          >
+            {isLiveStreaming ? (
+              <>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>LIVE FEED</span>
+                <span className="text-[9px] text-emerald-400/80 font-normal hidden sm:inline">
+                  • 00:{barCountdown.toString().padStart(2, '0')}
+                </span>
+              </>
+            ) : (
+              <>
+                <Pause className="w-3 h-3 text-amber-400" />
+                <span>PAUSED</span>
+              </>
+            )}
+          </button>
+
+          {/* ALL TRADINGVIEW TIMEFRAMES SELECTOR */}
+          <div className="flex items-center bg-[#050912] p-0.5 rounded-lg border border-[#162540] relative" ref={tfMenuRef}>
+            {/* Quick Favorite Intervals */}
+            {(['1m', '5m', '15m', '1H', '4H', '1D', '1W', '1M'] as Timeframe[]).map((tf) => (
+              <button
+                key={tf}
+                onClick={() => onTimeframeChange?.(tf)}
+                className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                  timeframe === tf
+                    ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title={`Switch to ${tf} TradingView timeframe`}
+              >
+                {tf}
+              </button>
+            ))}
+
+            {/* Extended All-Timeframes Dropdown Button */}
+            <button
+              onClick={() => setShowTfMenu((prev) => !prev)}
+              className={`px-1.5 py-1 rounded text-[10px] font-mono flex items-center gap-0.5 transition-all cursor-pointer ${
+                showTfMenu || !['1m', '5m', '15m', '1H', '4H', '1D', '1W', '1M'].includes(timeframe)
+                  ? 'bg-teal-500/20 text-[#0df2c9] font-bold border border-teal-500/40'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="View all TradingView intervals (Minutes, Hours, Days)"
+            >
+              <span>More</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+
+            {/* All Timeframes Dropdown Menu */}
+            {showTfMenu && (
+              <div className="absolute top-full left-0 mt-1.5 z-40 w-64 p-3 rounded-xl bg-[#09111e] border border-[#1c2e4c] shadow-2xl space-y-3 animate-in fade-in slide-in-from-top-1">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-teal-300 font-mono pb-1 border-b border-[#16253d] flex items-center justify-between">
+                  <span>TradingView Timeframes</span>
+                  <span className="text-slate-400">15 intervals</span>
+                </div>
+
+                {Object.entries(timeframeCategories).map(([cat, opts]) => (
+                  <div key={cat} className="space-y-1">
+                    <span className="text-[10px] text-slate-500 uppercase font-semibold block">{cat}</span>
+                    <div className="grid grid-cols-3 gap-1">
+                      {opts.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => {
+                            onTimeframeChange?.(opt.value);
+                            setShowTfMenu(false);
+                          }}
+                          className={`px-2 py-1 rounded text-xs font-mono font-bold text-center transition-all cursor-pointer ${
+                            timeframe === opt.value
+                              ? 'bg-[#0df2c9] text-black shadow-md'
+                              : 'bg-[#0e1726] hover:bg-[#14233a] text-slate-300 hover:text-white border border-[#192842]'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Chart Style Switcher */}
-          <div className="flex items-center bg-[#050912] p-0.5 rounded-lg border border-[#162540]">
+          <div className="hidden lg:flex items-center bg-[#050912] p-0.5 rounded-lg border border-[#162540]">
             {(
               [
                 { id: 'candles', label: '🕯️ Candles' },
@@ -620,15 +914,82 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           </div>
         </div>
 
-        {/* Right Side: Tools (Zoom, Fit, Alert Lines, Fullscreen) */}
+        {/* Right Side: Tools (EXTRACT CHART, Alert Lines, Zoom, Fit, Fullscreen) */}
         <div className="flex items-center gap-1">
+          {/* EXTRACT WHOLE CHART BUTTON & MENU */}
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              onClick={() => setShowExportMenu((prev) => !prev)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/40 text-xs font-semibold text-[#0df2c9] transition-all cursor-pointer shadow-sm"
+              title="Extract Whole Chart (PNG Snapshot, CSV, JSON, Clipboard)"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Extract Chart</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+
+            {/* Export Dropdown Menu */}
+            {showExportMenu && (
+              <div className="absolute right-0 top-full mt-1.5 z-40 w-56 p-2 rounded-xl bg-[#09111e] border border-[#1b2d4b] shadow-2xl space-y-1 animate-in fade-in slide-in-from-top-1 text-xs font-medium">
+                <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono border-b border-[#14233c]">
+                  Chart Extract Options
+                </div>
+
+                <button
+                  onClick={handleExtractPng}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-200 hover:text-white hover:bg-[#111e33] transition-colors text-left cursor-pointer"
+                >
+                  <Download className="w-4 h-4 text-teal-400" />
+                  <div>
+                    <div className="font-semibold text-white">Save Image (PNG)</div>
+                    <div className="text-[10px] text-slate-400">Download high-res chart image</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={handleCopyChartImage}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-200 hover:text-white hover:bg-[#111e33] transition-colors text-left cursor-pointer"
+                >
+                  <Copy className="w-4 h-4 text-cyan-400" />
+                  <div>
+                    <div className="font-semibold text-white">Copy Image</div>
+                    <div className="text-[10px] text-slate-400">Copy chart to clipboard</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={handleExtractCsv}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-200 hover:text-white hover:bg-[#111e33] transition-colors text-left cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                  <div>
+                    <div className="font-semibold text-white">Export CSV Data</div>
+                    <div className="text-[10px] text-slate-400">OHLCV price table (.csv)</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={handleExtractJson}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-slate-200 hover:text-white hover:bg-[#111e33] transition-colors text-left cursor-pointer"
+                >
+                  <FileCode className="w-4 h-4 text-purple-400" />
+                  <div>
+                    <div className="font-semibold text-white">Export JSON</div>
+                    <div className="text-[10px] text-slate-400">Raw candle array dataset</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Add Price Level */}
           <button
             onClick={handleAddPriceLine}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0e1726] hover:bg-[#14233a] border border-[#1b2b45] text-[11px] text-teal-300 hover:text-white transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0e1726] hover:bg-[#14233a] border border-[#1b2b45] text-[11px] text-slate-300 hover:text-white transition-colors cursor-pointer"
             title="Place horizontal target/alert price level"
           >
-            <Tag className="w-3 h-3" />
-            <span className="hidden sm:inline">+ Price Level</span>
+            <Tag className="w-3 h-3 text-teal-400" />
+            <span className="hidden sm:inline">+ Level</span>
           </button>
 
           {priceLineAlerts.length > 0 && (
@@ -686,12 +1047,12 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
               <span className="text-slate-500 font-normal">({timeframe})</span>
               <span
                 className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${
-                  isMarketLive
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                  isLiveStreaming
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-pulse'
                     : 'bg-slate-800 text-slate-400 border border-slate-700'
                 }`}
               >
-                {isMarketLive ? '● LIVE' : '○ CLOSED'}
+                {isLiveStreaming ? '● LIVE TICK' : 'STATIC'}
               </span>
             </span>
 
@@ -729,7 +1090,7 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
                 }`}
               >
                 {legend?.isBullish ? '+' : ''}
-                {legend?.change.toFixed(2)} ({legend?.isBullish ? '+' : ''}
+                {legend?.change.toFixed(4)} ({legend?.isBullish ? '+' : ''}
                 {legend?.changePct.toFixed(2)}%)
               </span>
               <span>
@@ -761,42 +1122,19 @@ export const CandlestickChart: React.FC<CandlestickChartProps> = ({
           )}
         </div>
 
-        {/* Lightweight Charts Canvas Host */}
+        {/* Live Bid/Ask & Watermark in Corner */}
+        <div className="absolute bottom-2 left-3 z-10 pointer-events-none flex items-center gap-2 text-[10px] font-mono text-slate-500">
+          <span className="text-[#0df2c9]/60 font-bold">MullahTracker Live Engine</span>
+          <span>•</span>
+          <span>TradingView Lightweight Platform</span>
+        </div>
+
+        {/* Canvas DOM container */}
         <div
           ref={chartContainerRef}
-          className={`w-full ${isFullscreen ? 'h-full' : 'h-[440px]'} cursor-crosshair`}
+          className="w-full"
+          style={{ height: isFullscreen ? 'calc(100vh - 130px)' : '450px' }}
         />
-
-        {/* Subtle Interactive Instruction Pill on bottom-left */}
-        <div className="absolute bottom-2 left-3 z-10 pointer-events-none hidden sm:flex items-center gap-2 text-[10px] text-slate-500 font-mono bg-[#070b14]/80 px-2 py-0.5 rounded border border-[#142036]">
-          <span>Pan: Click & Drag</span>
-          <span>•</span>
-          <span>Zoom: Scroll Wheel / Pinch</span>
-          <span>•</span>
-          <span>Y-Scale: Drag Price Axis</span>
-        </div>
-      </div>
-
-      {/* TradingView Bottom Controls & Market Details */}
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 font-mono px-1">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Engine:</span>
-          <span className="text-teal-400 font-semibold text-[11px] flex items-center gap-1">
-            TradingView Lightweight Charts™ Canvas
-          </span>
-          <span className="text-slate-600">•</span>
-          <span className="text-slate-400 text-[11px]">Sub-pixel Canvas Rendering</span>
-        </div>
-
-        <div className="flex items-center gap-2 text-[11px]">
-          <button
-            onClick={handleScrollToRealtime}
-            className="hover:text-teal-300 transition-colors flex items-center gap-1 cursor-pointer"
-          >
-            <span>Jump to Latest Bar</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
       </div>
     </div>
   );

@@ -1,4 +1,51 @@
-export type Timeframe = '1D' | '1W' | '1M' | '6M' | '1Y' | 'ALL';
+export type Timeframe =
+  | '1m'
+  | '3m'
+  | '5m'
+  | '15m'
+  | '30m'
+  | '45m'
+  | '1H'
+  | '2H'
+  | '4H'
+  | '1D'
+  | '1W'
+  | '1M'
+  | '6M'
+  | '1Y'
+  | 'ALL';
+
+export interface TimeframeOption {
+  value: Timeframe;
+  label: string;
+  category: 'Minutes' | 'Hours' | 'Days / Weeks' | 'Extended';
+  isFavorite?: boolean;
+}
+
+export const ALL_TRADINGVIEW_TIMEFRAMES: TimeframeOption[] = [
+  // Minutes
+  { value: '1m', label: '1m', category: 'Minutes', isFavorite: true },
+  { value: '3m', label: '3m', category: 'Minutes' },
+  { value: '5m', label: '5m', category: 'Minutes', isFavorite: true },
+  { value: '15m', label: '15m', category: 'Minutes', isFavorite: true },
+  { value: '30m', label: '30m', category: 'Minutes' },
+  { value: '45m', label: '45m', category: 'Minutes' },
+
+  // Hours
+  { value: '1H', label: '1H', category: 'Hours', isFavorite: true },
+  { value: '2H', label: '2H', category: 'Hours' },
+  { value: '4H', label: '4H', category: 'Hours', isFavorite: true },
+
+  // Days & Weeks
+  { value: '1D', label: '1D', category: 'Days / Weeks', isFavorite: true },
+  { value: '1W', label: '1W', category: 'Days / Weeks', isFavorite: true },
+  { value: '1M', label: '1M', category: 'Days / Weeks', isFavorite: true },
+
+  // Extended
+  { value: '6M', label: '6M', category: 'Extended' },
+  { value: '1Y', label: '1Y', category: 'Extended' },
+  { value: 'ALL', label: 'ALL', category: 'Extended' },
+];
 
 export interface Candle {
   time: number; // Unix timestamp in seconds (strictly ascending for TradingView)
@@ -59,265 +106,163 @@ export function generateCandles(
   const roundPrice = (p: number) => {
     if (p >= 100) return Math.round(p * 100) / 100;
     if (p >= 10) return Math.round(p * 100) / 100;
-    return Math.round(p * 1000) / 1000;
+    if (p >= 5) return Math.round(p * 1000) / 1000;
+    return Math.round(p * 10000) / 10000;
   };
 
-  // Fixed reference base timestamp: 2025-05-15 16:00:00 UTC (1747324800)
-  // This guarantees consistent deterministic timestamps across sessions.
-  const endTimestamp = 1747324800;
+  // Base timestamp: Current Unix time in seconds rounded to nearest minute
+  const nowSec = Math.floor(Date.now() / 1000);
+  const endTimestamp = nowSec - (nowSec % 60);
 
   const rawCandles: Omit<Candle, 'ema20' | 'ema50' | 'bbUpper' | 'bbLower' | 'bbMiddle'>[] = [];
 
-  if (timeframe === '1D') {
-    // 30 bars (15-minute intervals spanning 7.5 hours from 08:30 to 16:00)
-    const count = 30;
-    const intervalSec = 15 * 60; // 15 mins
-    const startTimestamp = endTimestamp - count * intervalSec;
-    const startPrice = Math.max(0.01, currentPrice - changeValue);
+  // Determine interval seconds and bar count for each timeframe
+  let count = 40;
+  let intervalSec = 60;
+  let waveFactor = 0.005;
+  let spreadFactor = 0.004;
 
-    let prevClose = startPrice;
-    for (let i = 0; i < count; i++) {
-      const isLast = i === count - 1;
-      const progress = (i + 1) / count;
-      const wave = Math.sin(progress * Math.PI * 3) * (currentPrice * 0.008);
-      const targetClose = isLast
-        ? currentPrice
-        : startPrice + (currentPrice - startPrice) * progress + wave + (rand() - 0.5) * (currentPrice * 0.006);
-
-      const open = prevClose;
-      const close = isLast ? currentPrice : Math.max(0.01, targetClose);
-      const spread = Math.abs(close - open) + currentPrice * (0.003 + rand() * 0.005);
-      const high = Math.max(open, close) + rand() * spread * 0.6;
-      const low = Math.max(0.01, Math.min(open, close) - rand() * spread * 0.6);
-      const volume = Math.floor(18000 + rand() * 45000);
-
-      const t = startTimestamp + (i + 1) * intervalSec;
-      const d = new Date(t * 1000);
-      const timeLabel = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-
-      rawCandles.push({
-        time: t,
-        timeLabel,
-        fullDate: `Today, ${timeLabel}`,
-        open: roundPrice(open),
-        high: roundPrice(high),
-        low: roundPrice(low),
-        close: roundPrice(close),
-        volume,
-      });
-
-      prevClose = close;
-    }
+  if (timeframe === '1m') {
+    count = 60;
+    intervalSec = 60;
+    waveFactor = 0.0015;
+    spreadFactor = 0.0008;
+  } else if (timeframe === '3m') {
+    count = 50;
+    intervalSec = 180;
+    waveFactor = 0.0025;
+    spreadFactor = 0.0012;
+  } else if (timeframe === '5m') {
+    count = 60;
+    intervalSec = 300;
+    waveFactor = 0.0035;
+    spreadFactor = 0.0018;
+  } else if (timeframe === '15m') {
+    count = 48;
+    intervalSec = 900;
+    waveFactor = 0.006;
+    spreadFactor = 0.003;
+  } else if (timeframe === '30m') {
+    count = 48;
+    intervalSec = 1800;
+    waveFactor = 0.008;
+    spreadFactor = 0.004;
+  } else if (timeframe === '45m') {
+    count = 40;
+    intervalSec = 2700;
+    waveFactor = 0.01;
+    spreadFactor = 0.005;
+  } else if (timeframe === '1H') {
+    count = 48;
+    intervalSec = 3600;
+    waveFactor = 0.012;
+    spreadFactor = 0.006;
+  } else if (timeframe === '2H') {
+    count = 45;
+    intervalSec = 7200;
+    waveFactor = 0.015;
+    spreadFactor = 0.008;
+  } else if (timeframe === '4H') {
+    count = 42;
+    intervalSec = 14400;
+    waveFactor = 0.02;
+    spreadFactor = 0.01;
+  } else if (timeframe === '1D') {
+    count = 45;
+    intervalSec = 86400;
+    waveFactor = 0.03;
+    spreadFactor = 0.015;
   } else if (timeframe === '1W') {
-    // 35 bars (2-hour bars across 5 trading days)
-    const count = 35;
-    const intervalSec = 2 * 3600; // 2 hours
-    const startTimestamp = endTimestamp - 7 * 86400;
-    const baseWeeklyShift = (rand() - 0.42) * (currentPrice * 0.04);
-    const startPrice = Math.max(0.01, currentPrice - baseWeeklyShift);
-
-    let prevClose = startPrice;
-    for (let i = 0; i < count; i++) {
-      const isLast = i === count - 1;
-      const progress = (i + 1) / count;
-      const wave = Math.sin(progress * Math.PI * 2.5) * (currentPrice * 0.012);
-      const targetClose = isLast
-        ? currentPrice
-        : startPrice + (currentPrice - startPrice) * progress + wave + (rand() - 0.5) * (currentPrice * 0.01);
-
-      const open = prevClose + (rand() - 0.5) * (currentPrice * 0.003);
-      const close = isLast ? currentPrice : Math.max(0.01, targetClose);
-      const spread = Math.abs(close - open) + currentPrice * (0.006 + rand() * 0.012);
-      const high = Math.max(open, close) + rand() * spread * 0.65;
-      const low = Math.max(0.01, Math.min(open, close) - rand() * spread * 0.65);
-      const volume = Math.floor(65000 + rand() * 180000);
-
-      const t = startTimestamp + Math.floor((i * (7 * 86400)) / count);
-      const d = new Date(t * 1000);
-      const dayName = d.toLocaleDateString([], { weekday: 'short' });
-      const timeLabel = `${dayName} ${d.getHours()}:00`;
-
-      rawCandles.push({
-        time: t,
-        timeLabel,
-        fullDate: `${dayName}, ${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${d.getHours()}:00`,
-        open: roundPrice(open),
-        high: roundPrice(high),
-        low: roundPrice(low),
-        close: roundPrice(close),
-        volume,
-      });
-
-      prevClose = close;
-    }
+    count = 52;
+    intervalSec = 7 * 86400;
+    waveFactor = 0.05;
+    spreadFactor = 0.025;
   } else if (timeframe === '1M') {
-    // 30 daily bars
-    const count = 30;
-    const intervalSec = 86400; // 1 day
-    const startTimestamp = endTimestamp - count * intervalSec;
-    const monthDrift = (rand() - 0.38) * (currentPrice * 0.08);
-    const startPrice = Math.max(0.01, currentPrice - monthDrift);
-
-    let prevClose = startPrice;
-    for (let i = 0; i < count; i++) {
-      const isLast = i === count - 1;
-      const progress = (i + 1) / count;
-      const wave = Math.sin(progress * Math.PI * 2) * (currentPrice * 0.02);
-      const targetClose = isLast ? currentPrice : startPrice + (currentPrice - startPrice) * progress + wave;
-
-      const open = prevClose + (rand() - 0.5) * (currentPrice * 0.005);
-      const close = isLast ? currentPrice : Math.max(0.01, targetClose);
-      const spread = Math.abs(close - open) + currentPrice * (0.008 + rand() * 0.016);
-      const high = Math.max(open, close) + rand() * spread * 0.7;
-      const low = Math.max(0.01, Math.min(open, close) - rand() * spread * 0.7);
-      const volume = Math.floor(320000 + rand() * 850000);
-
-      const t = startTimestamp + (i + 1) * intervalSec;
-      const d = new Date(t * 1000);
-      const timeLabel = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-
-      rawCandles.push({
-        time: t,
-        timeLabel,
-        fullDate: d.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' }),
-        open: roundPrice(open),
-        high: roundPrice(high),
-        low: roundPrice(low),
-        close: roundPrice(close),
-        volume,
-      });
-
-      prevClose = close;
-    }
+    count = 36;
+    intervalSec = 30 * 86400;
+    waveFactor = 0.08;
+    spreadFactor = 0.035;
   } else if (timeframe === '6M') {
-    // 60 bars (approx 2-3 days per bar over 180 days)
-    const count = 60;
-    const intervalSec = 3 * 86400; // 3 days
-    const startTimestamp = endTimestamp - 180 * 86400;
-    const drift6m = (rand() - 0.35) * (currentPrice * 0.22);
-    const startPrice = Math.max(0.01, currentPrice - drift6m);
-
-    let prevClose = startPrice;
-    for (let i = 0; i < count; i++) {
-      const isLast = i === count - 1;
-      const progress = (i + 1) / count;
-      const wave = Math.sin(progress * Math.PI * 3) * (currentPrice * 0.035);
-      const targetClose = isLast ? currentPrice : startPrice + (currentPrice - startPrice) * progress + wave;
-
-      const open = prevClose + (rand() - 0.5) * (currentPrice * 0.008);
-      const close = isLast ? currentPrice : Math.max(0.01, targetClose);
-      const spread = Math.abs(close - open) + currentPrice * (0.012 + rand() * 0.022);
-      const high = Math.max(open, close) + rand() * spread * 0.7;
-      const low = Math.max(0.01, Math.min(open, close) - rand() * spread * 0.7);
-      const volume = Math.floor(650000 + rand() * 1800000);
-
-      const t = startTimestamp + Math.floor((i * 180 * 86400) / count);
-      const d = new Date(t * 1000);
-      const timeLabel = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-
-      rawCandles.push({
-        time: t,
-        timeLabel,
-        fullDate: d.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' }),
-        open: roundPrice(open),
-        high: roundPrice(high),
-        low: roundPrice(low),
-        close: roundPrice(close),
-        volume,
-      });
-
-      prevClose = close;
-    }
+    count = 50;
+    intervalSec = 4 * 86400;
+    waveFactor = 0.12;
+    spreadFactor = 0.04;
   } else if (timeframe === '1Y') {
-    // 75 bars over 365 days
-    const count = 75;
-    const startTimestamp = endTimestamp - 365 * 86400;
-    const candlesPerMonth = Math.floor(count / 12);
-
-    const rawAnchors = historicalPoints && historicalPoints.length >= 12
-      ? historicalPoints.slice(0, 12)
-      : Array.from({ length: 12 }, (_, i) => currentPrice * (0.75 + ((i + 1) / 12) * 0.25));
-
-    let prevClose = rawAnchors[0] * 0.96;
-
-    for (let i = 0; i < count; i++) {
-      const isLast = i === count - 1;
-      const monthIdx = Math.min(11, Math.floor(i / candlesPerMonth));
-      const targetMonthPrice = rawAnchors[monthIdx];
-      const nextMonthPrice = rawAnchors[Math.min(11, monthIdx + 1)];
-      const subRatio = (i % candlesPerMonth) / candlesPerMonth;
-      const baseExpected = targetMonthPrice + (nextMonthPrice - targetMonthPrice) * subRatio;
-
-      const targetClose = isLast ? currentPrice : baseExpected + (rand() - 0.5) * (currentPrice * 0.02);
-      const open = prevClose + (rand() - 0.5) * (currentPrice * 0.008);
-      const close = isLast ? currentPrice : Math.max(0.01, targetClose);
-      const spread = Math.abs(close - open) + currentPrice * (0.015 + rand() * 0.025);
-      const high = Math.max(open, close) + rand() * spread * 0.72;
-      const low = Math.max(0.01, Math.min(open, close) - rand() * spread * 0.72);
-      const volume = Math.floor(1200000 + rand() * 3200000);
-
-      const t = startTimestamp + Math.floor((i * 365 * 86400) / count);
-      const d = new Date(t * 1000);
-      const timeLabel = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-
-      rawCandles.push({
-        time: t,
-        timeLabel,
-        fullDate: d.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' }),
-        open: roundPrice(open),
-        high: roundPrice(high),
-        low: roundPrice(low),
-        close: roundPrice(close),
-        volume,
-      });
-
-      prevClose = close;
-    }
+    count = 52;
+    intervalSec = 7 * 86400;
+    waveFactor = 0.18;
+    spreadFactor = 0.05;
   } else {
-    // ALL: 100 bars spanning 4.5 years
-    const count = 100;
-    const totalDays = 4.5 * 365;
-    const startTimestamp = endTimestamp - Math.floor(totalDays * 86400);
+    // ALL
+    count = 70;
+    intervalSec = 15 * 86400;
+    waveFactor = 0.25;
+    spreadFactor = 0.06;
+  }
 
-    const isGrowthStock = ticker === 'NVDA' || ticker === 'AAPL' || ticker === 'MSFT';
-    const startPrice = isGrowthStock
-      ? currentPrice * 0.22
-      : Math.max(0.01, currentPrice * (0.55 + rand() * 0.3));
+  const startTimestamp = endTimestamp - count * intervalSec;
+  const drift = (rand() - 0.42) * (currentPrice * waveFactor * 3);
+  const startPrice = Math.max(0.0001, currentPrice - (changeValue || drift));
 
-    let prevClose = startPrice;
+  let prevClose = startPrice;
 
-    for (let i = 0; i < count; i++) {
-      const isLast = i === count - 1;
-      const progress = (i + 1) / count;
-      const curve = Math.pow(progress, 1.35);
-      const targetClose = isLast
-        ? currentPrice
-        : startPrice + (currentPrice - startPrice) * curve + (rand() - 0.45) * (currentPrice * 0.08);
+  for (let i = 0; i < count; i++) {
+    const isLast = i === count - 1;
+    const progress = (i + 1) / count;
+    const wave = Math.sin(progress * Math.PI * 3.2) * (currentPrice * waveFactor);
+    const targetClose = isLast
+      ? currentPrice
+      : startPrice + (currentPrice - startPrice) * progress + wave + (rand() - 0.5) * (currentPrice * spreadFactor);
 
-      const open = prevClose + (rand() - 0.5) * (currentPrice * 0.015);
-      const close = isLast ? currentPrice : Math.max(0.01, targetClose);
-      const spread = Math.abs(close - open) + currentPrice * (0.025 + rand() * 0.045);
-      const high = Math.max(open, close) + rand() * spread * 0.75;
-      const low = Math.max(0.01, Math.min(open, close) - rand() * spread * 0.75);
-      const volume = Math.floor(4500000 + rand() * 12000000);
+    const open = prevClose;
+    const close = isLast ? currentPrice : Math.max(0.0001, targetClose);
+    const spread = Math.abs(close - open) + currentPrice * (spreadFactor * 0.6 + rand() * spreadFactor * 0.8);
+    const high = Math.max(open, close) + rand() * spread * 0.6;
+    const low = Math.max(0.0001, Math.min(open, close) - rand() * spread * 0.6);
 
-      const t = startTimestamp + Math.floor((i * totalDays * 86400) / count);
-      const d = new Date(t * 1000);
-      const timeLabel = d.toLocaleDateString([], { month: 'short', year: '2-digit' });
+    const volumeBase =
+      intervalSec <= 300
+        ? 8000
+        : intervalSec <= 3600
+        ? 35000
+        : intervalSec <= 86400
+        ? 150000
+        : 650000;
+    const volume = Math.floor(volumeBase + rand() * volumeBase * 2.5);
 
-      rawCandles.push({
-        time: t,
-        timeLabel,
-        fullDate: d.toLocaleDateString([], { month: 'long', year: 'numeric' }),
-        open: roundPrice(open),
-        high: roundPrice(high),
-        low: roundPrice(low),
-        close: roundPrice(close),
-        volume,
-      });
+    const t = startTimestamp + (i + 1) * intervalSec;
+    const d = new Date(t * 1000);
 
-      prevClose = close;
+    let timeLabel = '';
+    let fullDate = '';
+
+    if (intervalSec < 86400) {
+      // Sub-daily
+      timeLabel = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      const dayName = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+      fullDate = `${dayName} ${timeLabel}`;
+    } else if (intervalSec <= 7 * 86400) {
+      // Daily / Weekly
+      timeLabel = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      fullDate = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    } else {
+      // Monthly
+      timeLabel = d.toLocaleDateString([], { month: 'short', year: '2-digit' });
+      fullDate = d.toLocaleDateString([], { month: 'long', year: 'numeric' });
     }
+
+    rawCandles.push({
+      time: t,
+      timeLabel,
+      fullDate,
+      open: roundPrice(open),
+      high: roundPrice(high),
+      low: roundPrice(low),
+      close: roundPrice(close),
+      volume,
+    });
+
+    prevClose = close;
   }
 
   // Ensure timestamps are strictly increasing and unique
@@ -327,7 +272,7 @@ export function generateCandles(
     const c = rawCandles[i];
     let t = c.time;
     if (t <= lastTime) {
-      t = lastTime + 60;
+      t = lastTime + Math.max(1, Math.floor(intervalSec / 2));
     }
     lastTime = t;
 
@@ -361,7 +306,7 @@ export function generateCandles(
 
     finalCandles[i].bbMiddle = roundPrice(mean);
     finalCandles[i].bbUpper = roundPrice(mean + 2 * stdDev);
-    finalCandles[i].bbLower = roundPrice(Math.max(0.01, mean - 2 * stdDev));
+    finalCandles[i].bbLower = roundPrice(Math.max(0.0001, mean - 2 * stdDev));
   }
 
   return finalCandles;
@@ -401,11 +346,11 @@ export function computePeriodStats(candles: Candle[]): PeriodStats {
   return {
     startPrice,
     endPrice,
-    changeValue: Math.round(changeValue * 100) / 100,
+    changeValue: Math.round(changeValue * 10000) / 10000,
     changePercent: Math.round(changePercent * 100) / 100,
-    highestPrice: Math.round(highestPrice * 100) / 100,
-    lowestPrice: Math.round(lowestPrice * 100) / 100,
+    highestPrice: Math.round(highestPrice * 10000) / 10000,
+    lowestPrice: Math.round(lowestPrice * 10000) / 10000,
     totalVolume,
-    averagePrice: Math.round((sumPrice / candles.length) * 100) / 100,
+    averagePrice: Math.round((sumPrice / candles.length) * 10000) / 10000,
   };
 }

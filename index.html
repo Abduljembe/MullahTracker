@@ -8,17 +8,31 @@
     <meta property="og:title" content="NjiaFedha - Personal Financial Journey" />
     <meta property="og:description" content="Comprehensive dark-mode personal finance tracker with income, expenses, budget, savings goals, emergency fund, investments, debt tracking, and Financial Freedom (FIRE) calculator." />
     <script>
-      // Gracefully silence benign Vite HMR WebSocket connection errors in iframe proxy environment
-      window.addEventListener('error', function (e) {
-        if (e && e.message && (e.message.includes('WebSocket') || e.message.includes('vite'))) {
-          e.stopImmediatePropagation();
-        }
-      }, true);
-      window.addEventListener('unhandledrejection', function (e) {
-        if (e && e.reason && (String(e.reason).includes('WebSocket') || String(e.reason).includes('vite'))) {
-          e.stopImmediatePropagation();
-        }
-      }, true);
+      (function() {
+        var isWsError = function(str) {
+          return str && (str.indexOf('WebSocket') !== -1 || str.indexOf('vite') !== -1 || str.indexOf('closed without opened') !== -1);
+        };
+        var origConsoleError = console.error;
+        console.error = function() {
+          var msg = Array.prototype.slice.call(arguments).map(function(a) {
+            return (a && a.stack) ? a.stack : String(a);
+          }).join(' ');
+          if (isWsError(msg)) return;
+          origConsoleError.apply(console, arguments);
+        };
+        window.addEventListener('error', function(e) {
+          if (e && (isWsError(e.message) || (e.error && isWsError(e.error.stack)))) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        }, true);
+        window.addEventListener('unhandledrejection', function(e) {
+          if (e && isWsError(String(e.reason))) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        }, true);
+      })();
     </script>
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
