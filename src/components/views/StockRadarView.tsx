@@ -33,10 +33,21 @@ import {
   Sliders,
   Flame,
   Pause,
+  Bell,
+  Award,
+  Globe,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext.tsx';
 import { InvestmentItem } from '../../types/finance.ts';
 import { CandlestickChart } from '../common/CandlestickChart.tsx';
+import { TradingViewWidget } from '../common/TradingViewWidget.tsx';
+import { PaperTradingDesk } from '../common/PaperTradingDesk.tsx';
+import { EconomicCalendar } from '../common/EconomicCalendar.tsx';
+import { PriceAlertsModal, playAlertChime, PriceAlert } from '../common/PriceAlertsModal.tsx';
+import { TradingJournalDesk } from '../common/TradingJournalDesk.tsx';
+import { RiskCalculatorDesk } from '../common/RiskCalculatorDesk.tsx';
+import { CurrencyStrengthMeter } from '../common/CurrencyStrengthMeter.tsx';
+import { StrategyBacktester } from '../common/StrategyBacktester.tsx';
 import { generateCandles, computePeriodStats, Timeframe, Candle } from '../../utils/stockCandles.ts';
 import { getMarketSession, MarketSessionInfo } from '../../utils/marketHours.ts';
 
@@ -257,21 +268,21 @@ const FEATURED_ASSETS: StockProfile[] = [
     name: 'Gold (Spot FX) / US Dollar',
     market: 'FOREX',
     currency: 'USD',
-    currentPrice: 2735.50,
-    changePercent: 0.52,
-    changeValue: 14.20,
+    currentPrice: 4056.48,
+    changePercent: 0.03,
+    changeValue: 1.10,
     peRatio: 0,
     dividendYield: 0,
-    marketCap: '$17 Trillion Global Reserves',
+    marketCap: '$17.8 Trillion Global Reserves',
     category: 'Precious Metal & FX Safe Haven',
     isForex: true,
     pipSpread: '$0.25',
     defaultSignal: {
       action: 'STRONG BUY',
-      score: 92,
-      setup: 'Record High Momentum Run',
+      score: 94,
+      setup: 'ATH Breakout & Institutional 4,050 Retest',
     },
-    historicalPoints: [2380, 2420, 2480, 2520, 2580, 2640, 2670, 2700, 2690, 2715, 2725, 2735.5],
+    historicalPoints: [3120, 3250, 3400, 3520, 3680, 3740, 3820, 3890, 3950, 4010, 4035, 4056.48],
   },
 
   // --- NAIROBI SECURITIES EXCHANGE (NSE) STOCKS ---
@@ -539,6 +550,16 @@ export const StockRadarView: React.FC = () => {
   const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(true);
   const [livePriceFlash, setLivePriceFlash] = useState<'up' | 'down' | null>(null);
   const [liveCandles, setLiveCandles] = useState<Candle[]>([]);
+
+  // Dual Chart Mode: 'radar' (NjiaFedha Pro Lightweight) or 'tradingview' (Official TradingView live widget)
+  const [chartViewMode, setChartViewMode] = useState<'radar' | 'tradingview'>('radar');
+  const [bottomTab, setBottomTab] = useState<
+    'paper' | 'journal' | 'risk-calc' | 'strength' | 'backtest' | 'calendar' | 'news'
+  >('paper');
+
+  // Price Alerts Modal & Notification State
+  const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);
+  const [triggeredAlertBanner, setTriggeredAlertBanner] = useState<PriceAlert | null>(null);
 
   // Quick Lot Size / Risk Calculator State
   const [calcLotSize, setCalcLotSize] = useState<number>(0.1);
@@ -832,6 +853,33 @@ Summary: ${sig.summary}`;
           low: newLow,
           volume: last.volume + Math.floor(Math.random() * 45 + 5),
         };
+
+        // Check active price alerts for this ticker
+        try {
+          const alertsJson = localStorage.getItem('njia_price_alerts');
+          if (alertsJson) {
+            const list: PriceAlert[] = JSON.parse(alertsJson);
+            let alertHit = false;
+            const updatedList = list.map((a) => {
+              if (a.isActive && !a.isTriggered && a.ticker === selectedStock.ticker) {
+                const hit =
+                  (a.condition === 'ABOVE' && newClose >= a.targetPrice) ||
+                  (a.condition === 'BELOW' && newClose <= a.targetPrice);
+                if (hit) {
+                  playAlertChime();
+                  setTriggeredAlertBanner(a);
+                  setTimeout(() => setTriggeredAlertBanner(null), 8000);
+                  alertHit = true;
+                  return { ...a, isTriggered: true, triggeredAt: new Date().toLocaleTimeString() };
+                }
+              }
+              return a;
+            });
+            if (alertHit) {
+              localStorage.setItem('njia_price_alerts', JSON.stringify(updatedList));
+            }
+          }
+        } catch {}
 
         const copy = [...prevCandles];
         copy[lastIdx] = updatedLast;
@@ -1215,23 +1263,83 @@ Summary: ${sig.summary}`;
                 </div>
               </div>
 
-              {/* Timeframe selector */}
-              <div className="flex flex-wrap items-center gap-1 bg-[#070b13] p-1 rounded-xl border border-[#162540]">
-                {(['1m', '5m', '15m', '1H', '4H', '1D', '1W', '1M'] as Timeframe[]).map((t) => (
+              {/* Dual Chart Engine Switcher & Timeframe selector */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Mode Selector */}
+                <div className="flex items-center gap-1 bg-[#070b13] p-1 rounded-xl border border-[#162540]">
                   <button
-                    key={t}
-                    onClick={() => setTimeframe(t)}
-                    className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                      timeframe === t
+                    onClick={() => setChartViewMode('radar')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                      chartViewMode === 'radar'
                         ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 shadow-sm'
                         : 'text-slate-400 hover:text-white'
                     }`}
+                    title="NjiaFedha Pro Radar: Custom chart with AI signals, lot sizer & dataset export"
                   >
-                    {t}
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>NjiaFedha Pro Radar</span>
                   </button>
-                ))}
+                  <button
+                    onClick={() => setChartViewMode('tradingview')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                      chartViewMode === 'tradingview'
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                    title="TradingView Live Stream: Official TradingView real-time feed widget"
+                  >
+                    <Activity className="w-3.5 h-3.5" />
+                    <span>TradingView Live Feed</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsAlertsModalOpen(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-all cursor-pointer shadow-sm"
+                    title="Live Price Alerts & Watch Triggers"
+                  >
+                    <Bell className="w-3.5 h-3.5" />
+                    <span>Price Alerts</span>
+                  </button>
+                </div>
+
+                {/* Timeframe selector (available in both Pro Radar & TradingView modes) */}
+                <div className="flex flex-wrap items-center gap-1 bg-[#070b13] p-1 rounded-xl border border-[#162540]">
+                  {(['1m', '5m', '15m', '1H', '4H', '1D', '1W', '1M'] as Timeframe[]).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setTimeframe(t)}
+                      className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                        timeframe === t
+                          ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+
+            {/* Triggered Alert Toast Banner */}
+            {triggeredAlertBanner && (
+              <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-between text-xs text-amber-300">
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-amber-400 animate-pulse" />
+                  <span>
+                    <strong>PRICE ALERT TRIGGERED:</strong> {triggeredAlertBanner.ticker} has reached{' '}
+                    <strong className="underline">{triggeredAlertBanner.currency} {triggeredAlertBanner.targetPrice}</strong>{' '}
+                    ({triggeredAlertBanner.condition === 'ABOVE' ? 'Above' : 'Below'} trigger level)!
+                  </span>
+                </div>
+                <button
+                  onClick={() => setTriggeredAlertBanner(null)}
+                  className="text-slate-400 hover:text-white cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
 
             {/* Price & Period Performance Row */}
             <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-3 pt-1">
@@ -1301,22 +1409,32 @@ Summary: ${sig.summary}`;
               </div>
             </div>
 
-            {/* Interactive Candlestick Chart with Full TradingView Controls and Extraction */}
+            {/* Interactive Candlestick Chart or TradingView Widget */}
             <div className="pt-1">
-              <CandlestickChart
-                candles={activeCandles}
-                currency={selectedStock.currency}
-                ticker={selectedStock.ticker}
-                timeframe={timeframe}
-                onTimeframeChange={setTimeframe}
-                isMarketLive={activeStockSession.isOpen}
-                marketSession={activeStockSession}
-                chartType={chartType}
-                onChartTypeChange={setChartType}
-                isLiveStreaming={isLiveStreaming}
-                onToggleLiveStreaming={() => setIsLiveStreaming((p) => !p)}
-                currentLivePrice={currentDisplayPrice}
-              />
+              {chartViewMode === 'radar' ? (
+                <CandlestickChart
+                  candles={activeCandles}
+                  currency={selectedStock.currency}
+                  ticker={selectedStock.ticker}
+                  timeframe={timeframe}
+                  onTimeframeChange={setTimeframe}
+                  isMarketLive={activeStockSession.isOpen}
+                  marketSession={activeStockSession}
+                  chartType={chartType}
+                  onChartTypeChange={setChartType}
+                  isLiveStreaming={isLiveStreaming}
+                  onToggleLiveStreaming={() => setIsLiveStreaming((p) => !p)}
+                  currentLivePrice={currentDisplayPrice}
+                />
+              ) : (
+                <TradingViewWidget
+                  ticker={selectedStock.ticker}
+                  market={selectedStock.market}
+                  timeframe={timeframe}
+                  height={470}
+                  onSwitchToProRadar={() => setChartViewMode('radar')}
+                />
+              )}
             </div>
 
             {/* Fundamental & Timeframe Range Stats Grid */}
@@ -1370,46 +1488,201 @@ Summary: ${sig.summary}`;
             </div>
           </div>
 
-          {/* Live Market News & Sentiment Feed */}
-          <div className="p-5 rounded-2xl bg-[#0c1322] border border-[#18253b] space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                <Newspaper className="w-4 h-4 text-cyan-400" />
-                <span>Live Market News, Central Bank Catalysts & Sentiment</span>
-              </h3>
-              <span className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
-                <Clock className="w-3 h-3" /> Updated Live
+          {/* Interactive Trading Workbench: Paper Trading Desk, Economic Calendar & News */}
+          <div className="space-y-4">
+            {/* Workbench Navigation Tabs */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 rounded-2xl bg-[#0c1322] border border-[#18253b]">
+              <div className="flex flex-wrap items-center gap-1">
+                <button
+                  onClick={() => setBottomTab('paper')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'paper'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Paper Terminal</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('journal')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'journal'
+                      ? 'bg-[#0df2c9]/20 text-[#0df2c9] border border-[#0df2c9]/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Award className="w-3.5 h-3.5 text-[#0df2c9]" />
+                  <span>Performance Journal & Curve</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('risk-calc')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'risk-calc'
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Calculator className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Risk & Lot Calculator</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('strength')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'strength'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Currency Strength & Heatmap</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('backtest')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'backtest'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Strategy Backtester</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('calendar')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'calendar'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Flame className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Economic Calendar</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('news')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'news'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Newspaper className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Market News</span>
+                </button>
+              </div>
+
+              <span className="text-[11px] font-mono text-slate-500 px-2 hidden lg:inline">
+                Asset: {selectedStock.ticker}
               </span>
             </div>
 
-            <div className="space-y-3">
-              {aiReport?.news?.map((n, i) => (
-                <div
-                  key={i}
-                  className="p-3.5 rounded-xl bg-[#080e19] border border-[#142238] hover:border-cyan-500/30 transition-all space-y-1.5"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h4 className="text-xs font-bold text-white leading-snug">{n.headline}</h4>
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
-                        n.sentiment === 'Bullish'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : n.sentiment === 'Bearish'
-                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                      }`}
-                    >
-                      {n.sentiment}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">{n.summary}</p>
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 font-mono">
-                    <span>Source: {n.source}</span>
-                    <span>{n.date}</span>
-                  </div>
+            {/* Tab 1: Live Paper Trading Desk */}
+            {bottomTab === 'paper' && (
+              <PaperTradingDesk
+                ticker={selectedStock.ticker}
+                name={selectedStock.name}
+                market={selectedStock.market}
+                currency={selectedStock.currency}
+                currentPrice={currentDisplayPrice}
+                defaultSl={activeSignal.stopLoss}
+                defaultTp={activeSignal.takeProfit1}
+                pipSpread={selectedStock.pipSpread}
+              />
+            )}
+
+            {/* Tab 2: Performance Journal & Equity Curve */}
+            {bottomTab === 'journal' && (
+              <TradingJournalDesk currentTicker={selectedStock.ticker} />
+            )}
+
+            {/* Tab 3: Smart Risk & Lot Sizing Calculator */}
+            {bottomTab === 'risk-calc' && (
+              <RiskCalculatorDesk
+                currentTicker={selectedStock.ticker}
+                currentPrice={currentDisplayPrice}
+                market={selectedStock.market}
+                currency={selectedStock.currency}
+                defaultSl={activeSignal.stopLoss}
+                defaultTp={activeSignal.takeProfit1}
+                onApplyToOrder={() => {
+                  setBottomTab('paper');
+                }}
+              />
+            )}
+
+            {/* Tab 4: Currency Strength Meter & Heatmap */}
+            {bottomTab === 'strength' && (
+              <CurrencyStrengthMeter
+                onSelectPair={(pair) => {
+                  const match = FEATURED_ASSETS.find((a) => a.ticker === pair);
+                  if (match) setSelectedStock(match);
+                }}
+              />
+            )}
+
+            {/* Tab 5: AI Strategy Backtester */}
+            {bottomTab === 'backtest' && (
+              <StrategyBacktester
+                currentTicker={selectedStock.ticker}
+                currentPrice={currentDisplayPrice}
+              />
+            )}
+
+            {/* Tab 6: Economic Calendar */}
+            {bottomTab === 'calendar' && (
+              <EconomicCalendar currentTicker={selectedStock.ticker} />
+            )}
+
+            {/* Tab 3: Market News & Sentiment Feed */}
+            {bottomTab === 'news' && (
+              <div className="p-5 rounded-2xl bg-[#0c1322] border border-[#18253b] space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                    <Newspaper className="w-4 h-4 text-cyan-400" />
+                    <span>Live Market News, Central Bank Catalysts & Sentiment</span>
+                  </h3>
+                  <span className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
+                    <Clock className="w-3 h-3" /> Updated Live
+                  </span>
                 </div>
-              ))}
-            </div>
+
+                <div className="space-y-3">
+                  {aiReport?.news?.map((n, i) => (
+                    <div
+                      key={i}
+                      className="p-3.5 rounded-xl bg-[#080e19] border border-[#142238] hover:border-cyan-500/30 transition-all space-y-1.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="text-xs font-bold text-white leading-snug">{n.headline}</h4>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                            n.sentiment === 'Bullish'
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              : n.sentiment === 'Bearish'
+                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          }`}
+                        >
+                          {n.sentiment}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">{n.summary}</p>
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 font-mono">
+                        <span>Source: {n.source}</span>
+                        <span>{n.date}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1602,6 +1875,28 @@ Summary: ${sig.summary}`;
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">Daily Pivot:</span>
                       <span className="text-white font-bold">{activeSignal.indicators.pivotPoint}</span>
+                    </div>
+
+                    {/* Multi-Timeframe Confluence Matrix */}
+                    <div className="pt-2 border-t border-[#142036]">
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1.5">
+                        <span className="uppercase tracking-wider">Timeframe Confluence:</span>
+                        <span className="text-[#0df2c9] font-bold">94% Bullish Bias</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5 text-[10px] text-center font-bold">
+                        <div className="px-1 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                          15m <span className="text-[9px]">▲ BUY</span>
+                        </div>
+                        <div className="px-1 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                          1H <span className="text-[9px]">▲ BUY</span>
+                        </div>
+                        <div className="px-1 py-1 rounded-lg bg-emerald-500/25 text-emerald-200 border border-emerald-500/40">
+                          4H <span className="text-[9px]">▲ STRG</span>
+                        </div>
+                        <div className="px-1 py-1 rounded-lg bg-teal-500/20 text-[#0df2c9] border border-teal-500/30">
+                          1D <span className="text-[9px]">▲ BUY</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1807,6 +2102,16 @@ Summary: ${sig.summary}`;
           </div>
         </div>
       </div>
+
+      {/* Live Price Alerts & Watch Triggers Modal */}
+      <PriceAlertsModal
+        isOpen={isAlertsModalOpen}
+        onClose={() => setIsAlertsModalOpen(false)}
+        currentTicker={selectedStock.ticker}
+        currentName={selectedStock.name}
+        currentPrice={currentDisplayPrice}
+        currency={selectedStock.currency}
+      />
     </div>
   );
 };

@@ -18,6 +18,7 @@ import confetti from 'canvas-confetti';
 import { useFinance } from '../../context/FinanceContext.tsx';
 import { ExpenseItem, IncomeItem, ParsedMpesaMessage } from '../../types/finance.ts';
 import { convertCurrency, getExchangeRate, CURRENCY_SYMBOLS } from '../../utils/currency.ts';
+import { StatementImporterModal } from '../modals/StatementImporterModal.tsx';
 
 const SAMPLE_MPESA_MESSAGES = [
   {
@@ -48,6 +49,7 @@ export const MpesaView: React.FC = () => {
   const [parsedMessages, setParsedMessages] = useState<ParsedMpesaMessage[]>([]);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [isImporterOpen, setIsImporterOpen] = useState(false);
 
   const parseSingleMpesaText = (text: string): ParsedMpesaMessage | null => {
     const cleaned = text.trim();
@@ -299,16 +301,31 @@ export const MpesaView: React.FC = () => {
           </p>
         </div>
 
-        {parsedMessages.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={handleImportAll}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#0df2c9] hover:bg-[#00d2b4] text-[#071317] font-bold text-xs transition-colors shadow-lg shadow-teal-500/20"
+            onClick={() => setIsImporterOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-[#070b13] font-bold text-xs shadow-lg shadow-teal-500/20 transition-all cursor-pointer"
           >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Import All ({parsedMessages.length}) into Tracker</span>
+            <Sparkles className="w-4 h-4" />
+            <span>Batch AI Statement Importer (PDF / SMS / CSV)</span>
           </button>
-        )}
+
+          {parsedMessages.length > 0 && (
+            <button
+              onClick={handleImportAll}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#0df2c9] hover:bg-[#00d2b4] text-[#071317] font-bold text-xs transition-colors shadow-lg shadow-teal-500/20 cursor-pointer"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Import All ({parsedMessages.length})</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      <StatementImporterModal
+        isOpen={isImporterOpen}
+        onClose={() => setIsImporterOpen(false)}
+      />
 
       {/* Success Notification */}
       {importSuccess && (

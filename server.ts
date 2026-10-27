@@ -244,7 +244,7 @@ Respond strictly in valid JSON format:
         companyName: companyName || ticker,
         isForex: true,
         recommendation: 'Strong Buy',
-        targetPrice: isKES ? 132.50 : (isJPY ? 155.00 : (isGold ? 2780.00 : 1.0980)),
+        targetPrice: isKES ? 132.50 : (isJPY ? 155.00 : (isGold ? Math.round(priceVal * 1.03 * 100) / 100 : 1.0980)),
         projectedUpside: '+1.20%',
         riskRating: 'Moderate',
         signal: {
@@ -455,6 +455,143 @@ Provide a crisp, actionable, financial analysis with real numbers, valuation con
     return res.json({
       answer: 'Market conditions suggest maintaining balanced portfolio diversification across growth and dividend assets.'
     });
+  }
+});
+
+// Endpoint 3: AI Statement & Transaction Batch Parser (M-PESA, Bank PDF, SMS, CSV)
+app.post('/api/statement/parse', async (req, res) => {
+  try {
+    const { statementText, accountCurrency = 'KES' } = req.body;
+    if (!statementText || typeof statementText !== 'string' || statementText.trim().length === 0) {
+      return res.status(400).json({ error: 'Statement text is required.' });
+    }
+
+    const prompt = `You are an expert financial forensic accountant and East African / Global transaction parsing AI.
+Analyze the following financial statement extract (could be M-PESA SMS statements, bank statement exports, CSV rows, or credit card bills):
+Statement Text:
+"""
+${statementText.slice(0, 12000)}
+"""
+
+Extract every distinct financial transaction into a clean structured JSON array.
+For each transaction provide:
+- id: unique string
+- date: YYYY-MM-DD (estimate from statement date or use today's date format if relative)
+- time: HH:MM AM/PM string if available
+- description: clear, clean title (e.g. "Naivas Supermarket", "KPLC Electricity Token", "Salary Deposit", "Consulting Fee")
+- counterparty: entity name or account reference
+- amount: positive numeric amount in ${accountCurrency}
+- type: strictly "EXPENSE" or "INCOME"
+- category: one of ["Food & Groceries", "Housing", "Utilities", "Transport", "Healthcare", "Education", "Entertainment", "Debt Repayment", "Investments", "Salary", "Business", "Freelance", "Gifts", "Other"]
+- paymentMethod: e.g. "M-PESA", "Bank Transfer", "Card", "Cash"
+- referenceCode: M-PESA code or transaction ID if present
+
+Respond ONLY in valid JSON format:
+{
+  "currency": "${accountCurrency}",
+  "totalCount": 2,
+  "totalExpenses": 4500,
+  "totalIncome": 50000,
+  "transactions": [
+    {
+      "id": "tx-1",
+      "date": "2026-10-20",
+      "time": "03:45 PM",
+      "description": "Naivas Supermarket Groceries",
+      "counterparty": "NAIVAS KILIMANI",
+      "amount": 3450,
+      "type": "EXPENSE",
+      "category": "Food & Groceries",
+      "paymentMethod": "M-PESA",
+      "referenceCode": "TK74H9Q87Z"
+    }
+  ]
+}`;
+
+    const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest'];
+    for (const model of candidateModels) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const response = await ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+            },
+          });
+          if (response.text) {
+            const clean = response.text.replace(/^```json/i, '').replace(/```$/i, '').trim();
+            const parsed = JSON.parse(clean);
+            return res.json(parsed);
+          }
+        } catch {
+          if (attempt === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 400));
+          }
+        }
+      }
+    }
+
+    // High quality regex-assisted fallback for common M-PESA and bank formats
+    const lines = statementText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    const fallbackTxs: Array<{
+      id: string;
+      date: string;
+      description: string;
+      counterparty: string;
+      amount: number;
+      type: 'EXPENSE' | 'INCOME';
+      category: string;
+      paymentMethod: string;
+      referenceCode: string;
+    }> = [];
+
+    lines.forEach((line, idx) => {
+      const amtMatch = line.match(/(?:Ksh|KES|\$|USD)\s*([0-9,]+(?:\.[0-9]{2})?)/i) || line.match(/([0-9,]+\.[0-9]{2})/);
+      const isIncome = /received|credited|deposit|salary|earned/i.test(line);
+      const refMatch = line.match(/\b([A-Z0-9]{8,12})\b/);
+      const dateMatch = line.match(/(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/);
+
+      if (amtMatch) {
+        const amt = parseFloat(amtMatch[1].replace(/,/g, ''));
+        if (amt > 0) {
+          let cat = 'Other';
+          const lower = line.toLowerCase();
+          if (lower.includes('supermarket') || lower.includes('food') || lower.includes('naivas') || lower.includes('carrefour')) cat = 'Food & Groceries';
+          else if (lower.includes('kplc') || lower.includes('token') || lower.includes('water') || lower.includes('internet') || lower.includes('zuku')) cat = 'Utilities';
+          else if (lower.includes('rent') || lower.includes('estate') || lower.includes('landlord')) cat = 'Housing';
+          else if (lower.includes('fuel') || lower.includes('total') || lower.includes('uber') || lower.includes('bolt') || lower.includes('matatu')) cat = 'Transport';
+          else if (lower.includes('salary') || lower.includes('dividend') || lower.includes('consulting')) cat = 'Salary';
+          else if (lower.includes('sacco') || lower.includes('shares') || lower.includes('fund') || lower.includes('invest')) cat = 'Investments';
+
+          fallbackTxs.push({
+            id: `fb-${Date.now()}-${idx}`,
+            date: dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0],
+            description: line.slice(0, 40).trim(),
+            counterparty: line.slice(0, 30).trim(),
+            amount: amt,
+            type: isIncome ? 'INCOME' : 'EXPENSE',
+            category: isIncome ? 'Salary' : cat,
+            paymentMethod: line.includes('M-PESA') || refMatch ? 'M-PESA' : 'Bank Transfer',
+            referenceCode: refMatch ? refMatch[1] : `REF-${idx + 1}`,
+          });
+        }
+      }
+    });
+
+    const totalExp = fallbackTxs.filter((t) => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
+    const totalInc = fallbackTxs.filter((t) => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
+
+    return res.json({
+      currency: accountCurrency,
+      totalCount: fallbackTxs.length,
+      totalExpenses: totalExp,
+      totalIncome: totalInc,
+      transactions: fallbackTxs,
+    });
+  } catch (err) {
+    console.error('Statement parse error:', err);
+    return res.status(500).json({ error: 'Failed to parse financial statement.' });
   }
 });
 

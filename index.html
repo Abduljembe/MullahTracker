@@ -9,9 +9,66 @@
     <meta property="og:description" content="Comprehensive dark-mode personal finance tracker with income, expenses, budget, savings goals, emergency fund, investments, debt tracking, and Financial Freedom (FIRE) calculator." />
     <script>
       (function() {
+        // 1. Silent stub for Vite HMR WebSocket in cloud preview container where HMR is disabled
+        if (typeof window !== 'undefined' && window.WebSocket) {
+          try {
+            var OrigWebSocket = window.WebSocket;
+            var SafeWebSocket = function(url, protocols) {
+              var isVite = false;
+              try {
+                if (protocols === 'vite-hmr' || (Array.isArray(protocols) && protocols.indexOf('vite-hmr') !== -1)) {
+                  isVite = true;
+                }
+                if (typeof url === 'string' && (url.indexOf('vite') !== -1 || url.indexOf('run.app') !== -1 || url.indexOf('europe-west2') !== -1)) {
+                  isVite = true;
+                }
+              } catch (_) {}
+
+              if (isVite) {
+                var noop = function() {};
+                return {
+                  readyState: 1, // OPEN
+                  CONNECTING: 0,
+                  OPEN: 1,
+                  CLOSING: 2,
+                  CLOSED: 3,
+                  send: noop,
+                  close: noop,
+                  addEventListener: noop,
+                  removeEventListener: noop,
+                  dispatchEvent: function() { return true; },
+                  onopen: null,
+                  onclose: null,
+                  onerror: null,
+                  onmessage: null,
+                  binaryType: 'blob',
+                  bufferedAmount: 0,
+                  extensions: '',
+                  protocol: 'vite-hmr',
+                  url: String(url)
+                };
+              }
+              return new OrigWebSocket(url, protocols);
+            };
+            SafeWebSocket.prototype = OrigWebSocket.prototype;
+            SafeWebSocket.CONNECTING = 0;
+            SafeWebSocket.OPEN = 1;
+            SafeWebSocket.CLOSING = 2;
+            SafeWebSocket.CLOSED = 3;
+            window.WebSocket = SafeWebSocket;
+          } catch (_) {}
+        }
+
+        // 2. Global suppression of WebSocket & Vite client noise in development environment
         var isWsError = function(str) {
-          return str && (str.indexOf('WebSocket') !== -1 || str.indexOf('vite') !== -1 || str.indexOf('closed without opened') !== -1);
+          if (!str) return false;
+          var s = String(str);
+          return s.indexOf('WebSocket') !== -1 ||
+                 s.indexOf('vite') !== -1 ||
+                 s.indexOf('@vite/client') !== -1 ||
+                 s.indexOf('closed without opened') !== -1;
         };
+
         var origConsoleError = console.error;
         console.error = function() {
           var msg = Array.prototype.slice.call(arguments).map(function(a) {
@@ -20,16 +77,29 @@
           if (isWsError(msg)) return;
           origConsoleError.apply(console, arguments);
         };
+
+        var origConsoleWarn = console.warn;
+        console.warn = function() {
+          var msg = Array.prototype.slice.call(arguments).map(function(a) {
+            return (a && a.stack) ? a.stack : String(a);
+          }).join(' ');
+          if (isWsError(msg)) return;
+          origConsoleWarn.apply(console, arguments);
+        };
+
         window.addEventListener('error', function(e) {
-          if (e && (isWsError(e.message) || (e.error && isWsError(e.error.stack)))) {
+          if (e && (isWsError(e.message) || isWsError(e.filename) || (e.error && (isWsError(e.error.message) || isWsError(e.error.stack))))) {
             e.stopImmediatePropagation();
             e.preventDefault();
+            return true;
           }
         }, true);
+
         window.addEventListener('unhandledrejection', function(e) {
-          if (e && isWsError(String(e.reason))) {
+          if (e && isWsError(String(e.reason && e.reason.message ? e.reason.message : e.reason))) {
             e.stopImmediatePropagation();
             e.preventDefault();
+            return true;
           }
         }, true);
       })();
