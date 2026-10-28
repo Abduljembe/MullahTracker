@@ -47,6 +47,14 @@ export interface ClosedTrade {
   outcome: 'WIN' | 'LOSS';
 }
 
+export interface PrefillOrderData {
+  direction: 'LONG' | 'SHORT';
+  lots: number;
+  sl: string;
+  tp: string;
+  timestamp: number;
+}
+
 interface PaperTradingDeskProps {
   ticker: string;
   name: string;
@@ -56,6 +64,7 @@ interface PaperTradingDeskProps {
   defaultSl?: string;
   defaultTp?: string;
   pipSpread?: string;
+  prefillOrder?: PrefillOrderData | null;
 }
 
 // Simple synthesizer chime via Web Audio API
@@ -106,6 +115,8 @@ export const PaperTradingDesk: React.FC<PaperTradingDeskProps> = ({
   currentPrice,
   defaultSl,
   defaultTp,
+  pipSpread: _pipSpread,
+  prefillOrder,
 }) => {
   // Virtual balance
   const [balance, setBalance] = useState<number>(() => {
@@ -129,6 +140,17 @@ export const PaperTradingDesk: React.FC<PaperTradingDeskProps> = ({
   const [customSl, setCustomSl] = useState<string>('');
   const [customTp, setCustomTp] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'order' | 'positions' | 'history'>('order');
+
+  // React to prefill orders from Institutional Signal card
+  useEffect(() => {
+    if (prefillOrder) {
+      setDirection(prefillOrder.direction);
+      if (prefillOrder.lots > 0) setOrderLots(prefillOrder.lots);
+      if (prefillOrder.sl) setCustomSl(prefillOrder.sl);
+      if (prefillOrder.tp) setCustomTp(prefillOrder.tp);
+      setActiveTab('order');
+    }
+  }, [prefillOrder]);
 
   // Sync to localStorage
   useEffect(() => {

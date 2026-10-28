@@ -41,7 +41,7 @@ import { useFinance } from '../../context/FinanceContext.tsx';
 import { InvestmentItem } from '../../types/finance.ts';
 import { CandlestickChart } from '../common/CandlestickChart.tsx';
 import { TradingViewWidget } from '../common/TradingViewWidget.tsx';
-import { PaperTradingDesk } from '../common/PaperTradingDesk.tsx';
+import { PaperTradingDesk, PrefillOrderData } from '../common/PaperTradingDesk.tsx';
 import { EconomicCalendar } from '../common/EconomicCalendar.tsx';
 import { PriceAlertsModal, playAlertChime, PriceAlert } from '../common/PriceAlertsModal.tsx';
 import { TradingJournalDesk } from '../common/TradingJournalDesk.tsx';
@@ -49,6 +49,7 @@ import { RiskCalculatorDesk } from '../common/RiskCalculatorDesk.tsx';
 import { CurrencyStrengthMeter } from '../common/CurrencyStrengthMeter.tsx';
 import { StrategyBacktester } from '../common/StrategyBacktester.tsx';
 import { ForexFactoryNewsDesk } from '../common/ForexFactoryNewsDesk.tsx';
+import { InstitutionalSignalCard } from '../common/InstitutionalSignalCard.tsx';
 import { generateCandles, computePeriodStats, Timeframe, Candle } from '../../utils/stockCandles.ts';
 import { getMarketSession, MarketSessionInfo } from '../../utils/marketHours.ts';
 
@@ -565,6 +566,31 @@ export const StockRadarView: React.FC = () => {
   // Quick Lot Size / Risk Calculator State
   const [calcLotSize, setCalcLotSize] = useState<number>(0.1);
   const [showCalculator, setShowCalculator] = useState(false);
+
+  // 1-Click Signal Execution into Paper Trading Desk
+  const [prefillOrder, setPrefillOrder] = useState<PrefillOrderData | null>(null);
+
+  const handleExecuteSignalToPaper = (trade: {
+    direction: 'LONG' | 'SHORT';
+    lots: number;
+    sl: string;
+    tp: string;
+  }) => {
+    setPrefillOrder({
+      direction: trade.direction,
+      lots: trade.lots,
+      sl: trade.sl,
+      tp: trade.tp,
+      timestamp: Date.now(),
+    });
+    setBottomTab('paper');
+    setTimeout(() => {
+      const el = document.getElementById('trading-workbench');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 50);
+  };
 
   // Filter stocks & forex pairs
   const filteredStocks = useMemo(() => {
@@ -1490,7 +1516,7 @@ Summary: ${sig.summary}`;
           </div>
 
           {/* Interactive Trading Workbench: Paper Trading Desk, Economic Calendar & News */}
-          <div className="space-y-4">
+          <div id="trading-workbench" className="space-y-4">
             {/* Workbench Navigation Tabs */}
             <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 rounded-2xl bg-[#0c1322] border border-[#18253b]">
               <div className="flex flex-wrap items-center gap-1">
@@ -1595,6 +1621,7 @@ Summary: ${sig.summary}`;
                 defaultSl={activeSignal.stopLoss}
                 defaultTp={activeSignal.takeProfit1}
                 pipSpread={selectedStock.pipSpread}
+                prefillOrder={prefillOrder}
               />
             )}
 
@@ -1690,229 +1717,31 @@ Summary: ${sig.summary}`;
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {/* Hero Signal Badge & Confidence Meter */}
-                <div className="p-4 rounded-xl bg-[#060c18] border border-[#172c4e] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-mono">
-                        Algorithmic Signal
-                      </span>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span
-                          className={`px-3 py-1 rounded-lg text-sm font-black tracking-wide border uppercase ${getSignalBadgeStyle(
-                            activeSignal.action
-                          )}`}
-                        >
-                          {activeSignal.action}
-                        </span>
-                        <span className="text-xs font-mono text-slate-300 font-semibold">
-                          {activeSignal.timeframe}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-mono">
-                        Confidence
-                      </span>
-                      <div className="text-xl font-extrabold font-mono text-[#0df2c9] mt-0.5">
-                        {activeSignal.confidenceScore}%
-                      </div>
-                      <span className="text-[9px] font-mono text-emerald-400 font-bold block">
-                        High Conviction
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Setup Type */}
-                  <div className="pt-2 border-t border-[#14233c] flex items-center justify-between text-xs">
-                    <span className="text-slate-400 font-medium">Trade Setup:</span>
-                    <span className="font-semibold text-slate-200">{activeSignal.setupType}</span>
-                  </div>
-
-                  {/* Confidence Progress Bar */}
-                  <div className="w-full bg-[#0d1726] h-1.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-teal-500 to-[#0df2c9] h-full transition-all duration-500 rounded-full"
-                      style={{ width: `${activeSignal.confidenceScore}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* ORDER EXECUTION LEVELS GRID */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  {/* Entry Zone */}
-                  <div className="p-3 rounded-xl bg-[#070d1a] border border-[#152542] space-y-1">
-                    <div className="flex items-center gap-1.5 text-teal-400 text-[10px] uppercase font-bold">
-                      <Crosshair className="w-3 h-3" />
-                      <span>Entry Zone</span>
-                    </div>
-                    <div className="font-mono font-bold text-white text-xs truncate">
-                      {activeSignal.entryZone}
-                    </div>
-                  </div>
-
-                  {/* Risk / Reward */}
-                  <div className="p-3 rounded-xl bg-[#070d1a] border border-[#152542] space-y-1">
-                    <div className="flex items-center gap-1.5 text-cyan-400 text-[10px] uppercase font-bold">
-                      <ScaleIcon className="w-3 h-3" />
-                      <span>Risk : Reward</span>
-                    </div>
-                    <div className="font-mono font-bold text-cyan-300 text-xs">
-                      {activeSignal.riskReward}
-                    </div>
-                  </div>
-
-                  {/* Take Profit 1 */}
-                  <div className="p-3 rounded-xl bg-[#070d1a] border border-emerald-500/30 space-y-1">
-                    <div className="flex items-center gap-1.5 text-emerald-400 text-[10px] uppercase font-bold">
-                      <Target className="w-3 h-3" />
-                      <span>Take Profit 1</span>
-                    </div>
-                    <div className="font-mono font-bold text-emerald-300 text-xs truncate">
-                      {activeSignal.takeProfit1}
-                    </div>
-                  </div>
-
-                  {/* Take Profit 2 (Runner) */}
-                  <div className="p-3 rounded-xl bg-[#070d1a] border border-emerald-500/30 space-y-1">
-                    <div className="flex items-center gap-1.5 text-emerald-300 text-[10px] uppercase font-bold">
-                      <Flame className="w-3 h-3 text-emerald-400" />
-                      <span>TP 2 (Extended)</span>
-                    </div>
-                    <div className="font-mono font-bold text-emerald-200 text-xs truncate">
-                      {activeSignal.takeProfit2}
-                    </div>
-                  </div>
-
-                  {/* Stop Loss Invalidation (Full row) */}
-                  <div className="col-span-2 p-3 rounded-xl bg-[#140b12] border border-rose-500/40 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-rose-400 text-[10px] uppercase font-bold">
-                        <ShieldAlert className="w-3 h-3" />
-                        <span>Stop Loss (Risk Invalidation Level)</span>
-                      </div>
-                      <span className="text-[9px] font-mono text-rose-400 font-bold">STRICT RISK</span>
-                    </div>
-                    <div className="font-mono font-bold text-rose-300 text-xs">
-                      {activeSignal.stopLoss}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Signal Summary */}
-                <div className="p-3 rounded-xl bg-[#070e1c] border border-[#14233c] text-xs text-slate-300 leading-relaxed">
-                  <p className="text-[11px] text-slate-300">{activeSignal.summary}</p>
-                </div>
-
-                {/* TECHNICAL INDICATORS CONFLUENCE */}
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 uppercase tracking-wider">
-                    <span className="flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5 text-teal-400" />
-                      <span>Indicator Stance</span>
-                    </span>
-                    <button
-                      onClick={() => setShowCalculator((prev) => !prev)}
-                      className="text-[10px] text-teal-300 hover:text-white flex items-center gap-1 cursor-pointer font-mono font-normal"
-                    >
-                      <Calculator className="w-3 h-3" />
-                      <span>{showCalculator ? 'Hide Calculator' : 'Risk Calculator'}</span>
-                    </button>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-[#060c17] border border-[#142036] space-y-2 text-xs font-mono">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">RSI (14):</span>
-                      <span className="text-emerald-400 font-bold">{activeSignal.indicators.rsi}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">MACD:</span>
-                      <span className="text-teal-300 font-bold">{activeSignal.indicators.macd}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">EMA Trend:</span>
-                      <span className="text-cyan-300 font-semibold truncate max-w-[190px]">
-                        {activeSignal.indicators.movingAverages}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Daily Pivot:</span>
-                      <span className="text-white font-bold">{activeSignal.indicators.pivotPoint}</span>
-                    </div>
-
-                    {/* Multi-Timeframe Confluence Matrix */}
-                    <div className="pt-2 border-t border-[#142036]">
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1.5">
-                        <span className="uppercase tracking-wider">Timeframe Confluence:</span>
-                        <span className="text-[#0df2c9] font-bold">94% Bullish Bias</span>
-                      </div>
-                      <div className="grid grid-cols-4 gap-1.5 text-[10px] text-center font-bold">
-                        <div className="px-1 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                          15m <span className="text-[9px]">▲ BUY</span>
-                        </div>
-                        <div className="px-1 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                          1H <span className="text-[9px]">▲ BUY</span>
-                        </div>
-                        <div className="px-1 py-1 rounded-lg bg-emerald-500/25 text-emerald-200 border border-emerald-500/40">
-                          4H <span className="text-[9px]">▲ STRG</span>
-                        </div>
-                        <div className="px-1 py-1 rounded-lg bg-teal-500/20 text-[#0df2c9] border border-teal-500/30">
-                          1D <span className="text-[9px]">▲ BUY</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* INTERACTIVE LOT SIZE & RISK CALCULATOR (Toggleable) */}
-                {showCalculator && (
-                  <div className="p-3.5 rounded-xl bg-[#091222] border border-teal-500/30 space-y-2.5 animate-in fade-in">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-teal-300 flex items-center gap-1">
-                        <Calculator className="w-3.5 h-3.5" />
-                        <span>Position & Risk Calculator</span>
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {selectedStock.isForex ? 'Forex Lots' : 'Share Count'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <label className="text-[11px] text-slate-300 font-medium">
-                        {selectedStock.isForex ? 'Lot Size:' : 'Shares:'}
-                      </label>
-                      <input
-                        type="number"
-                        step={selectedStock.isForex ? '0.01' : '10'}
-                        min={selectedStock.isForex ? '0.01' : '1'}
-                        value={calcLotSize}
-                        onChange={(e) => setCalcLotSize(parseFloat(e.target.value) || 0.01)}
-                        className="w-24 px-2 py-1 rounded bg-[#060c16] border border-[#1b2f4f] text-xs font-mono text-white text-right"
-                      />
-                      <span className="text-xs text-slate-400 font-mono">
-                        {selectedStock.isForex ? 'std lots' : 'units'}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-1">
-                      <div className="p-2 rounded bg-[#060c17] border border-emerald-500/20">
-                        <span className="text-[10px] text-slate-400 block">Est. Profit @ TP1</span>
-                        <span className="text-emerald-400 font-bold">
-                          +${(calcLotSize * (selectedStock.isForex ? 700 : 15)).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="p-2 rounded bg-[#060c17] border border-rose-500/20">
-                        <span className="text-[10px] text-slate-400 block">Max Risk @ SL</span>
-                        <span className="text-rose-400 font-bold">
-                          -${(calcLotSize * (selectedStock.isForex ? 350 : 8)).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <InstitutionalSignalCard
+                ticker={selectedStock.ticker}
+                name={selectedStock.name}
+                market={selectedStock.market}
+                currency={selectedStock.currency}
+                currentPrice={currentDisplayPrice}
+                pipSpread={selectedStock.pipSpread}
+                signal={{
+                  action: (activeSignal.action as any) || 'BUY',
+                  setupType: activeSignal.setupType,
+                  timeframe: activeSignal.timeframe,
+                  entryZone: activeSignal.entryZone,
+                  takeProfit1: activeSignal.takeProfit1,
+                  takeProfit2: activeSignal.takeProfit2,
+                  stopLoss: activeSignal.stopLoss,
+                  riskReward: activeSignal.riskReward,
+                  confidenceScore: activeSignal.confidenceScore,
+                  summary: activeSignal.summary,
+                  indicators: activeSignal.indicators,
+                }}
+                onExecutePaperTrade={handleExecuteSignalToPaper}
+                onOpenPriceAlert={(_target) => {
+                  setIsAlertsModalOpen(true);
+                }}
+              />
             )}
           </div>
 
