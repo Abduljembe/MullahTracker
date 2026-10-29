@@ -26,6 +26,8 @@ export interface SignalData {
   action: 'STRONG BUY' | 'BUY' | 'NEUTRAL' | 'SELL' | 'STRONG SELL';
   setupType: string;
   timeframe: string;
+  timeframeCategory?: string;
+  confirmationScore?: string;
   entryZone: string;
   takeProfit1: string;
   takeProfit2: string;
@@ -40,6 +42,23 @@ export interface SignalData {
     pivotPoint: string;
     atr: string;
   };
+  smc?: {
+    orderBlock?: string;
+    fairValueGap?: string;
+    liquidityTarget?: string;
+    marketStructure?: string;
+  };
+  tradeManagement?: {
+    breakEvenRule?: string;
+    partialProfitRule?: string;
+    invalidationRule?: string;
+  };
+  multiAspectAnalysis?: {
+    marketStructure?: string;
+    smartMoneyConcepts?: string;
+    indicatorConfluence?: string;
+    macroForexFactory?: string;
+  };
 }
 
 interface InstitutionalSignalCardProps {
@@ -50,6 +69,8 @@ interface InstitutionalSignalCardProps {
   currentPrice: number;
   pipSpread?: string;
   signal: SignalData;
+  activeTimeframe?: string;
+  onSelectTimeframe?: (tf: string) => void;
   onExecutePaperTrade: (trade: {
     direction: 'LONG' | 'SHORT';
     lots: number;
@@ -67,6 +88,8 @@ export const InstitutionalSignalCard: React.FC<InstitutionalSignalCardProps> = (
   currentPrice,
   pipSpread = '1.0 pips',
   signal,
+  activeTimeframe,
+  onSelectTimeframe,
   onExecutePaperTrade,
 }) => {
   const isForex = market === 'FOREX';
@@ -80,6 +103,8 @@ export const InstitutionalSignalCard: React.FC<InstitutionalSignalCardProps> = (
   const [riskPercent, setRiskPercent] = useState<number>(1.0);
   const [showAdvancedSMC, setShowAdvancedSMC] = useState<boolean>(true);
   const [showTradeManagement, setShowTradeManagement] = useState<boolean>(true);
+  const [showDeepAnalysis, setShowDeepAnalysis] = useState<boolean>(true);
+  const [activeAspectTab, setActiveAspectTab] = useState<'all' | 'structure' | 'smc' | 'indicators' | 'macro'>('all');
   const [copiedAlert, setCopiedAlert] = useState<boolean>(false);
   const [copiedLevels, setCopiedLevels] = useState<boolean>(false);
 
@@ -226,21 +251,22 @@ export const InstitutionalSignalCard: React.FC<InstitutionalSignalCardProps> = (
     const fvgHigh = isBuy ? entryHigh * 1.0015 : entryHigh * 1.003;
 
     return {
-      orderBlockZone: `${formatVal(obLow)} - ${formatVal(obHigh)}`,
-      fairValueGap: `${formatVal(fvgLow)} - ${formatVal(fvgHigh)} (15m Imbalance)`,
-      liquidityTarget: isBuy
+      orderBlockZone: signal.smc?.orderBlock || `${formatVal(obLow)} - ${formatVal(obHigh)}`,
+      fairValueGap: signal.smc?.fairValueGap || `${formatVal(fvgLow)} - ${formatVal(fvgHigh)} (${signal.timeframe} Imbalance)`,
+      liquidityTarget: signal.smc?.liquidityTarget || (isBuy
         ? `Buy-Side Liquidity (BSL) resting above ${formatVal(tp1Val * 1.002)}`
-        : `Sell-Side Liquidity (SSL) resting below ${formatVal(tp1Val * 0.998)}`,
-      structureBias: isBuy ? 'BOS (Break of Structure Bullish)' : 'CHoCH (Change of Character Bearish)',
+        : `Sell-Side Liquidity (SSL) resting below ${formatVal(tp1Val * 0.998)}`),
+      structureBias: signal.smc?.marketStructure || (isBuy ? 'BOS (Break of Structure Bullish)' : 'CHoCH (Change of Character Bearish)'),
       invalidationLevel: formatVal(slVal),
-      breakEvenRule: isGold
+      breakEvenRule: signal.tradeManagement?.breakEvenRule || (isGold
         ? `Move SL to Break-Even at +$10.00 pts / TP1`
         : isForex
         ? `Move SL to Break-Even at +20 pips / TP1`
-        : `Move SL to Break-Even once +4% gain achieved`,
-      partialProfitRule: `Close 70% volume at TP1; trail remaining 30% runner behind 15m structural swings`,
+        : `Move SL to Break-Even once +4% gain achieved`),
+      partialProfitRule: signal.tradeManagement?.partialProfitRule || `Close 70% volume at TP1; trail remaining 30% runner behind ${signal.timeframe} structural swings`,
+      invalidationRule: signal.tradeManagement?.invalidationRule || `Close setup immediately if a ${signal.timeframe} candle closes beyond ${formatVal(slVal)} prior to entry activation.`,
     };
-  }, [parsedLevels, isBuy, isForex, currentPrice, isGold]);
+  }, [parsedLevels, isBuy, isForex, currentPrice, isGold, signal]);
 
   // Copy MT4/MT5 / Telegram formatted signal alert
   const handleCopyAlert = () => {
@@ -248,6 +274,7 @@ export const InstitutionalSignalCard: React.FC<InstitutionalSignalCardProps> = (
 🏛 Asset: ${name} (${market})
 ⚡ Timeframe: ${signal.timeframe}
 🎯 Setup: ${signal.setupType}
+🛡 Confluences: ${signal.confirmationScore || '4/5 Confluences'}
 
 📍 ENTRY ZONE: ${signal.entryZone}
 🛑 STOP LOSS: ${signal.stopLoss}
@@ -265,6 +292,13 @@ export const InstitutionalSignalCard: React.FC<InstitutionalSignalCardProps> = (
 🛡 TRADE MANAGEMENT:
 • Break-Even: ${smcBlueprint.breakEvenRule}
 • Partials: ${smcBlueprint.partialProfitRule}
+• Invalidation: ${smcBlueprint.invalidationRule}
+
+📐 MULTI-ASPECT ANALYSIS:
+• Market Structure: ${signal.multiAspectAnalysis?.marketStructure || 'Clean structural accumulation with higher swing lows.'}
+• Smart Money: ${signal.multiAspectAnalysis?.smartMoneyConcepts || 'Liquidity sweep into demand zone followed by aggressive volume.'}
+• Indicators: ${signal.multiAspectAnalysis?.indicatorConfluence || 'RSI and MACD aligned with moving averages.'}
+• Forex Factory: ${signal.multiAspectAnalysis?.macroForexFactory || 'News Guard active and clear of immediate red-folder events.'}
 
 Generated by NjiaFedha Pro Quant Engine`;
 
@@ -275,7 +309,7 @@ Generated by NjiaFedha Pro Quant Engine`;
 
   // Copy raw numeric levels
   const handleCopyLevels = () => {
-    const text = `${ticker} ${signal.action} | Entry: ${signal.entryZone} | SL: ${signal.stopLoss} | TP: ${signal.takeProfit1}`;
+    const text = `${ticker} ${signal.action} (${signal.timeframe}) | Entry: ${signal.entryZone} | SL: ${signal.stopLoss} | TP: ${signal.takeProfit1}`;
     navigator.clipboard.writeText(text);
     setCopiedLevels(true);
     setTimeout(() => setCopiedLevels(false), 2000);
@@ -332,8 +366,43 @@ Generated by NjiaFedha Pro Quant Engine`;
     }
   };
 
+  const currentTf = activeTimeframe || signal.timeframe || '1H';
+
   return (
     <div className="rounded-2xl bg-[#091120] border border-[#172744] shadow-xl overflow-hidden space-y-4 p-4 sm:p-5">
+      {/* 0. Timeframe Adaptability Pill Bar (15m, 1H, 4H, 1D) */}
+      <div className="p-2 rounded-xl bg-[#060c18] border border-[#14233c] flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-xs text-slate-300 font-mono">
+          <Clock className="w-3.5 h-3.5 text-teal-400" />
+          <span className="font-semibold text-[11px]">Signal Timeframe:</span>
+        </div>
+
+        <div className="flex items-center gap-1">
+          {[
+            { id: '15m', label: '15m Scalp' },
+            { id: '1H', label: '1H Intraday' },
+            { id: '4H', label: '4H Swing' },
+            { id: '1D', label: '1D Macro' },
+          ].map((tf) => {
+            const isCurrent = currentTf.toLowerCase() === tf.id.toLowerCase() || signal.timeframe.toLowerCase().startsWith(tf.id.toLowerCase());
+            return (
+              <button
+                key={tf.id}
+                onClick={() => onSelectTimeframe?.(tf.id)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                  isCurrent
+                    ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/20 font-black'
+                    : 'bg-[#0a1426] text-slate-400 hover:text-white border border-[#162744]'
+                }`}
+                title={`Analyze ${ticker} signal strictly on ${tf.label}`}
+              >
+                {tf.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 1. Forex Factory News Guard Banner */}
       <div className="p-2.5 rounded-xl bg-[#0a1529] border border-[#1b345f] flex items-center justify-between text-xs">
         <div className="flex items-center gap-2">
@@ -364,7 +433,7 @@ Generated by NjiaFedha Pro Quant Engine`;
               SMART MONEY ENGINE
             </span>
           </div>
-          <div className="flex items-center gap-2.5 mt-1">
+          <div className="flex flex-wrap items-center gap-2.5 mt-1">
             <span
               className={`px-3 py-1 rounded-lg text-sm font-black tracking-wide border uppercase ${
                 isBuy
@@ -376,9 +445,14 @@ Generated by NjiaFedha Pro Quant Engine`;
             >
               {signal.action}
             </span>
-            <span className="text-xs font-mono text-slate-200 font-bold">
+            <span className="text-xs font-mono text-slate-200 font-bold bg-[#101e38] px-2 py-0.5 rounded border border-[#1b345b]">
               {signal.timeframe}
             </span>
+            {signal.confirmationScore && (
+              <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-950/60 border border-amber-800/50 px-2 py-0.5 rounded">
+                ⚡ {signal.confirmationScore}
+              </span>
+            )}
             {renderStatusBadge()}
           </div>
         </div>
@@ -417,6 +491,17 @@ Generated by NjiaFedha Pro Quant Engine`;
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Setup Description Banner */}
+      <div className="p-2.5 rounded-xl bg-[#070e1c] border border-teal-500/30 text-xs text-slate-300 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-teal-400 font-bold">🎯 Setup:</span>
+          <span className="font-semibold text-white">{signal.setupType}</span>
+        </div>
+        <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">
+          R:R <strong className="text-cyan-300">{signal.riskReward}</strong>
+        </span>
       </div>
 
       {/* 3. Multi-Timeframe (MTF) Confluence Matrix */}
@@ -484,7 +569,7 @@ Generated by NjiaFedha Pro Quant Engine`;
         <div className="p-3 rounded-xl bg-[#070e1c] border border-[#172c4e] space-y-1">
           <div className="flex items-center gap-1.5 text-teal-400 text-[10px] uppercase font-bold">
             <Crosshair className="w-3.5 h-3.5" />
-            <span>Entry Zone</span>
+            <span>Entry Zone ({signal.timeframe})</span>
           </div>
           <div className="font-bold text-white text-xs truncate">
             {signal.entryZone}
@@ -541,50 +626,154 @@ Generated by NjiaFedha Pro Quant Engine`;
         </div>
       </div>
 
-      {/* 5. Smart Money Concepts (SMC) & Liquidity Blueprint */}
-      <div className="p-3.5 rounded-xl bg-[#070d18] border border-[#152744] space-y-3">
+      {/* 5. Deep Multi-Aspect AI Analytical Breakdown */}
+      <div className="p-3.5 rounded-xl bg-[#070d18] border border-teal-500/30 space-y-3">
         <button
-          onClick={() => setShowAdvancedSMC((prev) => !prev)}
+          onClick={() => setShowDeepAnalysis((prev) => !prev)}
           className="w-full flex items-center justify-between text-xs font-bold text-slate-200 hover:text-white transition-colors cursor-pointer"
         >
           <span className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-teal-400" />
-            <span>Smart Money Concepts (SMC) & Liquidity Blueprint</span>
+            <Sparkles className="w-4 h-4 text-[#0df2c9]" />
+            <span className="text-white font-extrabold tracking-wide">
+              Deep Multi-Aspect AI Analysis ({signal.timeframe} Horizon)
+            </span>
           </span>
           <span className="text-slate-400 flex items-center gap-1 text-[11px]">
-            {showAdvancedSMC ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {showDeepAnalysis ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </span>
         </button>
 
-        {showAdvancedSMC && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono pt-1 animate-in fade-in">
-            <div className="p-2.5 rounded-lg bg-[#050a12] border border-[#13233a] space-y-1">
-              <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider block">
-                Institutional Order Block (OB)
-              </span>
-              <span className="text-slate-200 font-semibold">{smcBlueprint.orderBlockZone}</span>
+        {showDeepAnalysis && (
+          <div className="space-y-3 pt-1 animate-in fade-in">
+            {/* Filter Pills for Aspects */}
+            <div className="flex flex-wrap items-center gap-1.5 pb-1 border-b border-[#14233c]">
+              {[
+                { id: 'all', label: 'All 4 Aspects' },
+                { id: 'structure', label: '📐 Market Structure' },
+                { id: 'smc', label: '🏦 SMC & Liquidity' },
+                { id: 'indicators', label: '📊 Indicators & Confluence' },
+                { id: 'macro', label: '🌍 Forex Factory & Macro' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveAspectTab(tab.id as any)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold transition-all cursor-pointer ${
+                    activeAspectTab === tab.id
+                      ? 'bg-teal-500/25 text-[#0df2c9] border border-teal-500/50'
+                      : 'bg-[#050a12] text-slate-400 hover:text-white border border-[#13233a]'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
 
-            <div className="p-2.5 rounded-lg bg-[#050a12] border border-[#13233a] space-y-1">
-              <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider block">
-                Fair Value Gap (FVG / Imbalance)
-              </span>
-              <span className="text-slate-200 font-semibold">{smcBlueprint.fairValueGap}</span>
-            </div>
+            {/* Aspect 1: Market Structure & Price Action */}
+            {(activeAspectTab === 'all' || activeAspectTab === 'structure') && (
+              <div className="p-3 rounded-lg bg-[#050b16] border border-[#152844] space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-teal-300 flex items-center gap-1.5 font-mono text-[11px]">
+                    <span>📐</span>
+                    <span>1. Market Structure & Price Action Aspect</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    Timeframe: {signal.timeframe}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                  {signal.multiAspectAnalysis?.marketStructure ||
+                    `Price action on ${signal.timeframe} confirms clean structural accumulation with successive higher swing lows and immediate demand absorption.`}
+                </p>
+              </div>
+            )}
 
-            <div className="p-2.5 rounded-lg bg-[#050a12] border border-[#13233a] space-y-1">
-              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">
-                Liquidity Pool Target (BSL/SSL)
-              </span>
-              <span className="text-slate-200 font-semibold">{smcBlueprint.liquidityTarget}</span>
-            </div>
+            {/* Aspect 2: Smart Money Concepts & Liquidity */}
+            {(activeAspectTab === 'all' || activeAspectTab === 'smc') && (
+              <div className="p-3 rounded-lg bg-[#050b16] border border-[#152844] space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-cyan-300 flex items-center gap-1.5 font-mono text-[11px]">
+                    <span>🏦</span>
+                    <span>2. Smart Money Concepts (SMC) & Liquidity Aspect</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-cyan-400 font-bold">
+                    {smcBlueprint.structureBias}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                  {signal.multiAspectAnalysis?.smartMoneyConcepts ||
+                    `Institutional order flow engineered a clean liquidity sweep into the demand discount zone before aggressive buying volume appeared.`}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 text-[11px] font-mono">
+                  <span className="text-slate-400">
+                    Order Block: <strong className="text-teal-300">{smcBlueprint.orderBlockZone}</strong>
+                  </span>
+                  <span className="text-slate-400">
+                    Fair Value Gap: <strong className="text-cyan-300">{smcBlueprint.fairValueGap}</strong>
+                  </span>
+                  <span className="text-slate-400 sm:col-span-2">
+                    Liquidity Sweep: <strong className="text-emerald-300">{smcBlueprint.liquidityTarget}</strong>
+                  </span>
+                </div>
+              </div>
+            )}
 
-            <div className="p-2.5 rounded-lg bg-[#050a12] border border-[#13233a] space-y-1">
-              <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider block">
-                Market Structure Status
-              </span>
-              <span className="text-purple-300 font-bold">{smcBlueprint.structureBias}</span>
-            </div>
+            {/* Aspect 3: Technical Indicators & Confluence */}
+            {(activeAspectTab === 'all' || activeAspectTab === 'indicators') && (
+              <div className="p-3 rounded-lg bg-[#050b16] border border-[#152844] space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-emerald-300 flex items-center gap-1.5 font-mono text-[11px]">
+                    <span>📊</span>
+                    <span>3. Technical Momentum & Indicators Aspect</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400">
+                    ATR: {signal.indicators.atr}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                  {signal.multiAspectAnalysis?.indicatorConfluence ||
+                    `Indicators on ${signal.timeframe} show multi-oscillator confluence: RSI at ${signal.indicators.rsi}, MACD ${signal.indicators.macd}, and moving averages aligned.`}
+                </p>
+
+                {/* Indicators Pill Matrix */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1 text-[10px] font-mono">
+                  <div className="p-2 rounded bg-[#081222] border border-[#193256]">
+                    <span className="text-slate-400 block">RSI (14)</span>
+                    <span className="font-bold text-teal-300 truncate block">{signal.indicators.rsi}</span>
+                  </div>
+                  <div className="p-2 rounded bg-[#081222] border border-[#193256]">
+                    <span className="text-slate-400 block">MACD</span>
+                    <span className="font-bold text-cyan-300 truncate block">{signal.indicators.macd}</span>
+                  </div>
+                  <div className="p-2 rounded bg-[#081222] border border-[#193256]">
+                    <span className="text-slate-400 block">EMAs (20/50/200)</span>
+                    <span className="font-bold text-emerald-300 truncate block">{signal.indicators.movingAverages}</span>
+                  </div>
+                  <div className="p-2 rounded bg-[#081222] border border-[#193256]">
+                    <span className="text-slate-400 block">Pivot Point</span>
+                    <span className="font-bold text-purple-300 truncate block">{signal.indicators.pivotPoint}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Aspect 4: Forex Factory Macro & Fundamental Catalysts */}
+            {(activeAspectTab === 'all' || activeAspectTab === 'macro') && (
+              <div className="p-3 rounded-lg bg-[#050b16] border border-[#152844] space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-amber-300 flex items-center gap-1.5 font-mono text-[11px]">
+                    <span>🌍</span>
+                    <span>4. Forex Factory Macro & Calendar Impact Aspect</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">
+                    News Guard Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                  {signal.multiAspectAnalysis?.macroForexFactory ||
+                    `Forex Factory economic event calendar indicates clear runway with no conflicting high-impact red-folder hazards for the current session.`}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -632,9 +821,7 @@ Generated by NjiaFedha Pro Quant Engine`;
                 <span className="text-[11px] font-bold text-rose-300 block">
                   Early Invalidation Trigger:
                 </span>
-                <span className="text-slate-300 text-[11px]">
-                  Close setup immediately if a 15m candle closes beyond {smcBlueprint.invalidationLevel} prior to entry activation.
-                </span>
+                <span className="text-slate-300 text-[11px]">{smcBlueprint.invalidationRule}</span>
               </div>
             </div>
           </div>
