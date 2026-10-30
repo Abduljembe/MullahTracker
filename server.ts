@@ -206,10 +206,10 @@ Respond strictly in valid JSON format:
     "timeframe": "${timeframe}",
     "timeframeCategory": "${timeframeCategory}",
     "confirmationScore": "4/5 Confluences",
-    "entryZone": "Current Range",
-    "takeProfit1": "Target 1",
-    "takeProfit2": "Target 2",
-    "stopLoss": "Support Invalidation",
+    "entryZone": "17.20 - 17.50 KES",
+    "takeProfit1": "18.80 KES (+1.40 KES target / +8.1%)",
+    "takeProfit2": "20.40 KES (+3.00 KES runner / +17.3%)",
+    "stopLoss": "16.70 KES (-0.70 KES risk / -4.0%)",
     "riskReward": "1:2.5",
     "confidenceScore": 84,
     "summary": "Solid fundamentals with strong earnings growth catalysts.",
@@ -769,6 +769,198 @@ Respond ONLY in valid JSON format:
   } catch (err) {
     console.error('Statement parse error:', err);
     return res.status(500).json({ error: 'Failed to parse financial statement.' });
+  }
+});
+
+// Endpoint 4: AI M-Pesa Statement Spending Audit & Reduction Advisor
+app.post('/api/mpesa/audit', async (req, res) => {
+  try {
+    const { breakdown, transactions = [], accountCurrency = 'KES' } = req.body;
+    if (!breakdown) {
+      return res.status(400).json({ error: 'Spending breakdown is required for audit.' });
+    }
+
+    const {
+      totalInflow = 0,
+      totalOutflow = 0,
+      netCashflow = 0,
+      totalFees = 0,
+      dailyBurnRate = 0,
+      categoryBreakdown = [],
+      channelBreakdown = [],
+      topMerchants = [],
+      needsWantsSavings = {},
+    } = breakdown;
+
+    const prompt = `You are a Senior Certified Financial Planner, forensic wealth advisor, and expert on Kenyan & East African personal finance (M-Pesa cash flows, Nairobi/Kenyan cost of living, Safaricom tariff dynamics, SACCOs, MMFs, and emergency runway planning).
+
+Analyze this user's M-Pesa statement spending breakdown:
+- Account Currency: ${accountCurrency}
+- Total Outflow (Money Spent/Sent/Withdrawn): ${accountCurrency} ${Number(totalOutflow).toLocaleString()}
+- Total Inflow (Money Received/Salary): ${accountCurrency} ${Number(totalInflow).toLocaleString()}
+- Net Cash Flow: ${accountCurrency} ${Number(netCashflow).toLocaleString()}
+- Total Safaricom Transaction & Tariff Fees Paid: ${accountCurrency} ${Number(totalFees).toLocaleString()}
+- Daily Burn Rate: ${accountCurrency} ${Number(dailyBurnRate).toLocaleString()}/day
+- Needs vs Wants vs Savings: Needs: ${needsWantsSavings.needsPercent || 0}%, Wants: ${needsWantsSavings.wantsPercent || 0}%, Savings: ${needsWantsSavings.savingsPercent || 0}%
+
+Category Outflows:
+${JSON.stringify(categoryBreakdown, null, 2)}
+
+Spending Channels (Buy Goods Till, Paybill, Send Money, Withdrawals):
+${JSON.stringify(channelBreakdown, null, 2)}
+
+Top Merchants/Recipients:
+${JSON.stringify(topMerchants, null, 2)}
+
+Provide forensic financial advice telling the user exactly how they used their money, WHAT TO REDUCE (actionable cuts with exact savings amounts in ${accountCurrency}), WHAT TO OPTIMIZE (pragmatic Kenyan swaps & fee elimination), and WHAT TO DO (a strategic roadmap with 50/30/20 balance, emergency buffer, and automated budget caps).
+
+Respond strictly in valid JSON matching this schema:
+{
+  "verdictBadge": "e.g. Cashflow Positive & Optimizable | High Discretionary Leakage | Tariff Fee Bleed | Critical Deficit Burn",
+  "monthlyPotentialSavings": 8500,
+  "whatToReduce": [
+    {
+      "title": "Specific area to cut",
+      "reason": "Detailed forensic explanation why with specific percentages and amounts from their data",
+      "targetSaving": 4500,
+      "severity": "critical | warning | info"
+    }
+  ],
+  "whatToOptimize": [
+    {
+      "title": "Optimization strategy",
+      "action": "Concrete operational switch (e.g. batch buying tokens, paying via Buy Goods Till to avoid agent withdrawal fees)",
+      "potentialSavingTip": "Estimated money saved and how it prevents waste"
+    }
+  ],
+  "whatToDo": [
+    {
+      "stepNumber": 1,
+      "title": "Concrete strategic step",
+      "description": "Specific tactical action plan"
+    }
+  ],
+  "recommendedBudgetCaps": [
+    {
+      "category": "Food & Groceries",
+      "recommendedCap": 15000,
+      "currentSpent": 18200,
+      "reason": "Specific rationale"
+    }
+  ],
+  "emergencyFundRecommendation": {
+    "recommended3Month": 45000,
+    "recommended6Month": 90000,
+    "rationale": "Clear runway rationale based on daily burn rate"
+  },
+  "actionChecklist": [
+    "Stop cash withdrawals at agents — pay directly via Till for free.",
+    "Cap weekend dining and lounge bills to target limit."
+  ]
+}`;
+
+    const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest'];
+    for (const model of candidateModels) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const response = await ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+            },
+          });
+          if (response.text) {
+            const clean = response.text.replace(/^```json/i, '').replace(/```$/i, '').trim();
+            const parsed = JSON.parse(clean);
+            return res.json(parsed);
+          }
+        } catch {
+          if (attempt === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 350));
+          }
+        }
+      }
+    }
+
+    // Deterministic fallback if Gemini is momentarily unavailable
+    const dining = categoryBreakdown.find((c: any) => c.category === 'Entertainment & Dining');
+    const diningAmt = dining ? dining.amount : 0;
+    const shopping = categoryBreakdown.find((c: any) => c.category === 'Shopping');
+    const shoppingAmt = shopping ? shopping.amount : 0;
+    const potentialSavings = Math.round(diningAmt * 0.35 + shoppingAmt * 0.25 + totalFees * 0.7);
+
+    return res.json({
+      verdictBadge: totalOutflow > totalInflow && totalInflow > 0 ? 'Critical Deficit Burn' : diningAmt > 5000 ? 'High Discretionary Leakage' : 'Cashflow Positive & Optimizable',
+      monthlyPotentialSavings: Math.max(3000, potentialSavings),
+      whatToReduce: [
+        {
+          title: 'Trim Entertainment & Dining Outflows',
+          reason: diningAmt > 0
+            ? `Entertainment and restaurants accounted for ${dining?.percentage || 0}% (${accountCurrency} ${diningAmt.toLocaleString()}) of total spending. Cooking meals at home twice a week and setting weekend drink caps will free up substantial cash.`
+            : 'Review discretionary social spending to ensure it stays below 15% of your total outflows.',
+          targetSaving: Math.round(diningAmt * 0.35) || 3000,
+          severity: dining && dining.percentage > 20 ? 'critical' : 'warning',
+        },
+        {
+          title: 'Eliminate Safaricom Agent Cash Withdrawal Fees',
+          reason: totalFees > 100
+            ? `You lost ${accountCurrency} ${totalFees.toLocaleString()} to transaction fees and withdrawal tariffs. Paying merchants directly via Lipa Na M-Pesa Buy Goods Till is 100% FREE for buyers and eliminates all agent withdrawal charges.`
+            : 'Always insist on paying via Buy Goods Till or M-Pesa Paybill instead of withdrawing physical cash.',
+          targetSaving: Math.round(totalFees * 0.7) || 500,
+          severity: 'warning',
+        },
+      ],
+      whatToOptimize: [
+        {
+          title: 'Batch Buy KPLC Tokens & Utilities Once a Month',
+          action: 'Purchase electricity tokens and water bills on payday in a single consolidated transaction.',
+          potentialSavingTip: 'Eliminates repeated Paybill convenience fees (KSh 23-45 per token buy) and emergency surcharge fees.',
+        },
+        {
+          title: 'Shift from Mini-Marts to Bulk Wholesale Grocery Runs',
+          action: 'Purchase staples (rice, unga, oil, detergents) in monthly bulk from wholesale distributors or major supermarkets.',
+          potentialSavingTip: 'Saves 15-20% on grocery inflation compared to frequent fragmented corner kiosk stops.',
+        },
+      ],
+      whatToDo: [
+        {
+          stepNumber: 1,
+          title: 'Enforce Category Budget Caps',
+          description: 'Apply the recommended monthly spending ceilings below to receive alerts before budget limits are breached.',
+        },
+        {
+          stepNumber: 2,
+          title: 'Automate a 20% Pay-Yourself-First Transfer',
+          description: `Transfer ${accountCurrency} ${Math.round(totalInflow > 0 ? totalInflow * 0.2 : 6000).toLocaleString()} to an MMF or SACCO account immediately upon receiving income.`,
+        },
+        {
+          stepNumber: 3,
+          title: 'Build a 3-Month Emergency Cushion',
+          description: `Maintain at least ${accountCurrency} ${Math.round(dailyBurnRate * 90).toLocaleString()} in a liquid emergency wallet to buffer against sudden cashflow interruptions.`,
+        },
+      ],
+      recommendedBudgetCaps: categoryBreakdown.map((c: any) => ({
+        category: c.category,
+        recommendedCap: Math.round(c.amount * (c.category === 'Entertainment & Dining' ? 0.7 : c.category === 'Shopping' ? 0.75 : 0.9)),
+        currentSpent: c.amount,
+        reason: c.category === 'Entertainment & Dining' ? 'Cap weekend leisure expenses.' : 'Standard optimization margin.',
+      })),
+      emergencyFundRecommendation: {
+        recommended3Month: Math.round(dailyBurnRate * 90),
+        recommended6Month: Math.round(dailyBurnRate * 180),
+        rationale: `Based on your daily burn of ${accountCurrency} ${dailyBurnRate.toLocaleString()}, this safeguards your household for 90 to 180 days.`,
+      },
+      actionChecklist: [
+        'Pay merchants directly via Buy Goods Till to eliminate cash withdrawal fees.',
+        'Set a weekend restaurant & entertainment cap.',
+        'Buy full month electricity tokens at the start of next month.',
+        'Transfer savings surplus into high-yield MMF or SACCO shares.',
+      ],
+    });
+  } catch (err) {
+    console.error('Mpesa audit error:', err);
+    return res.status(500).json({ error: 'Failed to perform M-Pesa audit.' });
   }
 });
 

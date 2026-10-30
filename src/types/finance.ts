@@ -140,7 +140,80 @@ export interface ParsedMpesaMessage {
   time: string;
   suggestedCategory: ExpenseItem['category'];
   balance?: number;
+  fee?: number;
+  channel?: 'Till / Buy Goods' | 'Paybill' | 'Send Money' | 'Agent Withdrawal' | 'Received Money' | 'Bank Transfer';
+  accountNumber?: string;
 }
+
+export interface MpesaSpendingBreakdown {
+  totalInflow: number;
+  totalOutflow: number;
+  netCashflow: number;
+  savingsRatePercent: number;
+  totalFees: number;
+  dailyBurnRate: number;
+  daysSpan: number;
+  categoryBreakdown: Array<{
+    category: ExpenseItem['category'];
+    amount: number;
+    percentage: number;
+    count: number;
+    isHighBurn?: boolean;
+  }>;
+  channelBreakdown: Array<{
+    channel: string;
+    amount: number;
+    percentage: number;
+    count: number;
+  }>;
+  topMerchants: Array<{
+    name: string;
+    amount: number;
+    count: number;
+  }>;
+  needsWantsSavings: {
+    needsAmount: number;
+    needsPercent: number;
+    wantsAmount: number;
+    wantsPercent: number;
+    savingsAmount: number;
+    savingsPercent: number;
+  };
+}
+
+export interface MpesaAuditAdvice {
+  verdictBadge: string;
+  monthlyPotentialSavings: number;
+  whatToReduce: Array<{
+    title: string;
+    reason: string;
+    targetSaving: number;
+    severity: 'critical' | 'warning' | 'info';
+  }>;
+  whatToOptimize: Array<{
+    title: string;
+    action: string;
+    potentialSavingTip: string;
+  }>;
+  whatToDo: Array<{
+    stepNumber: number;
+    title: string;
+    description: string;
+  }>;
+  recommendedBudgetCaps: Array<{
+    category: ExpenseItem['category'];
+    recommendedCap: number;
+    currentSpent: number;
+    reason: string;
+  }>;
+  emergencyFundRecommendation: {
+    recommended3Month: number;
+    recommended6Month: number;
+    rationale: string;
+  };
+  actionChecklist: string[];
+}
+
 
 export interface MilestoneBadge {
   id: string;

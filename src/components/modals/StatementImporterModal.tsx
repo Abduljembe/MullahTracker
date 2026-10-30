@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   FileText,
   Sparkles,
@@ -12,10 +12,21 @@ import {
   Trash2,
   Check,
   RefreshCw,
+  FileUp,
+  Lock,
+  Unlock,
+  Eye,
+  EyeOff,
+  Loader2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useFinance } from '../../context/FinanceContext.tsx';
 import { ExpenseItem, IncomeItem } from '../../types/finance.ts';
+import {
+  extractTextFromPdf,
+  extractTextFromDocument,
+  PdfPasswordRequiredError,
+} from '../../utils/pdfExtractor.ts';
 
 interface ParsedTransaction {
   id: string;
@@ -70,6 +81,17 @@ export const StatementImporterModal: React.FC<StatementImporterModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [importNotice, setImportNotice] = useState<string | null>(null);
 
+  // File Upload & PDF Decryption State
+  const [isExtractingDoc, setIsExtractingDoc] = useState(false);
+  const [pendingPdfFile, setPendingPdfFile] = useState<File | null>(null);
+  const [pdfPassword, setPdfPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [uploadedDocName, setUploadedDocName] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   if (!isOpen) return null;
 
   const handleParse = async (textToParse?: string) => {
@@ -112,6 +134,50 @@ export const StatementImporterModal: React.FC<StatementImporterModalProps> = ({
     } finally {
       setIsParsing(false);
     }
+  };
+
+  const handleProcessFile = async (file: File, userPassword?: string) => {
+    setIsExtractingDoc(true);
+    setErrorMsg(null);
+    setPasswordError(null);
+
+    const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+
+    try {
+      let extracted = '';
+      if (isPdf) {
+        const result = await extractTextFromPdf(file, userPassword);
+        extracted = result.text;
+      } else {
+        extracted = await extractTextFromDocument(file);
+      }
+
+      setPendingPdfFile(null);
+      setPdfPassword('');
+      setPasswordError(null);
+      setUploadedDocName(file.name);
+      setStatementText(extracted);
+
+      // Automatically trigger AI parse
+      await handleParse(extracted);
+    } catch (err: any) {
+      if (err instanceof PdfPasswordRequiredError || err?.name === 'PdfPasswordRequiredError') {
+        setPendingPdfFile(file);
+        setPasswordError(err.message);
+      } else {
+        setErrorMsg(err?.message || 'Failed to extract text from document.');
+      }
+    } finally {
+      setIsExtractingDoc(false);
+      setIsUnlocking(false);
+    }
+  };
+
+  const handleUnlockPdf = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!pendingPdfFile || !pdfPassword.trim()) return;
+    setIsUnlocking(true);
+    await handleProcessFile(pendingPdfFile, pdfPassword.trim());
   };
 
   const handleToggleSelect = (id: string) => {
@@ -219,30 +285,145 @@ export const StatementImporterModal: React.FC<StatementImporterModalProps> = ({
         )}
 
         <div className="overflow-y-auto p-5 space-y-5">
-          {/* Paste / Drop Input Box */}
-          {transactions.length === 0 ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                  Paste Statement Text or Drag Extract
-                </span>
+          {/* Hidden File Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.csv,.txt,application/pdf,text/plain,text/csv"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleProcessFile(file);
+              e.target.value = '';
+            }}
+            className="hidden"
+          />
+
+          {/* Password Prompt if Encrypted Safaricom PDF */}
+          {pendingPdfFile && (
+            <div className="bg-[#121c2e] border-2 border-amber-500/40 rounded-xl p-4 space-y-3 animate-fadeIn">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="text-xs font-bold text-white">Safaricom PDF Password Required</h4>
+                  <p className="text-[11px] text-slate-300">
+                    Safaricom statements are encrypted with your Kenyan National ID or Passport Number.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleUnlockPdf} className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                <div className="relative flex-1 w-full">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={pdfPassword}
+                    onChange={(e) => {
+                      setPdfPassword(e.target.value);
+                      if (passwordError) setPasswordError(null);
+                    }}
+                    placeholder="National ID / Passport Number"
+                    className="w-full pl-3 pr-9 py-2 rounded-lg bg-[#090e18] border border-[#23354f] focus:border-amber-400 text-xs font-mono text-white placeholder-slate-500 focus:outline-none"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isUnlocking || !pdfPassword.trim()}
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {isUnlocking ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Unlocking...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="w-3.5 h-3.5" />
+                      <span>Unlock PDF</span>
+                    </>
+                  )}
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
-                    setStatementText(SAMPLE_MPESA_STATEMENT);
-                    handleParse(SAMPLE_MPESA_STATEMENT);
+                    setPendingPdfFile(null);
+                    setPdfPassword('');
+                    setPasswordError(null);
                   }}
-                  className="text-xs text-[#0df2c9] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                  className="w-full sm:w-auto px-3 py-2 rounded-lg bg-[#142036] hover:bg-[#1a2d48] text-slate-400 text-xs transition-colors cursor-pointer"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Load Sample M-PESA Statement
+                  Cancel
                 </button>
+              </form>
+
+              {passwordError && (
+                <div className="text-[11px] text-rose-400 flex items-center gap-1 bg-rose-500/10 p-2 rounded-lg border border-rose-500/20">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Paste / Drop Input Box */}
+          {transactions.length === 0 ? (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                  <span>Paste Text or Upload File</span>
+                  {uploadedDocName && (
+                    <span className="px-2 py-0.5 rounded-full bg-teal-500/20 text-[#0df2c9] text-[10px] font-mono lowercase">
+                      {uploadedDocName}
+                    </span>
+                  )}
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isExtractingDoc}
+                    className="text-xs text-[#0df2c9] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    {isExtractingDoc ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Reading file...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileUp className="w-3.5 h-3.5" />
+                        <span>Upload PDF / CSV / Document</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatementText(SAMPLE_MPESA_STATEMENT);
+                      handleParse(SAMPLE_MPESA_STATEMENT);
+                    }}
+                    className="text-xs text-slate-300 hover:text-white font-medium flex items-center gap-1 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                    <span>Load Sample</span>
+                  </button>
+                </div>
               </div>
 
               <textarea
                 value={statementText}
                 onChange={(e) => setStatementText(e.target.value)}
-                placeholder="Paste your M-PESA SMS records, Bank PDF text (Equity, KCB, Standard Chartered, NCBA), or card statement lines here..."
+                placeholder="Paste your M-PESA SMS records, Bank PDF text (Equity, KCB, Standard Chartered, NCBA), or card statement lines here, or click 'Upload PDF / CSV / Document' above..."
                 rows={7}
                 className="w-full p-3.5 rounded-xl bg-[#070b13] border border-[#162540] text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-[#0df2c9]"
               />
@@ -254,7 +435,16 @@ export const StatementImporterModal: React.FC<StatementImporterModalProps> = ({
                 </div>
               )}
 
-              <div className="flex justify-end gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#142236] hover:bg-[#1c304d] text-slate-200 text-xs font-semibold border border-[#233857] transition-all cursor-pointer"
+                >
+                  <FileUp className="w-4 h-4 text-teal-400" />
+                  <span>Choose PDF / Document</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => handleParse()}

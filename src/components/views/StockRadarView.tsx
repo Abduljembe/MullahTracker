@@ -36,6 +36,8 @@ import {
   Bell,
   Award,
   Globe,
+  Grid,
+  Smartphone,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext.tsx';
 import { InvestmentItem } from '../../types/finance.ts';
@@ -50,6 +52,10 @@ import { CurrencyStrengthMeter } from '../common/CurrencyStrengthMeter.tsx';
 import { StrategyBacktester } from '../common/StrategyBacktester.tsx';
 import { ForexFactoryNewsDesk } from '../common/ForexFactoryNewsDesk.tsx';
 import { InstitutionalSignalCard } from '../common/InstitutionalSignalCard.tsx';
+import { ForexSessionsKillzones } from '../common/ForexSessionsKillzones.tsx';
+import { PropFirmRiskGuardian } from '../common/PropFirmRiskGuardian.tsx';
+import { CurrencyCorrelationMatrix } from '../common/CurrencyCorrelationMatrix.tsx';
+import { BrokerMpesaArbiter } from '../common/BrokerMpesaArbiter.tsx';
 import { generateCandles, computePeriodStats, Timeframe, Candle } from '../../utils/stockCandles.ts';
 import { getMarketSession, MarketSessionInfo } from '../../utils/marketHours.ts';
 
@@ -575,7 +581,17 @@ export const StockRadarView: React.FC = () => {
   // Dual Chart Mode: 'radar' (NjiaFedha Pro Lightweight) or 'tradingview' (Official TradingView live widget)
   const [chartViewMode, setChartViewMode] = useState<'radar' | 'tradingview'>('radar');
   const [bottomTab, setBottomTab] = useState<
-    'paper' | 'journal' | 'risk-calc' | 'strength' | 'backtest' | 'calendar' | 'news'
+    | 'paper'
+    | 'journal'
+    | 'risk-calc'
+    | 'sessions'
+    | 'prop-guard'
+    | 'correlation'
+    | 'broker-arbiter'
+    | 'strength'
+    | 'backtest'
+    | 'calendar'
+    | 'news'
   >('paper');
 
   // Price Alerts Modal & Notification State
@@ -1646,6 +1662,54 @@ Summary: ${sig.summary}`;
                 </button>
 
                 <button
+                  onClick={() => setBottomTab('sessions')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'sessions'
+                      ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5 text-teal-400" />
+                  <span>Killzones & Sessions</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('prop-guard')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'prop-guard'
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <ShieldAlert className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Prop Firm Guard</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('correlation')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'correlation'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Grid className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Correlation Matrix</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('broker-arbiter')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'broker-arbiter'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Broker M-Pesa Arbiter</span>
+                </button>
+
+                <button
                   onClick={() => setBottomTab('strength')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     bottomTab === 'strength'
@@ -1734,7 +1798,37 @@ Summary: ${sig.summary}`;
               />
             )}
 
-            {/* Tab 4: Currency Strength Meter & Heatmap */}
+            {/* Tab 4: Forex Sessions & Killzones Radar */}
+            {bottomTab === 'sessions' && (
+              <ForexSessionsKillzones
+                currentTicker={selectedStock.ticker}
+                onSelectPair={(pair) => {
+                  const match = FEATURED_ASSETS.find((a) => a.ticker === pair);
+                  if (match) setSelectedStock(match);
+                }}
+              />
+            )}
+
+            {/* Tab 5: Prop Firm Risk Guardian */}
+            {bottomTab === 'prop-guard' && (
+              <PropFirmRiskGuardian currentTicker={selectedStock.ticker} />
+            )}
+
+            {/* Tab 6: Currency Pair Correlation Matrix */}
+            {bottomTab === 'correlation' && (
+              <CurrencyCorrelationMatrix
+                currentTicker={selectedStock.ticker}
+                onSelectPair={(pair) => {
+                  const match = FEATURED_ASSETS.find((a) => a.ticker === pair);
+                  if (match) setSelectedStock(match);
+                }}
+              />
+            )}
+
+            {/* Tab 7: Broker M-Pesa Spread Arbiter */}
+            {bottomTab === 'broker-arbiter' && <BrokerMpesaArbiter />}
+
+            {/* Tab 8: Currency Strength Meter & Heatmap */}
             {bottomTab === 'strength' && (
               <CurrencyStrengthMeter
                 onSelectPair={(pair) => {
@@ -1744,7 +1838,7 @@ Summary: ${sig.summary}`;
               />
             )}
 
-            {/* Tab 5: AI Strategy Backtester */}
+            {/* Tab 9: AI Strategy Backtester */}
             {bottomTab === 'backtest' && (
               <StrategyBacktester
                 currentTicker={selectedStock.ticker}
@@ -1752,12 +1846,12 @@ Summary: ${sig.summary}`;
               />
             )}
 
-            {/* Tab 6: Economic Calendar */}
+            {/* Tab 10: Economic Calendar */}
             {bottomTab === 'calendar' && (
               <EconomicCalendar currentTicker={selectedStock.ticker} />
             )}
 
-            {/* Tab 7: Forex Factory Live News & AI Insights Feed */}
+            {/* Tab 11: Forex Factory Live News & AI Insights Feed */}
             {bottomTab === 'news' && (
               <ForexFactoryNewsDesk
                 currentTicker={selectedStock.ticker}
@@ -1765,6 +1859,7 @@ Summary: ${sig.summary}`;
               />
             )}
           </div>
+
         </div>
 
         {/* Right Column: AI Signal Hub, Execution Blueprint & Chat (5 cols on lg, 4 cols on xl) */}
