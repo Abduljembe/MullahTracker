@@ -27,6 +27,9 @@ import {
   HelpCircle,
   ShieldCheck,
   Zap,
+  X,
+  Expand,
+  Shrink,
 } from 'lucide-react';
 
 interface TVChannel {
@@ -192,6 +195,11 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
   const [isTheaterMode, setIsTheaterMode] = useState<boolean>(false);
   const [filterCategory, setFilterCategory] = useState<'ALL' | 'FOREX' | 'STOCKS' | 'COMMODITIES' | 'INDICES'>('ALL');
   
+  // Fullscreen / Cinema Mode & Aspect Fit State
+  const [isCinemaMode, setIsCinemaMode] = useState<boolean>(false);
+  const [videoFitMode, setVideoFitMode] = useState<'contain' | 'cover'>('contain');
+  const playerContainerRef = useRef<HTMLDivElement | null>(null);
+
   // Video Engine State: 'hls' (World Monitor direct feed) or 'embed' (YouTube fallback)
   const [useFallbackEmbed, setUseFallbackEmbed] = useState<boolean>(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(true);
@@ -202,6 +210,44 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
+
+  // Fullscreen toggle handler (Cinema window + Native browser fullscreen)
+  const handleToggleFullscreen = () => {
+    setIsCinemaMode((prev) => !prev);
+
+    if (!document.fullscreenElement) {
+      const el = playerContainerRef.current || document.documentElement;
+      if (el.requestFullscreen) {
+        el.requestFullscreen().catch(() => {});
+      } else if ((el as any).webkitRequestFullscreen) {
+        (el as any).webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  };
+
+  // Keyboard shortcuts (Esc exits fullscreen, F toggles fullscreen)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isCinemaMode) {
+        setIsCinemaMode(false);
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+      if ((e.key === 'f' || e.key === 'F') && mediaMode === 'tv') {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (!['INPUT', 'TEXTAREA'].includes(tag)) {
+          handleToggleFullscreen();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCinemaMode, mediaMode]);
 
   // Custom Stream URL State
   const [customUrlInput, setCustomUrlInput] = useState<string>('');
@@ -719,7 +765,15 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
             </div>
           </div>
 
-          <div className="relative w-full rounded-2xl overflow-hidden border border-[#192b4a] bg-black shadow-2xl aspect-video max-h-[520px] flex items-center justify-center">
+          {/* VIDEO PLAYER FRAME CONTAINER */}
+          <div
+            ref={playerContainerRef}
+            className={`relative w-full overflow-hidden bg-black transition-all ${
+              isCinemaMode
+                ? 'fixed inset-0 z-[99999] w-screen h-screen flex flex-col justify-between m-0 p-0 rounded-none border-0'
+                : 'rounded-2xl border border-[#192b4a] shadow-2xl h-[540px] sm:h-[620px] lg:h-[720px] flex items-center justify-center'
+            }`}
+          >
             {isHlsLoading && (
               <div className="absolute inset-0 z-20 bg-black/80 flex flex-col items-center justify-center gap-2 pointer-events-none">
                 <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin" />
@@ -735,9 +789,13 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
                 autoPlay
                 muted={isVideoMuted}
                 controls={false}
-                className="w-full h-full object-contain bg-black"
+                onDoubleClick={handleToggleFullscreen}
+                className={`w-full h-full ${
+                  videoFitMode === 'cover' ? 'object-cover' : 'object-contain'
+                } bg-black cursor-pointer transition-all`}
                 onPlay={() => setIsVideoPlaying(true)}
                 onPause={() => setIsVideoPlaying(false)}
+                title="Double-click to toggle Full Screen"
               />
             ) : (
               /* YOUTUBE IFRAME FALLBACK */
@@ -745,69 +803,157 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
                 src={selectedChannel.embedUrl}
                 title={selectedChannel.name}
                 className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                 allowFullScreen
               />
             )}
 
             {/* Floating Top Left Badge */}
-            <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md border border-rose-500/50 flex items-center gap-2 pointer-events-none z-10">
+            <div className="absolute top-3 left-3 px-2.5 py-1.5 rounded-lg bg-black/85 backdrop-blur-md border border-rose-500/50 flex items-center gap-2 pointer-events-none z-20 shadow-lg">
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
               </span>
-              <span className="text-[10px] font-black font-mono text-rose-300 uppercase">
+              <span className="text-[11px] font-black font-mono text-rose-300 uppercase tracking-wider">
                 {selectedChannel.network} LIVE
               </span>
               {isCurrentChannelHls && (
-                <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/80 px-1 rounded">
-                  DIRECT FASTLY
+                <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/90 px-1.5 py-0.5 rounded border border-emerald-500/40 font-bold">
+                  DIRECT FASTLY HD
                 </span>
               )}
             </div>
 
-            {/* Floating Top Right Controls */}
-            <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+            {/* Floating Top Right Controls (Full Screen, Fit Mode, Mute/Unmute, Play/Pause) */}
+            <div className="absolute top-3 right-3 flex items-center gap-2 z-20">
               {isCurrentChannelHls && (
                 <>
                   {/* Play/Pause */}
                   <button
                     onClick={toggleVideoPlayback}
-                    className="p-1.5 rounded-lg bg-black/80 backdrop-blur-md hover:bg-black text-slate-300 hover:text-white border border-[#1c2e4c] transition-colors cursor-pointer"
+                    className="p-2 rounded-lg bg-black/80 backdrop-blur-md hover:bg-black text-slate-300 hover:text-white border border-[#1c2e4c] transition-colors cursor-pointer"
                     title={isVideoPlaying ? 'Pause Video' : 'Play Video'}
                   >
-                    {isVideoPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                    {isVideoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   </button>
 
                   {/* Mute/Unmute */}
                   <button
                     onClick={() => setIsVideoMuted((prev) => !prev)}
-                    className="p-1.5 rounded-lg bg-black/80 backdrop-blur-md hover:bg-black text-cyan-300 hover:text-white border border-[#1c2e4c] transition-colors cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-lg bg-black/80 backdrop-blur-md hover:bg-black text-cyan-300 hover:text-white border border-[#1c2e4c] transition-colors cursor-pointer text-xs font-mono font-bold flex items-center gap-1.5"
                     title={isVideoMuted ? 'Unmute Audio' : 'Mute Audio'}
                   >
-                    {isVideoMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+                    {isVideoMuted ? (
+                      <>
+                        <VolumeX className="w-4 h-4 text-rose-400" />
+                        <span className="text-rose-400">Unmute</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="w-4 h-4 text-emerald-400" />
+                        <span className="text-emerald-400">Mute</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Fit Screen / Aspect Ratio Toggle */}
+                  <button
+                    onClick={() => setVideoFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'))}
+                    className="px-2.5 py-1.5 rounded-lg bg-black/80 backdrop-blur-md hover:bg-black text-slate-300 hover:text-white border border-[#1c2e4c] transition-colors cursor-pointer text-xs font-mono font-bold flex items-center gap-1.5"
+                    title={videoFitMode === 'contain' ? 'Fill Width (No black side bars)' : 'Original 16:9 Aspect Ratio'}
+                  >
+                    <span>{videoFitMode === 'contain' ? 'Fill Width' : 'Original 16:9'}</span>
                   </button>
                 </>
               )}
+
+              {/* True Full Screen Toggle Button */}
+              <button
+                onClick={handleToggleFullscreen}
+                className={`px-3 py-1.5 rounded-lg backdrop-blur-md font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-lg ${
+                  isCinemaMode
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white border border-rose-400'
+                    : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 border border-emerald-400'
+                }`}
+                title={isCinemaMode ? 'Exit Full Screen (Esc)' : 'Enter Full Screen (F)'}
+              >
+                {isCinemaMode ? (
+                  <>
+                    <Shrink className="w-3.5 h-3.5" />
+                    <span>Exit Full Screen</span>
+                  </>
+                ) : (
+                  <>
+                    <Expand className="w-3.5 h-3.5" />
+                    <span>Full Screen</span>
+                  </>
+                )}
+              </button>
 
               <a
                 href={selectedChannel.directWatchUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1.5 rounded-lg bg-black/80 backdrop-blur-md hover:bg-black text-cyan-300 hover:text-white border border-[#1c2e4c] transition-colors text-xs flex items-center gap-1"
+                className="p-2 rounded-lg bg-black/80 backdrop-blur-md hover:bg-black text-cyan-300 hover:text-white border border-[#1c2e4c] transition-colors text-xs flex items-center"
                 title="Open stream in external tab"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLink className="w-4 h-4" />
               </a>
-
-              <button
-                onClick={() => setIsTheaterMode((prev) => !prev)}
-                className="p-1.5 rounded-lg bg-black/80 backdrop-blur-md hover:bg-black text-slate-300 hover:text-white border border-[#1c2e4c] transition-colors cursor-pointer"
-                title={isTheaterMode ? 'Exit Theater Mode' : 'Theater Mode'}
-              >
-                {isTheaterMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-              </button>
             </div>
+
+            {/* In Fullscreen Cinema Mode: Floating Bottom Bar with Ticker & Channel Switcher */}
+            {isCinemaMode && (
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/90 to-transparent p-4 flex flex-col gap-2 z-20 pointer-events-auto">
+                <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+                  <div className="flex items-center gap-2 text-white">
+                    <span className="font-bold text-sm">{selectedChannel.name}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      FULL SCREEN CINEMA MODE
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-400 uppercase mr-1">Switch Channel:</span>
+                    {TV_CHANNELS.slice(0, 4).map((ch) => (
+                      <button
+                        key={ch.id}
+                        onClick={() => setSelectedChannel(ch)}
+                        className={`px-2 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                          selectedChannel.id === ch.id
+                            ? 'bg-rose-500 text-white'
+                            : 'bg-black/60 text-slate-300 hover:text-white border border-white/20'
+                        }`}
+                      >
+                        {ch.network}
+                      </button>
+                    ))}
+                    <button
+                      onClick={handleToggleFullscreen}
+                      className="ml-2 px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs cursor-pointer flex items-center gap-1"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Exit Full Screen (Esc)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Floating Cinema Marquee Ticker */}
+                <div className="flex items-center gap-3 overflow-x-auto py-1 scrollbar-thin font-mono text-xs select-none">
+                  {filteredTickers.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#081224]/80 border border-[#142644] text-white shrink-0"
+                    >
+                      <span className="font-bold text-cyan-300">{item.symbol}</span>
+                      <span className="text-slate-300">{item.price}</span>
+                      <span className={item.isPositive ? 'text-emerald-400' : 'text-rose-400'}>
+                        {item.change}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Interactive Player Controls & Info Bar */}
