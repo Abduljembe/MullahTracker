@@ -1175,13 +1175,13 @@ Summary: ${sig.summary}`;
               const el = document.getElementById('trading-workbench');
               if (el) el.scrollIntoView({ behavior: 'smooth' });
             }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-white text-xs font-bold transition-all shadow-sm cursor-pointer group"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-cyan-500/15 hover:from-emerald-500/30 hover:to-cyan-500/25 border border-emerald-500/40 text-emerald-300 hover:text-white text-xs font-bold transition-all shadow-sm cursor-pointer group"
           >
-            <Tv className="w-3.5 h-3.5 text-rose-400 group-hover:scale-110 transition-transform" />
-            <span>Bloomberg Live TV & Media Player</span>
+            <Globe2 className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+            <span>World Monitor & Bloomberg TV</span>
             <span className="flex h-1.5 w-1.5 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
             </span>
           </button>
 
@@ -1697,13 +1697,13 @@ Summary: ${sig.summary}`;
                   onClick={() => setBottomTab('livetv')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     bottomTab === 'livetv'
-                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  <Tv className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Bloomberg Live TV & Media</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+                  <Globe2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>World Monitor & Bloomberg TV</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
                 </button>
 
                 <button

@@ -99,7 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'investments', label: 'Investments', icon: TrendingUp },
         { id: 'stocks', label: 'Stocks & Forex Signals', icon: BarChart2 },
         { id: 'orderflow', label: 'Order Flow & Liquidity', icon: Layers },
-        { id: 'livetv', label: 'Bloomberg Live TV', icon: Tv },
+        { id: 'livetv', label: 'World Monitor & Bloomberg TV', icon: Tv },
         { id: 'debt', label: 'Debt Tracker', icon: CreditCard },
         { id: 'chama', label: 'Chama & Groups', icon: Users },
         { id: 'milestones', label: 'Milestones & Badges', icon: Award },
