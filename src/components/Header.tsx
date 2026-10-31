@@ -16,8 +16,6 @@ import {
   ArrowRightLeft,
   X,
   Database,
-  PanelLeftClose,
-  PanelLeftOpen,
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -26,16 +24,10 @@ import { PWAInstallButton } from './pwa/PWAInstallButton.tsx';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
-  onNavigateToLanding?: () => void;
-  isSidebarCollapsed?: boolean;
-  onToggleSidebar?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenMobileMenu,
-  onNavigateToLanding,
-  isSidebarCollapsed = false,
-  onToggleSidebar,
 }) => {
   const {
     activeTab,
@@ -87,6 +79,10 @@ export const Header: React.FC<HeaderProps> = ({
         return 'Investments Portfolio';
       case 'stocks':
         return 'AI Stock Radar & Live Market Charts';
+      case 'orderflow':
+        return 'Institutional Order Flow & Liquidity Radar';
+      case 'livetv':
+        return 'Bloomberg Live TV & Real-Time Stocks Ticker';
       case 'debt':
         return 'Debt Payoff Tracker';
       case 'mpesa':
@@ -155,24 +151,6 @@ export const Header: React.FC<HeaderProps> = ({
             <AppLogoIcon sizePx={24} />
           </button>
 
-          {/* Desktop Full-Screen / Sidebar Toggle */}
-          {onToggleSidebar && (
-            <button
-              onClick={onToggleSidebar}
-              className="hidden md:flex items-center gap-1.5 p-2 rounded-xl bg-[#0d1624] hover:bg-[#132238] border border-[#1b2b42] text-slate-400 hover:text-white transition-all cursor-pointer group shadow-sm"
-              title={isSidebarCollapsed ? 'Expand Sidebar Navigation' : 'Collapse Sidebar to Full Screen'}
-            >
-              {isSidebarCollapsed ? (
-                <PanelLeftOpen className="w-4 h-4 text-[#0df2c9] group-hover:scale-110 transition-transform" />
-              ) : (
-                <PanelLeftClose className="w-4 h-4 text-slate-400 group-hover:text-white group-hover:scale-110 transition-transform" />
-              )}
-              <span className="text-[11px] font-semibold hidden lg:inline">
-                {isSidebarCollapsed ? 'Sidebar' : 'Full Screen'}
-              </span>
-            </button>
-          )}
-
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white">
@@ -216,18 +194,6 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Top Right: Actions & Tools */}
       <div className="flex items-center flex-wrap gap-2.5 self-end md:self-auto text-xs">
-        {/* Landing Page Link */}
-        {onNavigateToLanding && (
-          <button
-            onClick={onNavigateToLanding}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#0e1626] hover:bg-[#152238] border border-[#1d2d47] text-slate-300 hover:text-white transition-colors"
-            title="View Public Landing Page"
-          >
-            <Globe className="w-3.5 h-3.5 text-teal-400" />
-            <span className="hidden sm:inline">Landing Page</span>
-          </button>
-        )}
-
         {/* Currency Switcher & Real-time Rates */}
         <div className="flex items-center gap-1.5">
           <div className="flex items-center bg-[#0d1524] border border-[#1a273e] rounded-lg p-0.5 text-slate-300">

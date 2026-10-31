@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext.tsx';
+import React, { useState } from 'react';
+import { AuthProvider } from './context/AuthContext.tsx';
 import { FinanceProvider, useFinance } from './context/FinanceContext.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
 import { Header } from './components/Header.tsx';
@@ -28,6 +28,8 @@ import { BillsView } from './components/views/BillsView.tsx';
 import { WalletsView } from './components/views/WalletsView.tsx';
 import { SaccoMmfCalculatorView } from './components/views/SaccoMmfCalculatorView.tsx';
 import { StockRadarView } from './components/views/StockRadarView.tsx';
+import { OrderFlowView } from './components/views/OrderFlowView.tsx';
+import { LiveTvView } from './components/views/LiveTvView.tsx';
 import { QuickAddModal } from './components/modals/QuickAddModal.tsx';
 import { HealthScoreModal } from './components/modals/HealthScoreModal.tsx';
 import { ClearDataModal } from './components/modals/ClearDataModal.tsx';
@@ -35,24 +37,10 @@ import { CurrencyConverterModal } from './components/modals/CurrencyConverterMod
 import { BackupRestoreModal } from './components/modals/BackupRestoreModal.tsx';
 import { OfflineIndicator } from './components/pwa/OfflineIndicator.tsx';
 import { AuthModal } from './components/auth/AuthModal.tsx';
-import { LandingPage } from './components/landing/LandingPage.tsx';
 
 const MainContent: React.FC = () => {
   const { activeTab } = useFinance();
-  const { user, loading } = useAuth();
-
-  // If user is logged in, default to app dashboard; otherwise landing page
-  const [viewMode, setViewMode] = useState<'landing' | 'app'>('landing');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      setViewMode('app');
-    } else {
-      setViewMode('landing');
-    }
-  }, [user]);
 
   const renderActiveView = () => {
     switch (activeTab) {
@@ -82,6 +70,10 @@ const MainContent: React.FC = () => {
         return <InvestmentsView />;
       case 'stocks':
         return <StockRadarView />;
+      case 'orderflow':
+        return <OrderFlowView />;
+      case 'livetv':
+        return <LiveTvView />;
       case 'sacco-mmf':
         return <SaccoMmfCalculatorView />;
       case 'debt':
@@ -101,32 +93,18 @@ const MainContent: React.FC = () => {
     }
   };
 
-  if (viewMode === 'landing') {
-    return (
-      <>
-        <LandingPage onEnterApp={() => setViewMode('app')} />
-        <AuthModal />
-      </>
-    );
-  }
-
   return (
     <div className="flex min-h-screen bg-[#070b14] text-slate-100 w-full overflow-x-hidden">
       {/* Sidebar Navigation */}
       <Sidebar
         mobileOpen={mobileMenuOpen}
         setMobileOpen={setMobileMenuOpen}
-        collapsed={sidebarCollapsed}
-        setCollapsed={setSidebarCollapsed}
       />
 
-      {/* Main View Area covering full screen width without artificial margins */}
+      {/* Main View Area */}
       <div className="flex-1 flex flex-col min-w-0 w-full fintech-grid-bg transition-all duration-300">
         <Header
           onOpenMobileMenu={() => setMobileMenuOpen(true)}
-          onNavigateToLanding={() => setViewMode('landing')}
-          isSidebarCollapsed={sidebarCollapsed}
-          onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
         />
 
         {/* Full-width container covering left and right space */}

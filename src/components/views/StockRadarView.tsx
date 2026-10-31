@@ -38,6 +38,7 @@ import {
   Globe,
   Grid,
   Smartphone,
+  Tv,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext.tsx';
 import { InvestmentItem } from '../../types/finance.ts';
@@ -56,6 +57,8 @@ import { ForexSessionsKillzones } from '../common/ForexSessionsKillzones.tsx';
 import { PropFirmRiskGuardian } from '../common/PropFirmRiskGuardian.tsx';
 import { CurrencyCorrelationMatrix } from '../common/CurrencyCorrelationMatrix.tsx';
 import { BrokerMpesaArbiter } from '../common/BrokerMpesaArbiter.tsx';
+import { OrderFlowLiquidityDesk } from '../common/OrderFlowLiquidityDesk.tsx';
+import { LiveMarketsTVDesk } from '../common/LiveMarketsTVDesk.tsx';
 import { generateCandles, computePeriodStats, Timeframe, Candle } from '../../utils/stockCandles.ts';
 import { getMarketSession, MarketSessionInfo } from '../../utils/marketHours.ts';
 
@@ -582,6 +585,8 @@ export const StockRadarView: React.FC = () => {
   const [chartViewMode, setChartViewMode] = useState<'radar' | 'tradingview'>('radar');
   const [bottomTab, setBottomTab] = useState<
     | 'paper'
+    | 'orderflow'
+    | 'livetv'
     | 'journal'
     | 'risk-calc'
     | 'sessions'
@@ -1155,6 +1160,45 @@ Summary: ${sig.summary}`;
         </div>
       )}
 
+      {/* Quick-Launch Dedicated Trading Tools: Bloomberg Live TV & Order Flow */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-gradient-to-r from-[#0d1627] via-[#091120] to-[#0a1424] border border-[#182845] shadow-lg">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
+          <span className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">
+            Advanced Trading Tools:
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              setBottomTab('livetv');
+              const el = document.getElementById('trading-workbench');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-white text-xs font-bold transition-all shadow-sm cursor-pointer group"
+          >
+            <Tv className="w-3.5 h-3.5 text-rose-400 group-hover:scale-110 transition-transform" />
+            <span>Bloomberg Live TV & Media Player</span>
+            <span className="flex h-1.5 w-1.5 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500"></span>
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              setBottomTab('orderflow');
+              const el = document.getElementById('trading-workbench');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 hover:text-white text-xs font-bold transition-all shadow-sm cursor-pointer group"
+          >
+            <Layers className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+            <span>Order Flow & Liquidity (Order Blocks)</span>
+          </button>
+        </div>
+      </div>
+
       {/* Search & Asset Market Filters */}
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
@@ -1638,6 +1682,31 @@ Summary: ${sig.summary}`;
                 </button>
 
                 <button
+                  onClick={() => setBottomTab('orderflow')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'orderflow'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Order Flow & Liquidity</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('livetv')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'livetv'
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Tv className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Bloomberg Live TV & Media</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+                </button>
+
+                <button
                   onClick={() => setBottomTab('journal')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     bottomTab === 'journal'
@@ -1775,6 +1844,35 @@ Summary: ${sig.summary}`;
                 defaultTp={activeSignal.takeProfit1}
                 pipSpread={selectedStock.pipSpread}
                 prefillOrder={prefillOrder}
+              />
+            )}
+
+            {/* Tab: Order Flow, Volume Profile & Liquidity */}
+            {bottomTab === 'orderflow' && (
+              <OrderFlowLiquidityDesk
+                currentTicker={selectedStock.ticker}
+                currentPrice={currentDisplayPrice}
+                currency={selectedStock.currency}
+                onApplyZoneToOrder={(entry, sl, tp) => {
+                  setPrefillOrder({
+                    direction: entry >= currentDisplayPrice ? 'LONG' : 'SHORT',
+                    lots: 0.1,
+                    sl: String(sl),
+                    tp: String(tp),
+                    timestamp: Date.now(),
+                  });
+                  setBottomTab('paper');
+                }}
+              />
+            )}
+
+            {/* Tab: Bloomberg Live TV & Media Player */}
+            {bottomTab === 'livetv' && (
+              <LiveMarketsTVDesk
+                onSelectTicker={(symbol) => {
+                  const match = FEATURED_ASSETS.find((a) => a.ticker === symbol);
+                  if (match) setSelectedStock(match);
+                }}
               />
             )}
 

@@ -10,6 +10,8 @@ export type TabType =
   | 'emergency'
   | 'investments'
   | 'stocks'
+  | 'orderflow'
+  | 'livetv'
   | 'sacco-mmf'
   | 'debt'
   | 'calculator'

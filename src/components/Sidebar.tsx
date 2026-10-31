@@ -26,6 +26,8 @@ import {
   Coins,
   Database,
   Download,
+  Layers,
+  Tv,
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -96,6 +98,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'emergency', label: 'Emergency Fund', icon: Shield },
         { id: 'investments', label: 'Investments', icon: TrendingUp },
         { id: 'stocks', label: 'Stocks & Forex Signals', icon: BarChart2 },
+        { id: 'orderflow', label: 'Order Flow & Liquidity', icon: Layers },
+        { id: 'livetv', label: 'Bloomberg Live TV', icon: Tv },
         { id: 'debt', label: 'Debt Tracker', icon: CreditCard },
         { id: 'chama', label: 'Chama & Groups', icon: Users },
         { id: 'milestones', label: 'Milestones & Badges', icon: Award },
