@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Hls from 'hls.js';
 import {
   Tv,
@@ -37,6 +37,8 @@ interface TVChannel {
   name: string;
   network: string;
   hlsUrl?: string; // Direct HLS stream used by World Monitor
+  backupHlsUrl?: string; // Direct Akamai 720p HD HLS stream
+  tertiaryHlsUrl?: string; // Direct Fastly edge HLS stream
   embedUrl: string; // YouTube / iframe fallback
   directWatchUrl: string;
   description: string;
@@ -51,7 +53,9 @@ const TV_CHANNELS: TVChannel[] = [
     name: 'Bloomberg Television Live (Official World Monitor Feed)',
     network: 'Bloomberg TV',
     hlsUrl: 'https://www.bloomberg.com/media-manifest/streams/us.m3u8',
-    embedUrl: 'https://www.youtube-nocookie.com/embed/QB5BNdBFujE?autoplay=1&mute=1&enablejsapi=1',
+    backupHlsUrl: 'https://liveproduseast.akamaized.net/us/Channel-USTV-AWS-virginia-2/Source-USTV-10000-1-slxdlg-BP-HD-4-86X4McEAF4SL_live.m3u8',
+    tertiaryHlsUrl: 'https://liveproduseast.global.ssl.fastly.net/us/Channel-USTV-AWS-virginia-2/Source-USTV-10000-1-slxdlg-BP-HD-4-86X4McEAF4SL_live.m3u8',
+    embedUrl: 'https://www.youtube-nocookie.com/embed/9Auq9mYxFEE?autoplay=1&mute=1&enablejsapi=1',
     directWatchUrl: 'https://www.bloomberg.com/live',
     description: 'Direct 24/7 institutional broadcast feed as used by World Monitor. Covers Wall Street Opening Bell, Fed policy, currency flows and global equities.',
     badge: 'WORLD MONITOR HLS FEED',
@@ -187,11 +191,12 @@ interface LiveMarketsTVDeskProps {
 }
 
 export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTicker }) => {
-  // Player media mode: 'worldmonitor' (World Monitor Terminal Embed), 'tv' (Video Broadcast), 'radio' (Bloomberg 24/7 Audio Radio Console), 'custom' (User URL)
-  const [mediaMode, setMediaMode] = useState<'worldmonitor' | 'tv' | 'radio' | 'custom'>('worldmonitor');
+  // Player media mode: 'tv' (Video Broadcast Default), 'worldmonitor' (World Monitor Terminal Embed), 'radio' (Bloomberg 24/7 Audio Radio Console), 'custom' (User URL)
+  const [mediaMode, setMediaMode] = useState<'tv' | 'worldmonitor' | 'radio' | 'custom'>('tv');
   
-  // Default to Bloomberg TV which now uses the World Monitor direct HLS stream
+  // Default to Bloomberg TV which uses the World Monitor direct HLS stream
   const [selectedChannel, setSelectedChannel] = useState<TVChannel>(TV_CHANNELS[0]);
+  const [activeHlsUrl, setActiveHlsUrl] = useState<string>(TV_CHANNELS[0].hlsUrl || '');
   const [isTheaterMode, setIsTheaterMode] = useState<boolean>(false);
   const [filterCategory, setFilterCategory] = useState<'ALL' | 'FOREX' | 'STOCKS' | 'COMMODITIES' | 'INDICES'>('ALL');
   
@@ -207,9 +212,24 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
   const [videoVolume, setVideoVolume] = useState<number>(0.9);
   const [hlsError, setHlsError] = useState<string | null>(null);
   const [isHlsLoading, setIsHlsLoading] = useState<boolean>(false);
+  const [isAutoplayBlocked, setIsAutoplayBlocked] = useState<boolean>(false);
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  // Callback ref for guaranteed React video element attachment
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
+  const videoRefCallback = useCallback((node: HTMLVideoElement | null) => {
+    if (node) {
+      setVideoElement(node);
+    }
+  }, []);
+
   const hlsRef = useRef<Hls | null>(null);
+
+  const handleSelectChannel = (ch: TVChannel) => {
+    setSelectedChannel(ch);
+    setActiveHlsUrl(ch.hlsUrl || '');
+    setUseFallbackEmbed(false);
+    setHlsError(null);
+  };
 
   // Fullscreen toggle handler (Cinema window + Native browser fullscreen)
   const handleToggleFullscreen = () => {
@@ -262,25 +282,18 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
   const [radioError, setRadioError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // HLS Stream Attachment & Playback (World Monitor architecture)
+  // HLS Stream Attachment & Playback (World Monitor architecture with multi-CDN fallback support)
   useEffect(() => {
-    if (mediaMode !== 'tv') return;
+    if (mediaMode !== 'tv' || !videoElement) return;
 
-    // Reset fallback state when channel changes
     setHlsError(null);
+    setIsHlsLoading(true);
 
-    const hasHls = !!selectedChannel.hlsUrl && !useFallbackEmbed;
-    const video = videoRef.current;
-
-    if (!hasHls || !video) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
+    const streamUrl = activeHlsUrl || selectedChannel.hlsUrl;
+    if (!streamUrl || useFallbackEmbed) {
+      setIsHlsLoading(false);
       return;
     }
-
-    setIsHlsLoading(true);
 
     if (Hls.isSupported()) {
       if (hlsRef.current) {
@@ -290,57 +303,83 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        backBufferLength: 90,
+        backBufferLength: 60,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 10,
       });
       hlsRef.current = hls;
 
-      hls.loadSource(selectedChannel.hlsUrl!);
-      hls.attachMedia(video);
+      hls.loadSource(streamUrl);
+      hls.attachMedia(videoElement);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setIsHlsLoading(false);
-        video.muted = isVideoMuted;
-        video.volume = videoVolume;
-        video.play()
-          .then(() => setIsVideoPlaying(true))
-          .catch((err) => {
-            console.warn('HLS autoplay muted restriction:', err);
-            video.muted = true;
-            setIsVideoMuted(true);
-            video.play().catch(() => {});
-          });
+        // Browsers require video to start muted for autoplay to succeed
+        videoElement.muted = true;
+        setIsVideoMuted(true);
+        videoElement.volume = videoVolume;
+        
+        const playPromise = videoElement.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsVideoPlaying(true);
+              setIsAutoplayBlocked(false);
+            })
+            .catch((err) => {
+              console.warn('Browser requires user click for audio/autoplay:', err);
+              setIsAutoplayBlocked(true);
+              setIsVideoPlaying(false);
+            });
+        }
       });
 
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (data.fatal) {
-          console.warn('HLS fatal error encountered, recovering:', data);
+          console.warn('HLS fatal error:', data.type, data.details);
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
+              console.warn('Network error in HLS, retrying stream...');
               hls.startLoad();
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
+              console.warn('Media error in HLS, recovering...');
               hls.recoverMediaError();
               break;
             default:
-              setIsHlsLoading(false);
-              setHlsError('Direct HLS feed connection interrupted. Switching to YouTube backup embed...');
-              setUseFallbackEmbed(true);
+              if (selectedChannel.backupHlsUrl && streamUrl !== selectedChannel.backupHlsUrl) {
+                console.warn('Switching to secondary HLS stream:', selectedChannel.backupHlsUrl);
+                setActiveHlsUrl(selectedChannel.backupHlsUrl);
+              } else if (selectedChannel.tertiaryHlsUrl && streamUrl !== selectedChannel.tertiaryHlsUrl) {
+                console.warn('Switching to tertiary HLS stream:', selectedChannel.tertiaryHlsUrl);
+                setActiveHlsUrl(selectedChannel.tertiaryHlsUrl);
+              } else {
+                setIsHlsLoading(false);
+                setHlsError('Stream reconnecting. Click below to switch feed.');
+              }
               break;
           }
         }
       });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
       // Native Apple HLS (Safari / iOS)
-      video.src = selectedChannel.hlsUrl!;
-      video.muted = isVideoMuted;
-      video.volume = videoVolume;
-      video.addEventListener('loadedmetadata', () => {
+      videoElement.src = streamUrl;
+      videoElement.muted = true;
+      setIsVideoMuted(true);
+      videoElement.volume = videoVolume;
+      videoElement.addEventListener('loadedmetadata', () => {
         setIsHlsLoading(false);
-        video.play().catch(() => {
-          video.muted = true;
-          setIsVideoMuted(true);
-          video.play().catch(() => {});
-        });
+        videoElement.play()
+          .then(() => {
+            setIsVideoPlaying(true);
+            setIsAutoplayBlocked(false);
+          })
+          .catch(() => {
+            setIsAutoplayBlocked(true);
+            setIsVideoPlaying(false);
+          });
       });
     } else {
       setIsHlsLoading(false);
@@ -353,15 +392,54 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
         hlsRef.current = null;
       }
     };
-  }, [selectedChannel, useFallbackEmbed, mediaMode]);
+  }, [videoElement, activeHlsUrl, selectedChannel, useFallbackEmbed, mediaMode]);
 
   // Handle Video Volume changes
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.volume = isVideoMuted ? 0 : videoVolume;
-      videoRef.current.muted = isVideoMuted;
+    if (videoElement) {
+      videoElement.volume = isVideoMuted ? 0 : videoVolume;
+      videoElement.muted = isVideoMuted;
     }
-  }, [videoVolume, isVideoMuted]);
+  }, [videoElement, videoVolume, isVideoMuted]);
+
+  // Toggle Video Play/Pause for HLS
+  const toggleVideoPlayback = () => {
+    if (!videoElement) return;
+    if (isVideoPlaying) {
+      videoElement.pause();
+      setIsVideoPlaying(false);
+    } else {
+      videoElement.play()
+        .then(() => {
+          setIsVideoPlaying(true);
+          setIsAutoplayBlocked(false);
+        })
+        .catch(console.warn);
+    }
+  };
+
+  // Explicit user play trigger
+  const handleStartPlayback = () => {
+    if (!videoElement) return;
+    videoElement.play()
+      .then(() => {
+        setIsVideoPlaying(true);
+        setIsAutoplayBlocked(false);
+      })
+      .catch((err) => {
+        console.warn('Play attempt blocked:', err);
+        videoElement.muted = true;
+        setIsVideoMuted(true);
+        videoElement.play()
+          .then(() => {
+            setIsVideoPlaying(true);
+            setIsAutoplayBlocked(false);
+          })
+          .catch(() => {
+            setIsAutoplayBlocked(true);
+          });
+      });
+  };
 
   // Audio Radio volume sync
   useEffect(() => {
@@ -404,25 +482,11 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
     }
   };
 
-  // Toggle Video Play/Pause for HLS
-  const toggleVideoPlayback = () => {
-    if (!videoRef.current) return;
-    if (isVideoPlaying) {
-      videoRef.current.pause();
-      setIsVideoPlaying(false);
-    } else {
-      videoRef.current.play()
-        .then(() => setIsVideoPlaying(true))
-        .catch(console.warn);
-    }
-  };
-
   // Switch to next active channel
   const handleSwitchToBackupChannel = () => {
     const currentIndex = TV_CHANNELS.findIndex((c) => c.id === selectedChannel.id);
     const nextIndex = (currentIndex + 1) % TV_CHANNELS.length;
-    setSelectedChannel(TV_CHANNELS[nextIndex]);
-    setUseFallbackEmbed(false);
+    handleSelectChannel(TV_CHANNELS[nextIndex]);
   };
 
   // Parse custom URL into embed or HLS
@@ -559,10 +623,7 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
             {TV_CHANNELS.map((ch) => (
               <button
                 key={ch.id}
-                onClick={() => {
-                  setSelectedChannel(ch);
-                  setUseFallbackEmbed(false);
-                }}
+                onClick={() => handleSelectChannel(ch)}
                 className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer font-bold shrink-0 text-xs flex items-center gap-1.5 ${
                   selectedChannel.id === ch.id
                     ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-black'
@@ -756,7 +817,44 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] font-mono">
+            <div className="flex items-center gap-2 text-[11px] font-mono flex-wrap">
+              {selectedChannel.id === 'bloomberg' && isCurrentChannelHls && (
+                <div className="flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded-lg border border-emerald-500/30">
+                  <span className="text-slate-400 text-[10px] uppercase font-bold mr-1">CDN Feed:</span>
+                  <button
+                    onClick={() => setActiveHlsUrl(selectedChannel.hlsUrl!)}
+                    className={`px-1.5 py-0.2 rounded text-[10px] font-bold cursor-pointer transition-all ${
+                      activeHlsUrl === selectedChannel.hlsUrl
+                        ? 'bg-rose-500 text-white font-black'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Master
+                  </button>
+                  <button
+                    onClick={() => setActiveHlsUrl(selectedChannel.backupHlsUrl!)}
+                    className={`px-1.5 py-0.2 rounded text-[10px] font-bold cursor-pointer transition-all ${
+                      activeHlsUrl === selectedChannel.backupHlsUrl
+                        ? 'bg-rose-500 text-white font-black'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    720p HD
+                  </button>
+                  {selectedChannel.tertiaryHlsUrl && (
+                    <button
+                      onClick={() => setActiveHlsUrl(selectedChannel.tertiaryHlsUrl!)}
+                      className={`px-1.5 py-0.2 rounded text-[10px] font-bold cursor-pointer transition-all ${
+                        activeHlsUrl === selectedChannel.tertiaryHlsUrl
+                          ? 'bg-rose-500 text-white font-black'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Fastly Edge
+                    </button>
+                  )}
+                </div>
+              )}
               {isCurrentChannelHls && (
                 <span className="text-slate-400">
                   {isVideoMuted ? '🔊 Audio muted for autoplay. Click unmute button to listen!' : '🔊 Audio Active'}
@@ -784,18 +882,22 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
             {/* DIRECT HLS PLAYER (Matches World Monitor exactly) */}
             {isCurrentChannelHls ? (
               <video
-                ref={videoRef}
+                ref={videoRefCallback}
                 playsInline
                 autoPlay
                 muted={isVideoMuted}
                 controls={false}
+                onClick={toggleVideoPlayback}
                 onDoubleClick={handleToggleFullscreen}
                 className={`w-full h-full ${
                   videoFitMode === 'cover' ? 'object-cover' : 'object-contain'
                 } bg-black cursor-pointer transition-all`}
-                onPlay={() => setIsVideoPlaying(true)}
+                onPlay={() => {
+                  setIsVideoPlaying(true);
+                  setIsAutoplayBlocked(false);
+                }}
                 onPause={() => setIsVideoPlaying(false)}
-                title="Double-click to toggle Full Screen"
+                title="Click to play/pause, Double-click to toggle Full Screen"
               />
             ) : (
               /* YOUTUBE IFRAME FALLBACK */
@@ -806,6 +908,26 @@ export const LiveMarketsTVDesk: React.FC<LiveMarketsTVDeskProps> = ({ onSelectTi
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                 allowFullScreen
               />
+            )}
+
+            {/* Click to Play Overlay if autoplay is blocked or paused */}
+            {isCurrentChannelHls && (!isVideoPlaying || isAutoplayBlocked) && !isHlsLoading && (
+              <div
+                onClick={handleStartPlayback}
+                className="absolute inset-0 z-15 bg-black/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3.5 cursor-pointer group select-none transition-all"
+              >
+                <div className="w-20 h-20 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-2xl shadow-rose-600/50 group-hover:scale-105 transition-all border-2 border-white/20">
+                  <Play className="w-9 h-9 fill-white ml-1.5" />
+                </div>
+                <div className="text-center space-y-1">
+                  <span className="text-base sm:text-lg font-black text-white block tracking-wide">
+                    Click to Play {selectedChannel.network}
+                  </span>
+                  <span className="text-xs text-rose-300 font-mono block bg-black/60 px-3 py-1 rounded-full border border-rose-500/30">
+                    Live 24/7 Financial Broadcast & Wall Street Stock Prices
+                  </span>
+                </div>
+              </div>
             )}
 
             {/* Floating Top Left Badge */}
