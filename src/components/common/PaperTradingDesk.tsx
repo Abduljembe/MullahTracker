@@ -21,7 +21,7 @@ export interface Position {
   ticker: string;
   name: string;
   currency: string;
-  market: 'NSE' | 'US' | 'FOREX';
+  market: 'NSE' | 'US' | 'FOREX' | 'METALS' | 'INDICES';
   direction: 'LONG' | 'SHORT';
   lots: number;
   entryPrice: number;
@@ -58,7 +58,7 @@ export interface PrefillOrderData {
 interface PaperTradingDeskProps {
   ticker: string;
   name: string;
-  market: 'NSE' | 'US' | 'FOREX';
+  market: 'NSE' | 'US' | 'FOREX' | 'METALS' | 'INDICES';
   currency: string;
   currentPrice: number;
   defaultSl?: string;

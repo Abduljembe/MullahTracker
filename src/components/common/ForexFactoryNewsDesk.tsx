@@ -33,7 +33,7 @@ interface ForexFactoryNewsItem {
 
 interface ForexFactoryNewsDeskProps {
   currentTicker: string;
-  market: 'NSE' | 'US' | 'FOREX';
+  market: 'NSE' | 'US' | 'FOREX' | 'METALS' | 'INDICES';
 }
 
 export const ForexFactoryNewsDesk: React.FC<ForexFactoryNewsDeskProps> = ({

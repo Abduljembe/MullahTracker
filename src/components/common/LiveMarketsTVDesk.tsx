@@ -165,25 +165,53 @@ interface TickerItem {
 }
 
 const LIVE_TICKERS: TickerItem[] = [
-  // Forex
+  // --- FOREX MAJORS & KEY CROSSES ---
   { symbol: 'EUR/USD', name: 'Euro / US Dollar', price: '1.0865', change: '+0.32%', isPositive: true, category: 'FOREX' },
-  { symbol: 'USD/KES', name: 'USD / Kenyan Shilling', price: '129.50', change: '-0.31%', isPositive: false, category: 'FOREX' },
   { symbol: 'GBP/USD', name: 'British Pound / USD', price: '1.2980', change: '+0.37%', isPositive: true, category: 'FOREX' },
   { symbol: 'USD/JPY', name: 'USD / Japanese Yen', price: '152.45', change: '+0.43%', isPositive: true, category: 'FOREX' },
+  { symbol: 'USD/CHF', name: 'USD / Swiss Franc', price: '0.8670', change: '-0.15%', isPositive: false, category: 'FOREX' },
+  { symbol: 'AUD/USD', name: 'AUD / US Dollar', price: '0.6585', change: '-0.27%', isPositive: false, category: 'FOREX' },
+  { symbol: 'USD/CAD', name: 'USD / Canadian Dollar', price: '1.3855', change: '+0.16%', isPositive: true, category: 'FOREX' },
+  { symbol: 'NZD/USD', name: 'NZD / US Dollar', price: '0.5975', change: '-0.35%', isPositive: false, category: 'FOREX' },
+  { symbol: 'EUR/GBP', name: 'Euro / British Pound', price: '0.8370', change: '-0.12%', isPositive: false, category: 'FOREX' },
+  { symbol: 'EUR/JPY', name: 'Euro / Japanese Yen', price: '165.65', change: '+0.75%', isPositive: true, category: 'FOREX' },
+  { symbol: 'GBP/JPY', name: 'GBP / Japanese Yen', price: '197.90', change: '+0.81%', isPositive: true, category: 'FOREX' },
+  { symbol: 'AUD/JPY', name: 'AUD / Japanese Yen', price: '100.40', change: '+0.18%', isPositive: true, category: 'FOREX' },
+  { symbol: 'USD/KES', name: 'USD / Kenyan Shilling', price: '129.50', change: '-0.31%', isPositive: false, category: 'FOREX' },
   { symbol: 'GBP/KES', name: 'GBP / Kenyan Shilling', price: '168.20', change: '+0.21%', isPositive: true, category: 'FOREX' },
+  { symbol: 'EUR/KES', name: 'Euro / Kenyan Shilling', price: '140.75', change: '+0.18%', isPositive: true, category: 'FOREX' },
+  { symbol: 'USD/ZAR', name: 'USD / South African Rand', price: '17.65', change: '-0.42%', isPositive: false, category: 'FOREX' },
+  { symbol: 'USD/UGX', name: 'USD / Ugandan Shilling', price: '3,670', change: '+0.05%', isPositive: true, category: 'FOREX' },
+  { symbol: 'USD/TZS', name: 'USD / Tanzanian Shilling', price: '2,680', change: '+0.08%', isPositive: true, category: 'FOREX' },
 
-  // Commodities
+  // --- PRECIOUS & INDUSTRIAL METALS ---
   { symbol: 'XAU/USD', name: 'Spot Gold / USD', price: '$4,056.48', change: '+0.03%', isPositive: true, category: 'COMMODITIES' },
-  { symbol: 'BRENT', name: 'Crude Oil', price: '$74.15', change: '-0.45%', isPositive: false, category: 'COMMODITIES' },
-  { symbol: 'DXY', name: 'US Dollar Index', price: '104.28', change: '+0.18%', isPositive: true, category: 'INDICES' },
+  { symbol: 'XAG/USD', name: 'Spot Silver / USD', price: '$33.85', change: '+1.45%', isPositive: true, category: 'COMMODITIES' },
+  { symbol: 'XPT/USD', name: 'Spot Platinum / USD', price: '$1,015.40', change: '+0.62%', isPositive: true, category: 'COMMODITIES' },
+  { symbol: 'XPD/USD', name: 'Spot Palladium / USD', price: '$1,120.50', change: '+0.85%', isPositive: true, category: 'COMMODITIES' },
+  { symbol: 'HG/COPPER', name: 'High Grade Copper', price: '$4.385', change: '+0.92%', isPositive: true, category: 'COMMODITIES' },
+  { symbol: 'ALU/USD', name: 'Spot Aluminum LME', price: '$2,640', change: '+0.45%', isPositive: true, category: 'COMMODITIES' },
+  { symbol: 'BRENT', name: 'Crude Oil Brent', price: '$74.15', change: '-0.45%', isPositive: false, category: 'COMMODITIES' },
 
-  // Stocks & Indices
-  { symbol: 'S&P 500', name: 'US Broad Market', price: '5,824.20', change: '+0.88%', isPositive: true, category: 'INDICES' },
-  { symbol: 'NASDAQ', name: 'Tech 100 Index', price: '20,385.10', change: '+1.14%', isPositive: true, category: 'INDICES' },
+  // --- BENCHMARK INDEXES ---
+  { symbol: 'US500', name: 'S&P 500 Index', price: '5,824.20', change: '+0.88%', isPositive: true, category: 'INDICES' },
+  { symbol: 'NAS100', name: 'Nasdaq 100 Tech', price: '20,385.10', change: '+1.14%', isPositive: true, category: 'INDICES' },
+  { symbol: 'US30', name: 'Dow Jones 30', price: '42,114.40', change: '+0.52%', isPositive: true, category: 'INDICES' },
+  { symbol: 'UK100', name: 'FTSE 100 London', price: '8,248.50', change: '+0.34%', isPositive: true, category: 'INDICES' },
+  { symbol: 'GER40', name: 'DAX 40 Germany', price: '19,450.80', change: '+0.72%', isPositive: true, category: 'INDICES' },
+  { symbol: 'JPN225', name: 'Nikkei 225 Tokyo', price: '38,647.75', change: '+0.95%', isPositive: true, category: 'INDICES' },
+  { symbol: 'HK50', name: 'Hang Seng HK', price: '20,590.15', change: '+1.85%', isPositive: true, category: 'INDICES' },
+  { symbol: 'DXY', name: 'US Dollar Index', price: '104.28', change: '+0.18%', isPositive: true, category: 'INDICES' },
+  { symbol: 'NASI', name: 'Nairobi All Share', price: '108.45', change: '+1.12%', isPositive: true, category: 'INDICES' },
+  { symbol: 'NSE20', name: 'Nairobi 20 Share', price: '1,745.20', change: '+0.65%', isPositive: true, category: 'INDICES' },
+
+  // --- EQUITIES ---
   { symbol: 'SCOM', name: 'Safaricom PLC (NSE)', price: '17.65', change: '+3.82%', isPositive: true, category: 'STOCKS' },
   { symbol: 'EQTY', name: 'Equity Group (NSE)', price: '44.80', change: '+2.75%', isPositive: true, category: 'STOCKS' },
   { symbol: 'KCB', name: 'KCB Group (NSE)', price: '34.25', change: '+3.16%', isPositive: true, category: 'STOCKS' },
   { symbol: 'EABL', name: 'E.A Breweries (NSE)', price: '142.50', change: '+1.42%', isPositive: true, category: 'STOCKS' },
+  { symbol: 'AAPL', name: 'Apple Inc.', price: '$229.50', change: '+1.25%', isPositive: true, category: 'STOCKS' },
+  { symbol: 'NVDA', name: 'Nvidia Corp', price: '$139.20', change: '+3.42%', isPositive: true, category: 'STOCKS' },
 ];
 
 interface LiveMarketsTVDeskProps {

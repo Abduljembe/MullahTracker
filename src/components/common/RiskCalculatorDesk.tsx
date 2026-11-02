@@ -14,7 +14,7 @@ import {
 interface RiskCalculatorDeskProps {
   currentTicker: string;
   currentPrice: number;
-  market: 'NSE' | 'US' | 'FOREX';
+  market: 'NSE' | 'US' | 'FOREX' | 'METALS' | 'INDICES';
   currency: string;
   defaultSl?: string;
   defaultTp?: string;

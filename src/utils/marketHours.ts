@@ -3,7 +3,7 @@ export interface MarketSessionInfo {
   status: 'LIVE' | 'CLOSED';
   statusBadge: string;
   exchangeName: string;
-  marketCode: 'NSE' | 'US' | 'FOREX';
+  marketCode: 'NSE' | 'US' | 'FOREX' | 'METALS' | 'INDICES';
   timezone: string;
   exchangeTime: string;
   details: string;
@@ -12,9 +12,9 @@ export interface MarketSessionInfo {
   activeForexSession?: string;
 }
 
-export function getMarketSession(market: 'NSE' | 'US' | 'FOREX', now = new Date()): MarketSessionInfo {
-  if (market === 'FOREX') {
-    // 24/5 global FX market: Sunday 22:00 UTC to Friday 22:00 UTC
+export function getMarketSession(market: 'NSE' | 'US' | 'FOREX' | 'METALS' | 'INDICES', now = new Date()): MarketSessionInfo {
+  if (market === 'FOREX' || market === 'METALS' || market === 'INDICES') {
+    // 24/5 global market: Sunday 22:00 UTC to Friday 22:00 UTC
     const utcDay = now.getUTCDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
     const utcHours = now.getUTCHours();
     const utcMinutes = now.getUTCMinutes();
@@ -85,12 +85,19 @@ export function getMarketSession(market: 'NSE' | 'US' | 'FOREX', now = new Date(
       hour12: false,
     });
 
+    const exchangeName =
+      market === 'METALS'
+        ? 'Global Spot Metals & Commodities (COMEX / LBMA / LME)'
+        : market === 'INDICES'
+        ? 'Global Index Futures (CME / Eurex / ICE)'
+        : 'Global Interbank Forex (FX)';
+
     return {
       isOpen,
       status: isOpen ? 'LIVE' : 'CLOSED',
       statusBadge: isOpen ? 'MARKET LIVE' : 'MARKET CLOSED',
-      exchangeName: 'Global Interbank Forex (FX)',
-      marketCode: 'FOREX',
+      exchangeName,
+      marketCode: market,
       timezone: 'UTC',
       exchangeTime: `${utcTimeStr} UTC`,
       details: sessionDetail,

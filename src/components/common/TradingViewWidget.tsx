@@ -3,7 +3,7 @@ import { ExternalLink, AlertCircle, Sparkles } from 'lucide-react';
 
 interface TradingViewWidgetProps {
   ticker: string;
-  market: 'NSE' | 'US' | 'FOREX';
+  market: 'NSE' | 'US' | 'FOREX' | 'METALS' | 'INDICES';
   timeframe?: string;
   height?: number | string;
   isFullscreen?: boolean;
@@ -29,8 +29,38 @@ function mapTimeframeToTvInterval(tf?: string): string {
 }
 
 // Map app tickers to valid TradingView symbols
-export function getTradingViewSymbol(ticker: string, market: 'NSE' | 'US' | 'FOREX'): string | null {
+export function getTradingViewSymbol(ticker: string, market: 'NSE' | 'US' | 'FOREX' | 'METALS' | 'INDICES'): string | null {
   const clean = ticker.replace('/', '').toUpperCase();
+
+  // Metals
+  if (market === 'METALS') {
+    if (clean === 'XAUUSD') return 'OANDA:XAUUSD';
+    if (clean === 'XAGUSD') return 'OANDA:XAGUSD';
+    if (clean === 'XPTUSD') return 'OANDA:XPTUSD';
+    if (clean === 'XPDUSD') return 'OANDA:XPDUSD';
+    if (clean.includes('COPPER')) return 'COMEX:HG1!';
+    if (clean.includes('ALU')) return 'LME:MAL';
+    if (clean === 'XAUEUR') return 'OANDA:XAUEUR';
+    if (clean === 'XAUKES') return 'OANDA:XAUUSD';
+    return `OANDA:${clean}`;
+  }
+
+  // Indices
+  if (market === 'INDICES') {
+    if (clean === 'US500') return 'SP:SPX';
+    if (clean === 'NAS100') return 'NASDAQ:NDX';
+    if (clean === 'US30') return 'DJ:DJI';
+    if (clean === 'UK100') return 'INDEX:FTSE';
+    if (clean === 'GER40') return 'XETR:DAX';
+    if (clean === 'FRA40') return 'EURONEXT:PX1';
+    if (clean === 'JPN225') return 'INDEX:NKY';
+    if (clean === 'HK50') return 'INDEX:HSI';
+    if (clean === 'AUS200') return 'INDEX:AS51';
+    if (clean === 'EUSTX50') return 'INDEX:SX5E';
+    if (clean === 'DXY') return 'CAPITALCOM:DXY';
+    if (clean === 'NASI' || clean === 'NSE20') return null;
+    return `INDEX:${clean}`;
+  }
 
   // Forex & Precious Metals mappings
   if (market === 'FOREX') {

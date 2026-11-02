@@ -64,7 +64,7 @@ export interface SignalData {
 interface InstitutionalSignalCardProps {
   ticker: string;
   name: string;
-  market: 'FOREX' | 'NSE' | 'US';
+  market: 'FOREX' | 'METALS' | 'INDICES' | 'NSE' | 'US';
   currency: string;
   currentPrice: number;
   pipSpread?: string;
