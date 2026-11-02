@@ -51,6 +51,11 @@ import {
   Eye,
   Info,
   TrendingDown,
+  Plus,
+  Minus,
+  Scale,
+  Percent,
+  Calculator,
 } from 'lucide-react';
 import { EaParameters, DEFAULT_EA_PARAMS, generateMql5Code } from '../../utils/mql5Generator.ts';
 
@@ -490,6 +495,52 @@ export const Mt5EaScalperStudio: React.FC = () => {
   const [executingSymbol, setExecutingSymbol] = useState<string | null>(null);
   const [scanFilter, setScanFilter] = useState<'ALL' | 'A_PLUS' | 'A' | 'FILTERED'>('ALL');
 
+  // Lot Size & Risk Regulation State
+  const [lotSize, setLotSize] = useState<number>(() => {
+    const saved = localStorage.getItem('mullah_bot_lotsize');
+    if (saved) {
+      const parsed = parseFloat(saved);
+      if (!isNaN(parsed) && parsed > 0) return Math.min(Math.max(parsed, 0.01), 50);
+    }
+    return 0.10;
+  });
+  const [lotSizingMode, setLotSizingMode] = useState<'FIXED' | 'DYNAMIC_RISK'>('FIXED');
+  const [dynamicRiskPercent, setDynamicRiskPercent] = useState<number>(1.0);
+
+  // Update regulated lot size and sync with local storage and EA parameters
+  const handleUpdateLotSize = (val: number) => {
+    const cleanLot = Math.round(Math.max(0.01, Math.min(val, 50.0)) * 100) / 100;
+    setLotSize(cleanLot);
+    localStorage.setItem('mullah_bot_lotsize', String(cleanLot));
+    setParams((prev) => ({ ...prev, fixedLot: cleanLot }));
+  };
+
+  // Calculate dynamic lot based on broker balance, target risk %, and standard Gold SL (8.5 pts)
+  const calculatedDynamicLot = useMemo(() => {
+    const riskDollar = brokerConfig.balance * (dynamicRiskPercent / 100);
+    const rawLots = riskDollar / 850; // 8.5 pt SL on Gold is $850 per 1.0 standard lot
+    return Math.max(0.01, Math.round(rawLots * 100) / 100);
+  }, [brokerConfig.balance, dynamicRiskPercent]);
+
+  // Active regulated lot size that will be applied to all trades
+  const activeTradingLot = useMemo(() => {
+    return lotSizingMode === 'FIXED' ? lotSize : calculatedDynamicLot;
+  }, [lotSizingMode, lotSize, calculatedDynamicLot]);
+
+  // Telemetry estimations based on current balance and activeTradingLot
+  const marginEstimate = useMemo(() => {
+    // Approx margin at 1:100 leverage for Gold ($4056.40 * 100 / 100)
+    return Math.round(activeTradingLot * 4056.40 * 10) / 10;
+  }, [activeTradingLot]);
+
+  const riskEstimateDollar = useMemo(() => {
+    return Math.round(activeTradingLot * 8.5 * 100 * 10) / 10;
+  }, [activeTradingLot]);
+
+  const riskPercentOfBalance = useMemo(() => {
+    return Math.round((riskEstimateDollar / (brokerConfig.balance || 10000)) * 100 * 10) / 10;
+  }, [riskEstimateDollar, brokerConfig.balance]);
+
   // Filtered opportunities
   const filteredOpportunities = useMemo(() => {
     if (scanFilter === 'A_PLUS') return scannedOpportunities.filter((o) => o.score >= 90);
@@ -527,6 +578,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
           autoOpen: autoOpenTrade,
           minScore: 85,
           riskPercent: params.riskPercent,
+          lots: activeTradingLot,
         }),
       });
       const data = await res.json();
@@ -559,7 +611,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
           {
             id: `log-${Date.now()}`,
             time: new Date().toLocaleTimeString(),
-            text: `🎯 AI SNIPER AUTO-OPENED TOP SETUP: ${data.openedPosition.type} 0.10 Lots ${data.openedPosition.symbol} @ ${data.openedPosition.openPrice} (${data.bestTrade?.score}% Confluence - ${data.bestTrade?.grade}). SL: ${data.openedPosition.sl} | TP: ${data.openedPosition.tp}`,
+            text: `🎯 AI SNIPER AUTO-OPENED TOP SETUP: ${data.openedPosition.type} ${data.openedPosition.lots.toFixed(2)} Lots ${data.openedPosition.symbol} @ ${data.openedPosition.openPrice} (${data.bestTrade?.score}% Confluence - ${data.bestTrade?.grade}). SL: ${data.openedPosition.sl} | TP: ${data.openedPosition.tp}`,
             type: 'trade',
           },
           ...prev.slice(0, 40),
@@ -570,7 +622,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
           {
             id: `log-${Date.now()}`,
             time: new Date().toLocaleTimeString(),
-            text: `🔍 AI Market Scan Completed: ${data.totalScanned || 6} markets analyzed across all indicators & SMC. Top setup: ${data.bestTrade?.symbol || 'XAUUSD'} (${data.bestTrade?.score || 94}% Confluence).`,
+            text: `🔍 AI Market Scan Completed: ${data.totalScanned || 6} markets analyzed across all indicators & SMC. Top setup: ${data.bestTrade?.symbol || 'XAUUSD'} (${data.bestTrade?.score || 94}% Confluence). Regulated Lot: ${activeTradingLot.toFixed(2)} Lots.`,
             type: 'info',
           },
           ...prev.slice(0, 40),
@@ -595,7 +647,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
         body: JSON.stringify({
           symbol: opp.symbol,
           type: opp.type,
-          lots: 0.10,
+          lots: activeTradingLot,
           price: opp.basePrice,
           sl: opp.sl,
           tp: opp.tp1,
@@ -610,7 +662,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
           {
             id: `log-${Date.now()}`,
             time: new Date().toLocaleTimeString(),
-            text: `⚡ 1-CLICK AI SNIPE: ${data.position.type} 0.10 Lots ${data.position.symbol} @ ${data.position.openPrice} | SL: ${data.position.sl} | TP: ${data.position.tp}`,
+            text: `⚡ 1-CLICK AI SNIPE: ${data.position.type} ${data.position.lots.toFixed(2)} Lots ${data.position.symbol} @ ${data.position.openPrice} | SL: ${data.position.sl} | TP: ${data.position.tp}`,
             type: 'trade',
           },
           ...prev.slice(0, 40),
@@ -1157,6 +1209,194 @@ export const Mt5EaScalperStudio: React.FC = () => {
               </div>
             </div>
 
+            {/* Lot Size & Capital Sizing Regulator */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#08101e] border border-[#1b2f4e] shadow-lg space-y-4 relative z-10">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#14233a] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <Scale className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <span>Lot Size &amp; Position Sizing Regulator</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#0df2c9]/15 text-[#0df2c9] border border-[#0df2c9]/30">
+                        {activeTradingLot.toFixed(2)} LOTS ACTIVE
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Regulates the exact volume executed for all AI Scans, background Auto-Pilot snipes, and 1-Click trades.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Mode Selector */}
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-[#060b14] border border-[#142236] self-start sm:self-auto text-xs font-mono">
+                  <button
+                    onClick={() => setLotSizingMode('FIXED')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                      lotSizingMode === 'FIXED'
+                        ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Fixed Lot Size
+                  </button>
+                  <button
+                    onClick={() => setLotSizingMode('DYNAMIC_RISK')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                      lotSizingMode === 'DYNAMIC_RISK'
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Dynamic Risk %
+                  </button>
+                </div>
+              </div>
+
+              {/* Sizing Controller Inputs */}
+              {lotSizingMode === 'FIXED' ? (
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    {/* Stepper & Direct Input */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleUpdateLotSize(lotSize - (lotSize > 0.1 ? 0.05 : 0.01))}
+                        disabled={lotSize <= 0.01}
+                        className="w-10 h-10 rounded-xl bg-[#0c1626] hover:bg-[#12223b] text-slate-200 border border-[#1b2f4f] flex items-center justify-center font-bold text-lg disabled:opacity-30 transition-colors cursor-pointer"
+                        title="Decrease Lot Size"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          max="50.00"
+                          value={lotSize}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val)) handleUpdateLotSize(val);
+                          }}
+                          className="w-32 sm:w-36 px-4 py-2 text-center rounded-xl bg-[#050912] border border-teal-500/50 text-white font-mono font-bold text-lg focus:outline-none focus:ring-2 focus:ring-[#0df2c9]/40"
+                        />
+                        <span className="absolute right-3 top-2.5 text-[10px] font-mono font-bold text-teal-400 pointer-events-none">
+                          LOTS
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => handleUpdateLotSize(lotSize + (lotSize >= 0.1 ? 0.05 : 0.01))}
+                        disabled={lotSize >= 50.0}
+                        className="w-10 h-10 rounded-xl bg-[#0c1626] hover:bg-[#12223b] text-slate-200 border border-[#1b2f4f] flex items-center justify-center font-bold text-lg disabled:opacity-30 transition-colors cursor-pointer"
+                        title="Increase Lot Size"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Presets List */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {[
+                        { label: '0.01', tag: 'Micro' },
+                        { label: '0.02', tag: 'Mini Micro' },
+                        { label: '0.05', tag: 'Conservative' },
+                        { label: '0.10', tag: 'Scalper' },
+                        { label: '0.25', tag: 'Growth' },
+                        { label: '0.50', tag: 'High-Yield' },
+                        { label: '1.00', tag: 'Standard' },
+                        { label: '2.00', tag: 'Heavy' },
+                      ].map((preset) => {
+                        const val = parseFloat(preset.label);
+                        const isSelected = Math.abs(lotSize - val) < 0.001;
+                        return (
+                          <button
+                            key={preset.label}
+                            onClick={() => handleUpdateLotSize(val)}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#0df2c9] text-slate-950 shadow-[0_0_10px_rgba(13,242,201,0.4)]'
+                                : 'bg-[#0c1626] hover:bg-[#12223b] text-slate-300 border border-[#182a46]'
+                            }`}
+                          >
+                            <span>{preset.label}</span>
+                            <span className="text-[9px] opacity-70 ml-1 font-sans">{preset.tag}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <span className="text-xs text-slate-300 font-bold block">
+                        Account Balance Risk Target:
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {[0.5, 1.0, 1.5, 2.0, 3.0].map((pct) => (
+                          <button
+                            key={pct}
+                            onClick={() => setDynamicRiskPercent(pct)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                              dynamicRiskPercent === pct
+                                ? 'bg-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]'
+                                : 'bg-[#0c1626] hover:bg-[#12223b] text-slate-300 border border-[#182a46]'
+                            }`}
+                          >
+                            {pct.toFixed(1)}% Risk
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 px-3 rounded-xl bg-[#060b14] border border-purple-500/30 text-xs font-mono space-y-0.5">
+                      <span className="text-slate-400 text-[10px] block">Computed Dynamic Volume:</span>
+                      <div className="text-purple-300 font-bold text-sm">
+                        {calculatedDynamicLot.toFixed(2)} Lots <span className="text-[10px] text-slate-400 font-normal">(${(brokerConfig.balance * dynamicRiskPercent / 100).toFixed(2)} max risk)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Real-time Risk & Margin Telemetry Bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-[#060c16] border border-[#132034] text-xs font-mono">
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Regulated Volume</span>
+                  <span className="font-bold text-[#0df2c9] text-sm">{activeTradingLot.toFixed(2)} Lots</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Estimated Margin</span>
+                  <span className="font-bold text-slate-200">~${marginEstimate.toFixed(1)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Pip / Point Value</span>
+                  <span className="font-bold text-teal-300">~${(activeTradingLot * 10).toFixed(2)} / pt</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Stop-Loss Risk Exposure</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-rose-400">-${riskEstimateDollar.toFixed(1)}</span>
+                    <span
+                      className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                        riskPercentOfBalance <= 1.5
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : riskPercentOfBalance <= 3.0
+                          ? 'bg-amber-500/20 text-amber-400'
+                          : 'bg-rose-500/20 text-rose-400'
+                      }`}
+                    >
+                      {riskPercentOfBalance}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Main Action Controls Bar */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
               <div className="flex flex-wrap items-center gap-3">
@@ -1174,7 +1414,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4 text-slate-950 animate-bounce" />
-                      <span>SCAN ALL TOOLS &amp; AUTO-OPEN BEST TRADE</span>
+                      <span>SCAN ALL TOOLS &amp; AUTO-OPEN BEST TRADE ({activeTradingLot.toFixed(2)} LOTS)</span>
                       <ArrowRight className="w-4 h-4 text-slate-950 transition-transform group-hover:translate-x-1" />
                     </>
                   )}
@@ -1451,7 +1691,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
                             ) : (
                               <>
                                 <Crosshair className="w-3.5 h-3.5" />
-                                <span>Snipe Trade (0.10 Lots)</span>
+                                <span>Snipe Trade ({activeTradingLot.toFixed(2)} Lots)</span>
                               </>
                             )}
                           </button>
@@ -2301,7 +2541,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#0df2c9] to-[#04a790] text-slate-950 font-bold text-xs hover:brightness-110 transition-all shadow-[0_0_15px_rgba(13,242,201,0.3)] cursor-pointer"
               >
                 <Crosshair className="w-4 h-4" />
-                <span>Execute &amp; Snipe This Trade (0.10 Lots)</span>
+                <span>Execute &amp; Snipe This Trade ({activeTradingLot.toFixed(2)} Lots)</span>
               </button>
             </div>
           </div>

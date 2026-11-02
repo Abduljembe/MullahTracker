@@ -238,7 +238,7 @@ app.get('/api/ea/signal', (req, res) => {
 // Endpoint: AI Omni-Market Scanner & Auto-Trade Sniper
 app.post('/api/ea/ai-scan-and-open', async (req, res) => {
   try {
-    const { autoOpen = true, minScore = 85, riskPercent = 1.0 } = req.body || {};
+    const { autoOpen = true, minScore = 85, riskPercent = 1.0, lots, lotSize } = req.body || {};
 
     // 1. Multi-asset Market Universe to audit across SMC, Indicators, Macro News & Volume
     const candidateAssets = [
@@ -389,8 +389,10 @@ app.post('/api/ea/ai-scan-and-open', async (req, res) => {
     let openedPosition = null;
 
     if (autoOpen && bestOpp && bestOpp.score >= minScore) {
-      // Calculate lot size based on account balance and risk percentage
-      const lot = 0.10;
+      // Calculate lot size based on account balance, risk percentage or client regulation
+      const lot = typeof lots === 'number' && lots > 0
+        ? Math.round(lots * 100) / 100
+        : (typeof lotSize === 'number' && lotSize > 0 ? Math.round(lotSize * 100) / 100 : 0.10);
       const newTicket = Math.floor(Math.random() * 900000 + 98000000);
 
       openedPosition = {
@@ -434,8 +436,12 @@ app.post('/api/ea/ai-scan-and-open', async (req, res) => {
 
 // Endpoint: 1-Click Open Any Specific Scanned Setup
 app.post('/api/ea/open-trade', (req, res) => {
-  const { symbol, type = 'BUY', lots = 0.10, price, sl, tp } = req.body || {};
+  const { symbol, type = 'BUY', lots, lotSize, price, sl, tp } = req.body || {};
   if (!symbol) return res.status(400).json({ error: 'Symbol is required' });
+
+  const chosenLot = typeof lots === 'number' && lots > 0
+    ? Math.round(lots * 100) / 100
+    : (typeof lotSize === 'number' && lotSize > 0 ? Math.round(lotSize * 100) / 100 : 0.10);
 
   const newTicket = Math.floor(Math.random() * 900000 + 98000000);
   const currentP = typeof price === 'number' && price > 0 ? price : 4056.40;
@@ -445,7 +451,7 @@ app.post('/api/ea/open-trade', (req, res) => {
     ticket: newTicket,
     symbol: symbol.toUpperCase(),
     type: type === 'SELL' ? ('SELL' as const) : ('BUY' as const),
-    lots: typeof lots === 'number' && lots > 0 ? lots : 0.10,
+    lots: chosenLot,
     openPrice: currentP,
     currentPrice: currentP,
     sl: typeof sl === 'number' && sl > 0 ? sl : currentP - 10,
