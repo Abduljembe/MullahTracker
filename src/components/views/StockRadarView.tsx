@@ -44,6 +44,7 @@ import {
   Table,
   Filter,
   ArrowRight,
+  Bot,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext.tsx';
 import { InvestmentItem } from '../../types/finance.ts';
@@ -1544,7 +1545,7 @@ interface AiAnalysisResult {
 }
 
 export const StockRadarView: React.FC = () => {
-  const { formatCurrency, currency, addInvestment } = useFinance();
+  const { formatCurrency, currency, addInvestment, setActiveTab } = useFinance();
 
   const [selectedStock, setSelectedStock] = useState<StockProfile>(FEATURED_ASSETS[0]);
   const [filterMarket, setFilterMarket] = useState<'ALL' | 'FOREX' | 'METALS' | 'INDICES' | 'NSE' | 'US'>('ALL');
@@ -2270,7 +2271,18 @@ Summary: ${sig.summary}`;
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 hover:text-white text-xs font-bold transition-all shadow-sm cursor-pointer group"
           >
             <Layers className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
-            <span>Order Flow & Liquidity (Order Blocks)</span>
+            <span>Order Flow & Liquidity</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('mt5-ea')}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-500/20 via-teal-500/15 to-purple-500/20 hover:from-purple-500/30 hover:to-teal-500/25 border border-purple-500/40 text-purple-300 hover:text-white text-xs font-bold transition-all shadow-sm cursor-pointer group"
+          >
+            <Bot className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
+            <span>MT5 Scalper Bot EA & Code</span>
+            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-purple-500/30 text-purple-200 border border-purple-400/30 font-bold">
+              .MQ5
+            </span>
           </button>
         </div>
       </div>

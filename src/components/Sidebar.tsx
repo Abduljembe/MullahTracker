@@ -28,6 +28,7 @@ import {
   Download,
   Layers,
   Tv,
+  Bot,
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -98,6 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'emergency', label: 'Emergency Fund', icon: Shield },
         { id: 'investments', label: 'Investments', icon: TrendingUp },
         { id: 'stocks', label: 'Stocks & Forex Signals', icon: BarChart2 },
+        { id: 'mt5-ea', label: 'MT5 Scalper Bot EA', icon: Bot },
         { id: 'orderflow', label: 'Order Flow & Liquidity', icon: Layers },
         { id: 'livetv', label: 'World Monitor & Bloomberg TV', icon: Tv },
         { id: 'debt', label: 'Debt Tracker', icon: CreditCard },

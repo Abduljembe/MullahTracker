@@ -20,7 +20,8 @@ export type TabType =
   | 'tax'
   | 'chama'
   | 'cashflow'
-  | 'milestones';
+  | 'milestones'
+  | 'mt5-ea';
 
 export type CurrencyCode = 'KES' | 'USD' | 'EUR' | 'GBP' | 'TZS' | 'UGX';
 
