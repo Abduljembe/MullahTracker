@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
@@ -16,13 +15,44 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    },
-  },
+// Cross-Origin Resource Sharing (CORS) support for Vercel preview & production
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// Safe Gemini client factory (prevents crashes when running in environments without GEMINI_API_KEY)
+function getAiClient(): GoogleGenAI | null {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) return null;
+  try {
+    return new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
+  } catch (err) {
+    console.warn('GoogleGenAI client initialization failed:', err);
+    return null;
+  }
+}
+
+// Health check endpoint for uptime and deployment diagnostics
+app.get('/api/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    environment: process.env.VERCEL ? 'vercel-serverless' : 'standalone-node',
+    geminiConfigured: !!(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Endpoint 1: Stock & Forex deep analysis with trading signals, news & technical indicators
@@ -264,6 +294,8 @@ Respond strictly in valid JSON format:
 
     // Helper to call Gemini with retries and fallback models
     const callGeminiJson = async (promptText: string) => {
+      const ai = getAiClient();
+      if (!ai) return null;
       const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest'];
       for (const model of candidateModels) {
         for (let attempt = 0; attempt < 2; attempt++) {
@@ -600,26 +632,29 @@ User Question: "${question}"
 
 Provide a crisp, actionable, financial analysis with real numbers, valuation context, and risk warnings. Keep it under 150 words.`;
 
+    const ai = getAiClient();
     const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest'];
     let text = '';
-    for (const model of candidateModels) {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const response = await ai.models.generateContent({
-            model,
-            contents: prompt,
-          });
-          if (response.text) {
-            text = response.text.trim();
-            break;
-          }
-        } catch {
-          if (attempt === 0) {
-            await new Promise((resolve) => setTimeout(resolve, 400));
+    if (ai) {
+      for (const model of candidateModels) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const response = await ai.models.generateContent({
+              model,
+              contents: prompt,
+            });
+            if (response.text) {
+              text = response.text.trim();
+              break;
+            }
+          } catch {
+            if (attempt === 0) {
+              await new Promise((resolve) => setTimeout(resolve, 400));
+            }
           }
         }
+        if (text) break;
       }
-      if (text) break;
     }
 
     if (!text) {
@@ -758,31 +793,34 @@ Respond strictly in valid JSON format:
 
     const textPart = { text: promptText };
 
+    const ai = getAiClient();
     const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest'];
     let aiResponse = null;
 
-    for (const model of candidateModels) {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const resModel = await ai.models.generateContent({
-            model,
-            contents: { parts: [imagePart, textPart] },
-            config: {
-              responseMimeType: 'application/json',
-            },
-          });
-          if (resModel.text) {
-            const clean = resModel.text.replace(/^```json/i, '').replace(/```$/i, '').trim();
-            aiResponse = JSON.parse(clean);
-            break;
-          }
-        } catch {
-          if (attempt === 0) {
-            await new Promise((r) => setTimeout(r, 400));
+    if (ai) {
+      for (const model of candidateModels) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const resModel = await ai.models.generateContent({
+              model,
+              contents: { parts: [imagePart, textPart] },
+              config: {
+                responseMimeType: 'application/json',
+              },
+            });
+            if (resModel.text) {
+              const clean = resModel.text.replace(/^```json/i, '').replace(/```$/i, '').trim();
+              aiResponse = JSON.parse(clean);
+              break;
+            }
+          } catch {
+            if (attempt === 0) {
+              await new Promise((resolve) => setTimeout(resolve, 400));
+            }
           }
         }
+        if (aiResponse) break;
       }
-      if (aiResponse) break;
     }
 
     if (aiResponse) {
@@ -899,25 +937,28 @@ Respond ONLY in valid JSON format:
   ]
 }`;
 
-    const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest'];
-    for (const model of candidateModels) {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const response = await ai.models.generateContent({
-            model,
-            contents: prompt,
-            config: {
-              responseMimeType: 'application/json',
-            },
-          });
-          if (response.text) {
-            const clean = response.text.replace(/^```json/i, '').replace(/```$/i, '').trim();
-            const parsed = JSON.parse(clean);
-            return res.json(parsed);
-          }
-        } catch {
-          if (attempt === 0) {
-            await new Promise((resolve) => setTimeout(resolve, 400));
+    const ai = getAiClient();
+    if (ai) {
+      const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest'];
+      for (const model of candidateModels) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const response = await ai.models.generateContent({
+              model,
+              contents: prompt,
+              config: {
+                responseMimeType: 'application/json',
+              },
+            });
+            if (response.text) {
+              const clean = response.text.replace(/^```json/i, '').replace(/```$/i, '').trim();
+              const parsed = JSON.parse(clean);
+              return res.json(parsed);
+            }
+          } catch {
+            if (attempt === 0) {
+              await new Promise((resolve) => setTimeout(resolve, 400));
+            }
           }
         }
       }
@@ -1073,25 +1114,28 @@ Respond strictly in valid JSON matching this schema:
   ]
 }`;
 
-    const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest'];
-    for (const model of candidateModels) {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const response = await ai.models.generateContent({
-            model,
-            contents: prompt,
-            config: {
-              responseMimeType: 'application/json',
-            },
-          });
-          if (response.text) {
-            const clean = response.text.replace(/^```json/i, '').replace(/```$/i, '').trim();
-            const parsed = JSON.parse(clean);
-            return res.json(parsed);
-          }
-        } catch {
-          if (attempt === 0) {
-            await new Promise((resolve) => setTimeout(resolve, 350));
+    const ai = getAiClient();
+    if (ai) {
+      const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest'];
+      for (const model of candidateModels) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const response = await ai.models.generateContent({
+              model,
+              contents: prompt,
+              config: {
+                responseMimeType: 'application/json',
+              },
+            });
+            if (response.text) {
+              const clean = response.text.replace(/^```json/i, '').replace(/```$/i, '').trim();
+              const parsed = JSON.parse(clean);
+              return res.json(parsed);
+            }
+          } catch {
+            if (attempt === 0) {
+              await new Promise((resolve) => setTimeout(resolve, 350));
+            }
           }
         }
       }
@@ -1516,6 +1560,8 @@ Respond strictly in valid JSON format:
 
     // Try Gemini model with 3500ms timeout for snappy UI response
     const fetchGeminiNews = async () => {
+      const ai = getAiClient();
+      if (!ai) return null;
       const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest'];
       for (const model of candidateModels) {
         try {
@@ -1880,49 +1926,52 @@ Respond strictly in valid JSON format:
 }`;
 
     // Try Gemini multimodal vision models
+    const ai = getAiClient();
     const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest'];
     let aiParsed: any = null;
 
-    for (const model of candidateModels) {
-      try {
-        let contents: any;
-        if (isSvg) {
-          contents = {
-            parts: [
-              { text: `Chart Image Content (SVG format):\n${svgText.slice(0, 4000)}\n\n${promptText}` },
-            ],
-          };
-        } else {
-          contents = {
-            parts: [
-              {
-                inlineData: {
-                  mimeType: mimeType || 'image/png',
-                  data: base64Clean,
+    if (ai) {
+      for (const model of candidateModels) {
+        try {
+          let contents: any;
+          if (isSvg) {
+            contents = {
+              parts: [
+                { text: `Chart Image Content (SVG format):\n${svgText.slice(0, 4000)}\n\n${promptText}` },
+              ],
+            };
+          } else {
+            contents = {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: mimeType || 'image/png',
+                    data: base64Clean,
+                  },
                 },
-              },
-              { text: promptText },
-            ],
-          };
-        }
-
-        const response = await ai.models.generateContent({
-          model,
-          contents,
-          config: {
-            responseMimeType: 'application/json',
-          },
-        });
-
-        if (response.text) {
-          const cleanText = response.text.replace(/^```json/i, '').replace(/```$/i, '').trim();
-          aiParsed = JSON.parse(cleanText);
-          if (aiParsed && aiParsed.action && aiParsed.entryZone) {
-            break;
+                { text: promptText },
+              ],
+            };
           }
+
+          const response = await ai.models.generateContent({
+            model,
+            contents,
+            config: {
+              responseMimeType: 'application/json',
+            },
+          });
+
+          if (response.text) {
+            const cleanText = response.text.replace(/^```json/i, '').replace(/```$/i, '').trim();
+            aiParsed = JSON.parse(cleanText);
+            if (aiParsed && aiParsed.action && aiParsed.entryZone) {
+              break;
+            }
+          }
+        } catch (err) {
+          console.warn(`Vision model ${model} analysis attempt failed:`, err);
         }
-      } catch (err) {
-        console.warn(`Vision model ${model} analysis attempt failed:`, err);
       }
     }
 
@@ -1987,27 +2036,40 @@ Respond strictly in valid JSON format:
 async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';
 
-  if (!isProd) {
-    const vite = await createViteServer({
-      server: {
-        middlewareMode: true,
-        host: '0.0.0.0',
-        port: PORT,
-        hmr: false,
-      },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
+  if (!isProd && !process.env.VERCEL) {
+    try {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: {
+          middlewareMode: true,
+          host: '0.0.0.0',
+          port: PORT,
+          hmr: false,
+        },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } catch (e) {
+      console.error('Failed to initialize Vite development middleware:', e);
+    }
+  } else if (!process.env.VERCEL) {
     app.use(express.static(path.resolve(__dirname, 'dist')));
     app.get('*', (_req, res) => {
       res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server listening on http://0.0.0.0:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server listening on http://0.0.0.0:${PORT}`);
+    });
+  }
 }
 
-startServer();
+// Automatically start HTTP listener only when running in standalone Node/dev mode (not serverless)
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
+export { app };
