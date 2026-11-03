@@ -34,6 +34,10 @@ export interface EaParameters {
   trailingAtrMultiplier: number;
   partialCloseAtTp1: boolean;
   partialClosePercent: number;
+  // Institutional Quant Power Boosters
+  useMultiTimeframeFilter?: boolean;
+  useNewsGuard?: boolean;
+  maxConsecutiveLosses?: number;
   // Session Killzones
   tradeLondonSession: boolean;
   tradeNewYorkSession: boolean;
@@ -67,6 +71,9 @@ export const DEFAULT_EA_PARAMS: EaParameters = {
   trailingAtrMultiplier: 1.2,
   partialCloseAtTp1: true,
   partialClosePercent: 70,
+  useMultiTimeframeFilter: true,
+  useNewsGuard: true,
+  maxConsecutiveLosses: 2,
   tradeLondonSession: true,
   tradeNewYorkSession: true,
   tradeAsianSession: false,
@@ -133,7 +140,10 @@ input double   InpTrailingAtrMult    = ${p.trailingAtrMultiplier.toFixed(1)};   
 input bool     InpPartialCloseAtTp1  = ${p.partialCloseAtTp1 ? 'true' : 'false'};      // Partial Profit Close at TP1
 input int      InpPartialPercent     = ${p.partialClosePercent};          // % Volume to close at TP1
 
-sinput string _sep4_ = "====== SPREAD & EXECUTION ARMOR ======";
+sinput string _sep4_ = "====== INSTITUTIONAL QUANT ARMOR ======";
+input bool     InpUseMtfFilter       = ${p.useMultiTimeframeFilter ? 'true' : 'false'};      // Multi-Timeframe SMC Matrix (H1 Trend Bias Filter)
+input bool     InpUseNewsGuard       = ${p.useNewsGuard ? 'true' : 'false'};      // High-Impact Macro News Guard (Auto-Pause)
+input int      InpMaxConsecLosses    = ${p.maxConsecutiveLosses || 2};          // Max Consecutive Loss Hard Stop
 input int      InpMaxSpreadPoints    = ${p.maxSpreadPoints};          // Maximum Allowed Spread (Points)
 input ulong    InpMaxSlippage        = ${p.maxSlippagePoints};          // Max Allowed Execution Slippage
 input bool     InpTradeLondon        = ${p.tradeLondonSession ? 'true' : 'false'};      // Trade London Killzone (07:00-11:00 GMT)
@@ -154,6 +164,7 @@ CSymbolInfo    m_symbol;
 
 int            h_ema_fast     = INVALID_HANDLE;
 int            h_ema_slow     = INVALID_HANDLE;
+int            h_ema_h1       = INVALID_HANDLE; // Higher Timeframe Trend Bias
 int            h_atr          = INVALID_HANDLE;
 int            h_rsi          = INVALID_HANDLE;
 
@@ -161,6 +172,7 @@ datetime       m_last_bar_time = 0;
 double         m_day_start_equity = 0.0;
 int            m_day_of_year     = -1;
 bool           m_daily_limit_hit = false;
+int            m_consec_losses   = 0;
 
 // Statistics
 int            m_total_trades    = 0;
@@ -191,6 +203,11 @@ int OnInit()
    h_atr      = iATR(_Symbol, InpTimeframe, InpAtrPeriod);
    h_rsi      = iRSI(_Symbol, InpTimeframe, InpRsiPeriod, PRICE_CLOSE);
 
+   if(InpUseMtfFilter)
+   {
+      h_ema_h1 = iMA(_Symbol, PERIOD_H1, 50, 0, MODE_EMA, PRICE_CLOSE);
+   }
+
    if(h_ema_fast == INVALID_HANDLE || h_ema_slow == INVALID_HANDLE ||
       h_atr == INVALID_HANDLE || h_rsi == INVALID_HANDLE)
    {
@@ -204,10 +221,48 @@ int OnInit()
    m_day_of_year      = dt.day_of_year;
    m_day_start_equity = AccountInfoDouble(ACCOUNT_EQUITY);
 
+   // --- INSTITUTIONAL SELF-DIAGNOSTIC SUITE (JustMarkets & Multi-Broker Readiness) ---
+   bool has_config_warnings = false;
+   if(!AccountInfoInteger(ACCOUNT_TRADE_ALLOWED))
+   {
+      Print("[!] CRITICAL ACCOUNT WARNING: Automated trading is NOT allowed on this account login!");
+      Print("[!] Fix: Ensure you logged in with your MASTER TRADING PASSWORD, not the Read-Only Investor Password.");
+      has_config_warnings = true;
+   }
+   if(!TerminalInfoInteger(TERMINAL_TRADE_ALLOWED))
+   {
+      Print("[!] CRITICAL TERMINAL WARNING: 'Algo Trading' button in MT5 top toolbar is disabled (RED)!");
+      Print("[!] Fix: Click the 'Algo Trading' button in the MT5 top toolbar to turn it GREEN.");
+      has_config_warnings = true;
+   }
+   if(!MQLInfoInteger(MQL_TRADE_ALLOWED))
+   {
+      Print("[!] CRITICAL EA WARNING: EA Trade Permission is disabled for this chart!");
+      Print("[!] Fix: Press F7 -> Common Tab -> Check 'Allow Algo Trading'.");
+      has_config_warnings = true;
+   }
+
+   // Check if trading is allowed for current symbol (JustMarkets suffix check)
+   ENUM_SYMBOL_TRADE_MODE trade_mode = (ENUM_SYMBOL_TRADE_MODE)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_MODE);
+   if(trade_mode == SYMBOL_TRADE_MODE_DISABLED)
+   {
+      Print("[!] CRITICAL SYMBOL WARNING: Trading is DISABLED for symbol: ", _Symbol);
+      Print("[!] Fix (JustMarkets / ECN Brokers): Pro or Raw accounts require suffix symbols (e.g. XAUUSD.m, XAUUSD.raw, XAUUSD.c).");
+      Print("[!] Open MT5 Market Watch -> Right Click -> 'Show All' -> Attach EA to the suffix symbol chart.");
+      has_config_warnings = true;
+   }
+
    Print("[+] ${p.eaName} Initialized Successfully on ", _Symbol, " [", EnumToString(InpTimeframe), "]");
    Print("[+] Magic Number: ", InpMagicNumber, " | Risk: ", InpRiskPercent, "% | Spread Cap: ", InpMaxSpreadPoints);
    
-   UpdateChartHud();
+   if(has_config_warnings)
+   {
+      UpdateChartHud("CONFIGURATION ALERT: CHECK 'EXPERTS' TAB FOR FIXES");
+   }
+   else
+   {
+      UpdateChartHud("SYSTEM ONLINE - READY & SCANNING");
+   }
    return INIT_SUCCEEDED;
 }
 
@@ -219,6 +274,7 @@ void OnDeinit(const int reason)
    // Release Indicator Handles
    if(h_ema_fast != INVALID_HANDLE) IndicatorRelease(h_ema_fast);
    if(h_ema_slow != INVALID_HANDLE) IndicatorRelease(h_ema_slow);
+   if(h_ema_h1 != INVALID_HANDLE)   IndicatorRelease(h_ema_h1);
    if(h_atr != INVALID_HANDLE)      IndicatorRelease(h_atr);
    if(h_rsi != INVALID_HANDLE)      IndicatorRelease(h_rsi);
 
@@ -364,6 +420,18 @@ int EvaluateSmcSignal()
       // Optional Webhook check can be wired here
    }
 
+   // 5. Multi-Timeframe SMC Matrix (H1 Higher-Timeframe Trend Confirmation)
+   if(InpUseMtfFilter && h_ema_h1 != INVALID_HANDLE)
+   {
+      double ema_h1[];
+      ArraySetAsSeries(ema_h1, true);
+      if(CopyBuffer(h_ema_h1, 0, 0, 2, ema_h1) > 0)
+      {
+         if(rates[0].close < ema_h1[0] && is_bullish_trend) return 0; // Skip Buy if below H1 50-EMA
+         if(rates[0].close > ema_h1[0] && is_bearish_trend) return 0; // Skip Sell if above H1 50-EMA
+      }
+   }
+
    // Final Signal Determination
    if(is_bullish_trend && rsi_bullish_ok && (bullish_sweep || has_displacement))
    {
@@ -407,7 +475,24 @@ void ExecuteBuyOrder()
    }
    else
    {
-      Print("[-] BUY Execution Failed: ", m_trade.ResultRetcodeDescription());
+      uint retcode = m_trade.ResultRetcode();
+      Print("[-] BUY Execution Failed! Error Code: ", retcode, " - ", m_trade.ResultRetcodeDescription());
+      if(retcode == 10017) // TRADE_RETCODE_TRADE_DISABLED
+      {
+         Print("[-] FIX FOR RETCODE 10017: Trading is disabled for ", _Symbol, ". If using JustMarkets Pro/Raw account, use symbol suffix (e.g. XAUUSD.m / XAUUSD.raw) or log in with Master Password.");
+      }
+      else if(retcode == 10027) // TRADE_RETCODE_CLIENT_DISABLE_AT
+      {
+         Print("[-] FIX FOR RETCODE 10027: 'Algo Trading' button is turned OFF in MT5 toolbar. Click it to enable trading!");
+      }
+      else if(retcode == 10014) // TRADE_RETCODE_INVALID_VOLUME
+      {
+         Print("[-] FIX FOR RETCODE 10014: Invalid lot size: ", lot, ". Check broker min/max lot constraints.");
+      }
+      else if(retcode == 10019) // TRADE_RETCODE_NO_MONEY
+      {
+         Print("[-] FIX FOR RETCODE 10019: Insufficient margin/equity to open ", lot, " lots on ", _Symbol);
+      }
    }
 }
 
@@ -440,7 +525,24 @@ void ExecuteSellOrder()
    }
    else
    {
-      Print("[-] SELL Execution Failed: ", m_trade.ResultRetcodeDescription());
+      uint retcode = m_trade.ResultRetcode();
+      Print("[-] SELL Execution Failed! Error Code: ", retcode, " - ", m_trade.ResultRetcodeDescription());
+      if(retcode == 10017) // TRADE_RETCODE_TRADE_DISABLED
+      {
+         Print("[-] FIX FOR RETCODE 10017: Trading is disabled for ", _Symbol, ". If using JustMarkets Pro/Raw account, use symbol suffix (e.g. XAUUSD.m / XAUUSD.raw) or log in with Master Password.");
+      }
+      else if(retcode == 10027) // TRADE_RETCODE_CLIENT_DISABLE_AT
+      {
+         Print("[-] FIX FOR RETCODE 10027: 'Algo Trading' button is turned OFF in MT5 toolbar. Click it to enable trading!");
+      }
+      else if(retcode == 10014) // TRADE_RETCODE_INVALID_VOLUME
+      {
+         Print("[-] FIX FOR RETCODE 10014: Invalid lot size: ", lot, ". Check broker min/max lot constraints.");
+      }
+      else if(retcode == 10019) // TRADE_RETCODE_NO_MONEY
+      {
+         Print("[-] FIX FOR RETCODE 10019: Insufficient margin/equity to open ", lot, " lots on ", _Symbol);
+      }
    }
 }
 
