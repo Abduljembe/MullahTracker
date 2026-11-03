@@ -95,7 +95,7 @@ function buildClientFallbackAnalysis(
   const isJPY = asset.includes('JPY');
 
   let basePrice = 1.0865;
-  if (isGold) basePrice = 4056.40;
+  if (isGold) basePrice = 3942.57;
   else if (isKES) basePrice = 129.50;
   else if (isJPY) basePrice = 152.45;
   else if (asset.includes('GBP')) basePrice = 1.2980;
@@ -218,7 +218,7 @@ const SAMPLE_CHARTS = [
       <line x1="40" y1="140" x2="560" y2="140" stroke="%231a2638" stroke-dasharray="4"/>
       <line x1="40" y1="220" x2="560" y2="220" stroke="%231a2638" stroke-dasharray="4"/>
       <text x="50" y="35" fill="%23f59e0b" font-weight="bold" font-size="16">XAU/USD • 15m • TradingView Pro</text>
-      <text x="470" y="35" fill="%2310b981" font-size="14">4056.40 +0.64%</text>
+      <text x="470" y="35" fill="%2310b981" font-size="14">3942.57 +1.73%</text>
       <!-- Candlesticks -->
       <line x1="100" y1="120" x2="100" y2="210" stroke="%23ef4444" stroke-width="2"/>
       <rect x="92" y="140" width="16" height="50" fill="%23ef4444"/>

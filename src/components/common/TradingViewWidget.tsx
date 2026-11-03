@@ -64,7 +64,7 @@ export function getTradingViewSymbol(ticker: string, market: 'NSE' | 'US' | 'FOR
 
   // Forex & Precious Metals mappings
   if (market === 'FOREX') {
-    if (clean === 'XAUUSD') return 'OANDA:XAUUSD'; // Exact match to user's OANDA chart
+    if (clean === 'XAUUSD') return 'OANDA:XAUUSD';
     if (clean === 'EURUSD') return 'FX:EURUSD';
     if (clean === 'GBPUSD') return 'FX:GBPUSD';
     if (clean === 'USDJPY') return 'FX:USDJPY';
@@ -73,6 +73,14 @@ export function getTradingViewSymbol(ticker: string, market: 'NSE' | 'US' | 'FOR
     if (clean === 'EURKES') return 'FX_IDC:EURKES';
     if (clean === 'AUDUSD') return 'FX:AUDUSD';
     if (clean === 'USDCAD') return 'FX:USDCAD';
+    if (clean === 'USDCHF') return 'FX:USDCHF';
+    if (clean === 'NZDUSD') return 'FX:NZDUSD';
+    if (clean === 'USDZAR') return 'FX:USDZAR';
+    if (clean === 'USDMXN') return 'FX:USDMXN';
+    if (clean === 'USDTRY') return 'FX:USDTRY';
+    if (clean === 'USDSGD') return 'FX:USDSGD';
+    if (clean === 'USDUGX') return 'FX_IDC:USDUGX';
+    if (clean === 'USDTZS') return 'FX_IDC:USDTZS';
     return `FX:${clean}`;
   }
 

@@ -875,9 +875,9 @@ const FEATURED_ASSETS: StockProfile[] = [
     name: 'Spot Gold / US Dollar',
     market: 'METALS',
     currency: 'USD',
-    currentPrice: 4056.48,
-    changePercent: 0.03,
-    changeValue: 1.10,
+    currentPrice: 3942.57,
+    changePercent: 1.73,
+    changeValue: 66.92,
     peRatio: 0,
     dividendYield: 0,
     marketCap: '$17.8 Trillion Global Reserves',
@@ -887,9 +887,9 @@ const FEATURED_ASSETS: StockProfile[] = [
     defaultSignal: {
       action: 'STRONG BUY',
       score: 94,
-      setup: 'ATH Breakout & Institutional 4,050 Retest',
+      setup: 'Institutional 3,940 Demand Zone Defense & Bullish Expansion',
     },
-    historicalPoints: [3120, 3250, 3400, 3520, 3680, 3740, 3820, 3890, 3950, 4010, 4035, 4056.48],
+    historicalPoints: [3120, 3250, 3400, 3520, 3620, 3700, 3780, 3840, 3880, 3910, 3930, 3942.57],
   },
   {
     ticker: 'XAG/USD',
@@ -1001,9 +1001,9 @@ const FEATURED_ASSETS: StockProfile[] = [
     name: 'Spot Gold / Euro Currency Cross',
     market: 'METALS',
     currency: 'EUR',
-    currentPrice: 3733.50,
-    changePercent: 0.35,
-    changeValue: 13.0,
+    currentPrice: 3628.60,
+    changePercent: 1.55,
+    changeValue: 55.40,
     peRatio: 0,
     dividendYield: 0,
     marketCap: 'European Institutional Bullion',
@@ -1015,16 +1015,16 @@ const FEATURED_ASSETS: StockProfile[] = [
       score: 92,
       setup: 'ECB Monetary Easing Safe-Haven Accumulation',
     },
-    historicalPoints: [2900, 3020, 3150, 3260, 3410, 3460, 3530, 3590, 3650, 3700, 3720, 3733.50],
+    historicalPoints: [2900, 3020, 3150, 3260, 3350, 3420, 3490, 3540, 3580, 3600, 3615, 3628.60],
   },
   {
     ticker: 'XAU/KES',
     name: 'Spot Gold in Kenyan Shillings (Troy Oz)',
     market: 'METALS',
     currency: 'KES',
-    currentPrice: 525315.0,
-    changePercent: 0.28,
-    changeValue: 1470.0,
+    currentPrice: 510562.80,
+    changePercent: 1.65,
+    changeValue: 8300.0,
     peRatio: 0,
     dividendYield: 0,
     marketCap: 'Local Vault & Bullion Market',
@@ -1036,7 +1036,7 @@ const FEATURED_ASSETS: StockProfile[] = [
       score: 93,
       setup: 'Long-Term Currency Purchasing Power Anchor',
     },
-    historicalPoints: [415000, 432000, 451000, 468000, 482000, 492000, 499000, 508000, 514000, 519000, 523000, 525315],
+    historicalPoints: [415000, 432000, 451000, 468000, 480000, 488000, 495000, 501000, 505000, 508000, 509500, 510562.80],
   },
 
   // ==========================================
@@ -1586,8 +1586,18 @@ export const StockRadarView: React.FC = () => {
   const [livePriceFlash, setLivePriceFlash] = useState<'up' | 'down' | null>(null);
   const [liveCandles, setLiveCandles] = useState<Candle[]>([]);
 
-  // Dual Chart Mode: 'radar' (NjiaFedha Pro Lightweight) or 'tradingview' (Official TradingView live widget)
-  const [chartViewMode, setChartViewMode] = useState<'radar' | 'tradingview'>('radar');
+  // Dual Chart Mode: Entire Forex, Metals, Indices & US use 'tradingview' live feed. NSE stocks use 'radar'.
+  const [chartViewMode, setChartViewMode] = useState<'radar' | 'tradingview'>('tradingview');
+
+  // Automatic Feed Routing: Ensure entire Forex, Metals, Indices & US use TradingView live feed
+  // NSE stocks use NjiaFedha Pro Radar
+  useEffect(() => {
+    if (selectedStock.market === 'NSE') {
+      setChartViewMode('radar');
+    } else {
+      setChartViewMode('tradingview');
+    }
+  }, [selectedStock.market, selectedStock.ticker]);
   const [bottomTab, setBottomTab] = useState<
     | 'paper'
     | 'orderflow'
@@ -2925,18 +2935,34 @@ Summary: ${sig.summary}`;
               <div className="flex flex-wrap items-center gap-2">
                 {/* Mode Selector */}
                 <div className="flex items-center gap-1 bg-[#070b13] p-1 rounded-xl border border-[#162540]">
-                  <button
-                    onClick={() => setChartViewMode('radar')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                      chartViewMode === 'radar'
-                        ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 shadow-sm'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                    title="NjiaFedha Pro Radar: Custom chart with AI signals, lot sizer & dataset export"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>NjiaFedha Pro Radar</span>
-                  </button>
+                  {selectedStock.market === 'NSE' ? (
+                    <button
+                      onClick={() => setChartViewMode('radar')}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                        chartViewMode === 'radar'
+                          ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                      title="NjiaFedha Pro Radar: Specialized Nairobi Securities Exchange direct order book & candles"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                      <span>NjiaFedha NSE Radar</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setChartViewMode('radar')}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                        chartViewMode === 'radar'
+                          ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                      title="NjiaFedha Pro Radar: Custom chart with AI signals, lot sizer & dataset export"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Pro Radar</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={() => setChartViewMode('tradingview')}
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
@@ -2944,10 +2970,10 @@ Summary: ${sig.summary}`;
                         ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
                         : 'text-slate-400 hover:text-white'
                     }`}
-                    title="TradingView Live Stream: Official TradingView real-time feed widget"
+                    title="TradingView Live Stream: Official real-time institutional exchange tick data feed"
                   >
-                    <Activity className="w-3.5 h-3.5" />
-                    <span>TradingView Live Feed</span>
+                    <Activity className="w-3.5 h-3.5 text-purple-400" />
+                    <span>TradingView Live Feed {selectedStock.market !== 'NSE' && '●'}</span>
                   </button>
 
                   <button
