@@ -100,11 +100,11 @@ let botState: BotState = {
       symbol: 'XAUUSD',
       type: 'BUY',
       lots: 0.1,
-      openPrice: 3941.2,
-      currentPrice: 3942.57,
-      sl: 3932.0,
-      tp: 3958.0,
-      pnl: 137.0,
+      openPrice: 4043.8,
+      currentPrice: 4045.30,
+      sl: 4032.0,
+      tp: 4058.0,
+      pnl: 150.0,
       openTime: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
     },
   ],
@@ -187,7 +187,7 @@ app.get('/api/ea/signal', (req, res) => {
   const isIndex = symbol.includes('NAS') || symbol.includes('US30') || symbol.includes('US500');
 
   let basePrice = 1.0865;
-  if (isGold) basePrice = 3942.57;
+  if (isGold) basePrice = 4045.30;
   else if (isJpy) basePrice = 152.45;
   else if (symbol.includes('GBP')) basePrice = 1.298;
   else if (isIndex) basePrice = 20450.0;
@@ -200,9 +200,9 @@ app.get('/api/ea/signal', (req, res) => {
   let tp2 = 0;
 
   if (isGold) {
-    sl = Math.round((basePrice - 8.5 * mult) * 100) / 100;
-    tp1 = Math.round((basePrice + 16.0 * mult) * 100) / 100;
-    tp2 = Math.round((basePrice + 32.0 * mult) * 100) / 100;
+    sl = Math.round((basePrice - 12.8 * mult) * 100) / 100;
+    tp1 = Math.round((basePrice + 12.9 * mult) * 100) / 100;
+    tp2 = Math.round((basePrice + 29.7 * mult) * 100) / 100;
   } else if (isIndex) {
     sl = Math.round((basePrice - 45.0 * mult) * 10) / 10;
     tp1 = Math.round((basePrice + 90.0 * mult) * 10) / 10;
@@ -245,16 +245,16 @@ app.post('/api/ea/ai-scan-and-open', async (req, res) => {
       {
         symbol: 'XAUUSD',
         name: 'Spot Gold / US Dollar',
-        basePrice: 3942.57,
+        basePrice: 4045.30,
         timeframe: 'M5',
         type: 'BUY' as const,
         score: 94,
         grade: 'A+ PRIME SCALP',
         setup: 'Asian Session SSL Liquidity Sweep & 15m Demand FVG Retest',
-        entryZone: '3940.00 - 3943.50',
-        sl: 3932.00,
-        tp1: 3958.00,
-        tp2: 3978.00,
+        entryZone: '4043.00 - 4046.50',
+        sl: 4032.00,
+        tp1: 4058.00,
+        tp2: 4078.00,
         riskReward: '1:2.6',
         projectedGain: '+$155 - $355 (0.10 lots)',
         confluences: {
@@ -444,7 +444,7 @@ app.post('/api/ea/open-trade', (req, res) => {
     : (typeof lotSize === 'number' && lotSize > 0 ? Math.round(lotSize * 100) / 100 : 0.10);
 
   const newTicket = Math.floor(Math.random() * 900000 + 98000000);
-  const currentP = typeof price === 'number' && price > 0 ? price : 3942.57;
+  const currentP = typeof price === 'number' && price > 0 ? price : 4045.30;
 
   const newPos = {
     id: `pos-${Date.now()}`,
@@ -858,7 +858,7 @@ Respond strictly in valid JSON format:
 
       // Authentic base prices
       let priceVal = typeof currentPrice === 'number' && currentPrice > 0 ? currentPrice : 1.0865;
-      if (isGold && priceVal < 1000) priceVal = 3942.57;
+      if (isGold && priceVal < 1000) priceVal = 4045.30;
       if (isKES && priceVal < 50) priceVal = 129.50;
       if (isJPY && priceVal < 50) priceVal = 152.45;
 
@@ -1272,25 +1272,25 @@ Respond strictly in valid JSON format:
   "detectedAsset": "XAU/USD (Spot Gold)",
   "detectedTimeframe": "15m",
   "timeframeHorizon": "Scalp / Short Intraday",
-  "currentPrice": "3942.57",
+  "currentPrice": "4045.30",
   "trend": "Bullish",
   "action": "BUY",
   "confidenceScore": 91,
   "setupType": "Liquidity Sweep & Bullish Order Block Retest",
-  "entryZone": "3940.00 - 3943.50",
-  "takeProfit1": "3958.00 (+15.5 pts / +155 pips)",
-  "takeProfit2": "3978.50 (+36.0 pts / +360 pips)",
-  "stopLoss": "3932.00 (-10.5 pts / -105 pips)",
-  "riskReward": "1:2.7",
+  "entryZone": "4043.00 - 4046.50",
+  "takeProfit1": "4058.00 (+12.7 pts / +127 pips)",
+  "takeProfit2": "4078.50 (+33.2 pts / +332 pips)",
+  "stopLoss": "4032.00 (-13.3 pts / -133 pips)",
+  "riskReward": "1:2.5",
   "marketStructure": {
     "phase": "Bullish Expansion after Range Sweep",
     "bosChoch": "Bullish BOS confirmed on candle displacement above recent swing high",
-    "keyLevels": "Support: 3935.00 | Resistance: 3960.00, 3980.00"
+    "keyLevels": "Support: 4035.00 | Resistance: 4060.00, 4080.00"
   },
   "smcDetails": {
-    "orderBlock": "3936.20 - 3940.00 (Bullish Demand Zone)",
-    "fairValueGap": "3942.00 - 3945.50 (15m Bullish Imbalance)",
-    "liquidityTarget": "Buy-Side Liquidity (BSL) resting above 3960.20 double tops",
+    "orderBlock": "4036.20 - 4042.00 (Bullish Demand Zone)",
+    "fairValueGap": "4043.00 - 4046.50 (15m Bullish Imbalance)",
+    "liquidityTarget": "Buy-Side Liquidity (BSL) resting above 4060.20 double tops",
     "liquiditySweep": "Clean sweep of sell-side liquidity below London session low"
   },
   "indicatorReadings": {
@@ -1299,9 +1299,9 @@ Respond strictly in valid JSON format:
     "supportResistance": "Testing primary Fibonacci 61.8% golden pocket confluence"
   },
   "tradeManagement": {
-    "breakEvenTrigger": "Move SL to Breakeven (3942.50) once price touches 3952.00 (+9.5 pts)",
-    "partialProfitRule": "Secure 70% volume at TP1 (3958.00); trail remaining 30% runner behind 15m swing lows",
-    "invalidationCondition": "Setup is completely invalidated if any 15m candle body closes below 3932.00"
+    "breakEvenTrigger": "Move SL to Breakeven (4045.00) once price touches 4055.00 (+9.7 pts)",
+    "partialProfitRule": "Secure 70% volume at TP1 (4058.00); trail remaining 30% runner behind 15m swing lows",
+    "invalidationCondition": "Setup is completely invalidated if any 15m candle body closes below 4032.00"
   },
   "confluences": [
     "Clean sell-side liquidity sweep of previous session low",
@@ -1359,24 +1359,24 @@ Respond strictly in valid JSON format:
       detectedAsset: resolvedAsset,
       detectedTimeframe: resolvedTf,
       timeframeHorizon: resolvedTf === '1m' || resolvedTf === '5m' || resolvedTf === '15m' ? 'Scalp' : 'Intraday',
-      currentPrice: isGold ? '3942.57' : '1.0865',
+      currentPrice: isGold ? '4045.30' : '1.0865',
       trend: 'Bullish',
       action: 'BUY',
       confidenceScore: 89,
       setupType: 'Institutional Liquidity Sweep & Fair Value Gap Mitigation',
-      entryZone: isGold ? '3940.00 - 3943.50' : '1.0855 - 1.0865',
-      takeProfit1: isGold ? '3958.00 (+15.5 pts)' : '1.0910 (+45 pips)',
-      takeProfit2: isGold ? '3978.00 (+35.5 pts)' : '1.0965 (+100 pips)',
-      stopLoss: isGold ? '3932.00 (-10.5 pts)' : '1.0825 (-40 pips)',
+      entryZone: isGold ? '4043.00 - 4046.50' : '1.0855 - 1.0865',
+      takeProfit1: isGold ? '4058.00 (+12.7 pts)' : '1.0910 (+45 pips)',
+      takeProfit2: isGold ? '4078.00 (+32.7 pts)' : '1.0965 (+100 pips)',
+      stopLoss: isGold ? '4032.00 (-13.3 pts)' : '1.0825 (-40 pips)',
       riskReward: '1:2.5',
       marketStructure: {
         phase: 'Structural Accumulation & Break of Structure (BOS)',
         bosChoch: 'Confirmed candle body close above recent swing high liquidity',
-        keyLevels: isGold ? 'Support: 3932.00 | Resistance: 3958.00, 3978.00' : 'Support: 1.0825 | Resistance: 1.0910, 1.0965'
+        keyLevels: isGold ? 'Support: 4032.00 | Resistance: 4058.00, 4078.00' : 'Support: 1.0825 | Resistance: 1.0910, 1.0965'
       },
       smcDetails: {
-        orderBlock: isGold ? '3936.00 - 3940.00 Demand Zone' : '1.0845 - 1.0855 Demand Block',
-        fairValueGap: isGold ? '3942.00 - 3945.50 FVG' : '1.0860 - 1.0872 FVG Imbalance',
+        orderBlock: isGold ? '4036.00 - 4042.00 Demand Zone' : '1.0845 - 1.0855 Demand Block',
+        fairValueGap: isGold ? '4043.00 - 4046.50 FVG' : '1.0860 - 1.0872 FVG Imbalance',
         liquidityTarget: 'Resting Buy-Side Liquidity (BSL) above previous session high',
         liquiditySweep: 'Sell-Side Liquidity (SSL) swept below recent swing low'
       },
@@ -2226,7 +2226,7 @@ app.post('/api/chart/analyze-screenshot', async (req, res) => {
       const isKes = combinedHints.includes('KES');
 
       let detectedAsset = 'XAU/USD';
-      let currentPriceVal = 3942.57;
+      let currentPriceVal = 4045.30;
       let priceDecimals = 2;
 
       if (isEurUsd) {
@@ -2406,25 +2406,25 @@ Respond strictly in valid JSON format:
   "detectedAsset": "XAU/USD",
   "detectedTimeframe": "${timeframe}",
   "timeframeHorizon": "${timeframeHorizon}",
-  "currentPrice": "3942.57",
+  "currentPrice": "4045.30",
   "trend": "Bullish",
   "action": "STRONG BUY",
   "confidenceScore": 88,
   "setupType": "Liquidity Sweep & FVG Retest",
-  "entryZone": "3940.00 - 3943.50",
-  "takeProfit1": "3958.00 (+15.5 pts / +155 pips)",
-  "takeProfit2": "3978.00 (+35.5 pts / +355 pips)",
-  "stopLoss": "3932.00 (-10.5 pts / -105 pips)",
+  "entryZone": "4043.00 - 4046.50",
+  "takeProfit1": "4058.00 (+12.7 pts / +127 pips)",
+  "takeProfit2": "4078.00 (+32.7 pts / +327 pips)",
+  "stopLoss": "4032.00 (-13.3 pts / -133 pips)",
   "riskReward": "1:2.4",
   "marketStructure": {
     "phase": "Accumulation into Markup Phase",
-    "bosChoch": "Bullish BOS confirmed on candle close above 3945.00",
-    "keyLevels": "Demand at 3935.00; Resistance at 3960.00"
+    "bosChoch": "Bullish BOS confirmed on candle close above 4045.00",
+    "keyLevels": "Demand at 4035.00; Resistance at 4060.00"
   },
   "smcDetails": {
-    "orderBlock": "3936.00 - 3940.00 (Unmitigated 15m Bullish Demand OB)",
-    "fairValueGap": "3942.00 - 3945.50 (Bullish Displacement FVG)",
-    "liquidityTarget": "Buy-Side Liquidity (BSL) resting above 3960.00",
+    "orderBlock": "4036.00 - 4042.00 (Unmitigated 15m Bullish Demand OB)",
+    "fairValueGap": "4043.00 - 4046.50 (Bullish Displacement FVG)",
+    "liquidityTarget": "Buy-Side Liquidity (BSL) resting above 4060.00",
     "liquiditySweep": "Sell-Side Liquidity (SSL) swept below previous session low"
   },
   "indicatorReadings": {

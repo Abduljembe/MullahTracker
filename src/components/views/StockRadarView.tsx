@@ -875,9 +875,9 @@ const FEATURED_ASSETS: StockProfile[] = [
     name: 'Spot Gold / US Dollar',
     market: 'METALS',
     currency: 'USD',
-    currentPrice: 3942.57,
-    changePercent: 1.73,
-    changeValue: 66.92,
+    currentPrice: 4045.30,
+    changePercent: 0.02,
+    changeValue: 0.695,
     peRatio: 0,
     dividendYield: 0,
     marketCap: '$17.8 Trillion Global Reserves',
@@ -887,9 +887,9 @@ const FEATURED_ASSETS: StockProfile[] = [
     defaultSignal: {
       action: 'STRONG BUY',
       score: 94,
-      setup: 'Institutional 3,940 Demand Zone Defense & Bullish Expansion',
+      setup: 'Institutional 4,045 Demand Zone Defense & Bullish Expansion',
     },
-    historicalPoints: [3120, 3250, 3400, 3520, 3620, 3700, 3780, 3840, 3880, 3910, 3930, 3942.57],
+    historicalPoints: [3850, 3890, 3920, 3950, 3980, 4000, 4015, 4028, 4035, 4040, 4042, 4045.30],
   },
   {
     ticker: 'XAG/USD',
@@ -1744,7 +1744,7 @@ export const StockRadarView: React.FC = () => {
       setAiReport(data);
     } catch {
       // Deterministic analytical profile with rich signal scaled to timeframe
-      const isFx = stock.market === 'FOREX';
+      const isFx = stock.market === 'FOREX' || stock.market === 'METALS' || stock.market === 'INDICES';
       const isKES = stock.ticker.includes('KES');
       const isGold = stock.ticker.includes('XAU');
 
@@ -1770,18 +1770,19 @@ export const StockRadarView: React.FC = () => {
 
       if (isFx) {
         if (isGold) {
-          const slPts = Math.round(12 * mult * 10) / 10;
-          const tp1Pts = Math.round(24 * mult * 10) / 10;
-          const tp2Pts = Math.round(48 * mult * 10) / 10;
+          const effectiveGoldPrice = stock.currentPrice < 4000 ? 4045.30 : stock.currentPrice;
+          const slPts = Math.round(12.8 * mult * 10) / 10;
+          const tp1Pts = Math.round(12.9 * mult * 10) / 10;
+          const tp2Pts = Math.round(29.7 * mult * 10) / 10;
           const entrySpan = Math.round(2.5 * mult * 10) / 10;
 
-          entryStr = `${(stock.currentPrice - entrySpan * 0.4).toFixed(2)} - ${(stock.currentPrice + entrySpan * 0.6).toFixed(2)}`;
-          tp1Str = `${(stock.currentPrice + tp1Pts).toFixed(2)} (+${tp1Pts} pts / +${Math.round(tp1Pts * 10)} pips)`;
-          tp2Str = `${(stock.currentPrice + tp2Pts).toFixed(2)} (+${tp2Pts} pts / +${Math.round(tp2Pts * 10)} pips)`;
-          slStr = `${(stock.currentPrice - slPts).toFixed(2)} (-${slPts} pts / -${Math.round(slPts * 10)} pips)`;
-          obStr = `${(stock.currentPrice - entrySpan * 1.2).toFixed(2)} - ${(stock.currentPrice - entrySpan * 0.2).toFixed(2)}`;
-          fvgStr = `${(stock.currentPrice - entrySpan * 0.1).toFixed(2)} - ${(stock.currentPrice + entrySpan * 0.8).toFixed(2)}`;
-          bslTarget = `Buy-Side Liquidity resting above ${(stock.currentPrice + tp1Pts * 1.05).toFixed(2)}`;
+          entryStr = `${(effectiveGoldPrice - entrySpan * 0.4).toFixed(2)} - ${(effectiveGoldPrice + entrySpan * 0.6).toFixed(2)}`;
+          tp1Str = `${(effectiveGoldPrice + tp1Pts).toFixed(2)} (+${tp1Pts} pts / +${Math.round(tp1Pts * 10)} pips)`;
+          tp2Str = `${(effectiveGoldPrice + tp2Pts).toFixed(2)} (+${tp2Pts} pts / +${Math.round(tp2Pts * 10)} pips)`;
+          slStr = `${(effectiveGoldPrice - slPts).toFixed(2)} (-${slPts} pts / -${Math.round(slPts * 10)} pips)`;
+          obStr = `${(effectiveGoldPrice - entrySpan * 1.5).toFixed(2)} - ${(effectiveGoldPrice - entrySpan * 0.3).toFixed(2)}`;
+          fvgStr = `${(effectiveGoldPrice - entrySpan * 0.2).toFixed(2)} - ${(effectiveGoldPrice + entrySpan * 0.8).toFixed(2)}`;
+          bslTarget = `Buy-Side Liquidity resting above ${(effectiveGoldPrice + tp1Pts * 1.05).toFixed(2)}`;
           atrStr = `$${(14 * mult).toFixed(1)} pts (${activeTf})`;
         } else if (isKES) {
           const slPips = Math.round(0.50 * mult * 100) / 100;
@@ -2020,7 +2021,7 @@ Summary: ${sig.summary}`;
 
         const lastIdx = prevCandles.length - 1;
         const last = prevCandles[lastIdx];
-        const isFx = selectedStock.market === 'FOREX';
+        const isFx = selectedStock.market === 'FOREX' || selectedStock.market === 'METALS' || selectedStock.market === 'INDICES';
         const isKES = selectedStock.ticker.includes('KES');
         const isGold = selectedStock.ticker.includes('XAU');
 
@@ -2028,7 +2029,7 @@ Summary: ${sig.summary}`;
         let maxDelta = 0.0002;
         if (isFx) {
           if (isKES) maxDelta = 0.08;
-          else if (isGold) maxDelta = 0.85;
+          else if (isGold) maxDelta = 0.25;
           else if (selectedStock.ticker.includes('JPY')) maxDelta = 0.05;
           else maxDelta = 0.00025;
         } else {
@@ -2135,25 +2136,67 @@ Summary: ${sig.summary}`;
     }
   };
 
-  const activeSignal = aiReport?.signal || {
-    action: selectedStock.defaultSignal.action,
-    setupType: selectedStock.defaultSignal.setup,
-    timeframe: selectedStock.isForex ? '4H / Daily Swing' : 'Swing / Position',
-    entryZone: selectedStock.isForex ? 'Market Range' : `${selectedStock.currency} ${selectedStock.currentPrice}`,
-    takeProfit1: selectedStock.isForex ? '+65 pips' : '+15%',
-    takeProfit2: selectedStock.isForex ? '+125 pips' : '+28%',
-    stopLoss: selectedStock.isForex ? '-35 pips' : '-8%',
-    riskReward: '1:2.4',
-    confidenceScore: selectedStock.defaultSignal.score,
-    summary: 'Technical momentum indicates favorable trend direction with clear invalidation levels.',
-    indicators: {
-      rsi: '58.4 (Bullish momentum)',
-      macd: 'Bullish Crossover',
-      movingAverages: 'Trading above 50 EMA',
-      pivotPoint: 'Central Pivot',
-      atr: selectedStock.isForex ? '64 pips' : 'Moderate',
-    },
-  };
+  const activeSignal = useMemo(() => {
+    if (aiReport?.signal) return aiReport.signal;
+
+    const isGold = selectedStock.ticker.includes('XAU');
+    const p = currentDisplayPrice;
+
+    if (isGold) {
+      return {
+        action: selectedStock.defaultSignal.action,
+        setupType: selectedStock.defaultSignal.setup,
+        timeframe: timeframe || '15m Scalp',
+        timeframeCategory: 'Scalp',
+        confirmationScore: '4/5 Confluences: Sweep + FVG + RSI + EMA',
+        entryZone: `${(p - 1.2).toFixed(2)} - ${(p + 1.5).toFixed(2)}`,
+        takeProfit1: `${(p + 12.9).toFixed(2)} (+12.9 pts / +129 pips)`,
+        takeProfit2: `${(p + 29.7).toFixed(2)} (+29.7 pts / +297 pips)`,
+        stopLoss: `${(p - 12.8).toFixed(2)} (-12.8 pts / -128 pips)`,
+        riskReward: '1:2.4',
+        confidenceScore: 92,
+        summary: `15m timeframe confirms liquidity sweep below Asian Low with displacement into ${Math.round(p)} bullish demand imbalance.`,
+        indicators: {
+          rsi: '64.2 (Bullish Rebound)',
+          macd: 'Bullish Crossover above signal line',
+          movingAverages: `Trading above 20 & 50 EMA on ${timeframe || '15m'}`,
+          pivotPoint: `${(p - 3.5).toFixed(2)}`,
+          atr: '$14.2 pts (15m)',
+        },
+        smc: {
+          orderBlock: `${(p - 6.5).toFixed(2)} - ${(p - 2.0).toFixed(2)} (15m Bullish Demand)`,
+          fairValueGap: `${(p - 1.2).toFixed(2)} - ${(p + 1.5).toFixed(2)} (Fair Value Gap)`,
+          liquidityTarget: `Buy-Side Liquidity resting above ${(p + 15.0).toFixed(2)}`,
+          marketStructure: 'BOS (Break of Structure Bullish)',
+        },
+        tradeManagement: {
+          breakEvenRule: `Move SL to Break-Even at ${(p + 10.0).toFixed(2)} (+10.0 pts)`,
+          partialProfitRule: 'Close 70% volume at TP1; trail remaining 30% runner behind 15m swing lows',
+          invalidationRule: `Close setup immediately if 15m candle closes below ${(p - 12.8).toFixed(2)}`,
+        },
+      };
+    }
+
+    return {
+      action: selectedStock.defaultSignal.action,
+      setupType: selectedStock.defaultSignal.setup,
+      timeframe: selectedStock.isForex ? '4H / Daily Swing' : 'Swing / Position',
+      entryZone: selectedStock.isForex ? 'Market Range' : `${selectedStock.currency} ${selectedStock.currentPrice}`,
+      takeProfit1: selectedStock.isForex ? '+65 pips' : '+15%',
+      takeProfit2: selectedStock.isForex ? '+125 pips' : '+28%',
+      stopLoss: selectedStock.isForex ? '-35 pips' : '-8%',
+      riskReward: '1:2.4',
+      confidenceScore: selectedStock.defaultSignal.score,
+      summary: 'Technical momentum indicates favorable trend direction with clear invalidation levels.',
+      indicators: {
+        rsi: '58.4 (Bullish momentum)',
+        macd: 'Bullish Crossover',
+        movingAverages: 'Trading above 50 EMA',
+        pivotPoint: 'Central Pivot',
+        atr: selectedStock.isForex ? '64 pips' : 'Moderate',
+      },
+    };
+  }, [aiReport, selectedStock, currentDisplayPrice, timeframe]);
 
   return (
     <div className="space-y-6">

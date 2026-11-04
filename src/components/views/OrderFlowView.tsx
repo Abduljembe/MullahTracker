@@ -27,7 +27,7 @@ const ASSET_PRESETS: AssetPreset[] = [
   { ticker: 'USD/KES', name: 'US Dollar / Kenyan Shilling', market: 'FOREX', currency: 'KES', price: 129.50 },
   { ticker: 'GBP/USD', name: 'British Pound / US Dollar', market: 'FOREX', currency: 'USD', price: 1.2980 },
   { ticker: 'USD/JPY', name: 'US Dollar / Japanese Yen', market: 'FOREX', currency: 'JPY', price: 152.45 },
-  { ticker: 'XAU/USD', name: 'Spot Gold / US Dollar', market: 'FOREX', currency: 'USD', price: 3942.57 },
+  { ticker: 'XAU/USD', name: 'Spot Gold / US Dollar', market: 'FOREX', currency: 'USD', price: 4045.30 },
   { ticker: 'GBP/KES', name: 'British Pound / Kenyan Shilling', market: 'FOREX', currency: 'KES', price: 168.20 },
   { ticker: 'SCOM', name: 'Safaricom PLC', market: 'NSE', currency: 'KES', price: 17.65 },
   { ticker: 'EQTY', name: 'Equity Group Holdings', market: 'NSE', currency: 'KES', price: 44.80 },

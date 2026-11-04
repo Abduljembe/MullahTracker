@@ -88,16 +88,16 @@ export const INITIAL_SCANNED_OPPORTUNITIES: ScannedOpportunity[] = [
   {
     symbol: 'XAUUSD',
     name: 'Spot Gold / US Dollar',
-    basePrice: 3942.57,
+    basePrice: 4045.30,
     timeframe: 'M5',
     type: 'BUY',
     score: 94,
     grade: 'A+ PRIME SCALP',
     setup: 'Asian Session SSL Liquidity Sweep & 15m Demand FVG Retest',
-    entryZone: '3940.00 - 3943.50',
-    sl: 3932.00,
-    tp1: 3958.00,
-    tp2: 3978.00,
+    entryZone: '4043.00 - 4046.50',
+    sl: 4032.00,
+    tp1: 4058.00,
+    tp2: 4078.00,
     riskReward: '1:2.6',
     projectedGain: '+$155 - $355 (0.10 lots)',
     confluences: {
@@ -555,7 +555,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
   const [handshakeSuccess, setHandshakeSuccess] = useState(false);
 
   // Live Real-Time Positions & Telemetry
-  const [livePrice, setLivePrice] = useState<number>(3942.57);
+  const [livePrice, setLivePrice] = useState<number>(4045.30);
   const [priceFlash, setPriceFlash] = useState<'up' | 'down' | null>(null);
   const [activePositions, setActivePositions] = useState<OpenPosition[]>([
     {
@@ -564,11 +564,11 @@ export const Mt5EaScalperStudio: React.FC = () => {
       symbol: 'XAUUSD',
       type: 'BUY',
       lots: 0.10,
-      openPrice: 3941.20,
-      currentPrice: 3942.57,
-      sl: 3932.00,
-      tp: 3958.00,
-      pnl: 137.00,
+      openPrice: 4043.80,
+      currentPrice: 4045.30,
+      sl: 4032.00,
+      tp: 4058.00,
+      pnl: 150.00,
       openTime: new Date(Date.now() - 14 * 60 * 1000).toLocaleTimeString(),
     },
   ]);
@@ -728,8 +728,8 @@ export const Mt5EaScalperStudio: React.FC = () => {
 
   // Telemetry estimations based on current balance and activeTradingLot
   const marginEstimate = useMemo(() => {
-    // Approx margin at 1:100 leverage for Gold ($3942.57 * 100 / 100)
-    return Math.round(activeTradingLot * 3942.57 * 10) / 10;
+    // Approx margin at 1:100 leverage for Gold ($4045.30 * 100 / 100)
+    return Math.round(activeTradingLot * 4045.30 * 10) / 10;
   }, [activeTradingLot]);
 
   const riskEstimateDollar = useMemo(() => {
