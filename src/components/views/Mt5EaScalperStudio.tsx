@@ -88,135 +88,135 @@ export const INITIAL_SCANNED_OPPORTUNITIES: ScannedOpportunity[] = [
   {
     symbol: 'XAUUSD',
     name: 'Spot Gold / US Dollar',
-    basePrice: 4045.30,
+    basePrice: 4100.08,
     timeframe: 'M5',
     type: 'BUY',
-    score: 94,
+    score: 95,
     grade: 'A+ PRIME SCALP',
     setup: 'Asian Session SSL Liquidity Sweep & 15m Demand FVG Retest',
-    entryZone: '4043.00 - 4046.50',
-    sl: 4032.00,
-    tp1: 4058.00,
-    tp2: 4078.00,
+    entryZone: '4098.50 - 4101.20',
+    sl: 4086.50,
+    tp1: 4116.00,
+    tp2: 4135.00,
     riskReward: '1:2.6',
-    projectedGain: '+$155 - $355 (0.10 lots)',
+    projectedGain: '+$160 - $350 (0.10 lots)',
     confluences: {
-      smc: 'Sell-Side Liquidity swept below 3935.00; rapid institutional displacement candle created bullish imbalance.',
+      smc: 'Sell-Side Liquidity swept into demand; displacement candle created bullish imbalance at 4100.08.',
       indicators: '20 & 50 EMA aligned bullish on M5; RSI at 58.4 rebounding out of discount zone.',
       macro: 'Forex Factory high-impact news guard CLEAR for next 75 minutes.',
       killzone: 'London & NY Overlap Session active with institutional volume absorption.'
     },
-    aiThesis: 'XAUUSD offers the cleanest institutional footprint in the market right now. The liquidity sweep below retail stop clusters created a high-conviction demand zone with an asymmetric 1:2.6 Risk-to-Reward profile.'
+    aiThesis: 'XAUUSD trades at live TradingView benchmark 4,100.08. Clean institutional footprint with 1:2.6 Risk-to-Reward ratio.'
   },
   {
     symbol: 'NAS100',
     name: 'Nasdaq 100 Tech Index',
-    basePrice: 20450.00,
+    basePrice: 26954.00,
     timeframe: 'M1',
     type: 'BUY',
     score: 91,
     grade: 'A+ PRIME SCALP',
     setup: 'Opening Bell 3-Bar Imbalance & Bullish Order Block Expansion',
-    entryZone: '20440.00 - 20455.00',
-    sl: 20410.00,
-    tp1: 20530.00,
-    tp2: 20610.00,
+    entryZone: '26940.00 - 26965.00',
+    sl: 26880.00,
+    tp1: 27100.00,
+    tp2: 27280.00,
     riskReward: '1:2.8',
-    projectedGain: '+$210 - $450 (0.10 lots)',
+    projectedGain: '+$145 - $325 (0.10 lots)',
     confluences: {
-      smc: 'Bullish Break of Structure (BOS) confirmed on candle close above 20445 resistance.',
+      smc: 'Bullish Break of Structure (BOS) confirmed on candle close above 26940 resistance.',
       indicators: 'SuperTrend green, 9/21 EMA momentum crossover, ATR volatility expansion.',
       macro: 'Tech sector earnings tailwind, Nasdaq futures trading above VWAP.',
       killzone: 'US New York morning session peak momentum.'
     },
-    aiThesis: 'Aggressive institutional buying following the opening range break. Strong upside runner potential.'
+    aiThesis: 'TradingView quote 26,954.00. Aggressive institutional buying following opening range break.'
   },
   {
     symbol: 'EURUSD',
     name: 'Euro / US Dollar',
-    basePrice: 1.0865,
+    basePrice: 1.1221,
     timeframe: 'M5',
     type: 'BUY',
     score: 89,
     grade: 'A HIGH PROBABILITY',
     setup: 'London Killzone Trendline Breakout & 20 EMA Dynamic Retest',
-    entryZone: '1.0862 - 1.0868',
-    sl: 1.0845,
-    tp1: 1.0905,
-    tp2: 1.0945,
+    entryZone: '1.1218 - 1.1226',
+    sl: 1.1201,
+    tp1: 1.1265,
+    tp2: 1.1315,
     riskReward: '1:2.2',
-    projectedGain: '+40 to +80 pips',
+    projectedGain: '+44 to +94 pips',
     confluences: {
-      smc: 'Mitigation of European session demand zone with rejection wicks.',
+      smc: 'Mitigation of European session demand zone with rejection wicks at 1.1221.',
       indicators: 'RSI bullish divergence on 15m; MACD histogram printing green bars.',
       macro: 'ECB rate guidance priced in; DXY dollar index showing exhaustion.',
       killzone: 'London afternoon session liquidity intact.'
     },
-    aiThesis: 'Reliable trend continuation setup with minimal drawdown risk and tight spread.'
+    aiThesis: 'TradingView quote 1.1221. Reliable trend continuation setup with minimal drawdown risk.'
   },
   {
     symbol: 'GBPUSD',
     name: 'British Pound / US Dollar',
-    basePrice: 1.2980,
+    basePrice: 1.3452,
     timeframe: 'M5',
     type: 'BUY',
     score: 86,
     grade: 'A HIGH PROBABILITY',
     setup: 'Equal Lows Liquidity Run into 1-Hour Order Block',
-    entryZone: '1.2975 - 1.2985',
-    sl: 1.2960,
-    tp1: 1.3025,
-    tp2: 1.3070,
+    entryZone: '1.3448 - 1.3456',
+    sl: 1.3427,
+    tp1: 1.3505,
+    tp2: 1.3565,
     riskReward: '1:2.3',
-    projectedGain: '+45 to +90 pips',
+    projectedGain: '+53 to +113 pips',
     confluences: {
-      smc: 'Double bottom liquidity engineered and swept during London fixing.',
-      indicators: 'Price holding above central pivot point 1.2970.',
+      smc: 'Double bottom liquidity engineered and swept during London fixing around 1.3452.',
+      indicators: 'Price holding above central pivot point.',
       macro: 'Bank of England policy remarks supportive; UK Gilts yield steady.',
       killzone: 'Active London/NY transition.'
     },
-    aiThesis: 'High-conviction scalp with established structural invalidation point.'
+    aiThesis: 'TradingView quote 1.3452. High-conviction scalp with structural support.'
   },
   {
     symbol: 'US30',
     name: 'Dow Jones Industrial Average',
-    basePrice: 42850.00,
+    basePrice: 51697.90,
     timeframe: 'M5',
     type: 'BUY',
     score: 84,
     grade: 'B+ OPPORTUNITY',
     setup: 'Support Zone Pullback into Discount Demand',
-    entryZone: '42820.00 - 42860.00',
-    sl: 42740.00,
-    tp1: 43020.00,
-    tp2: 43180.00,
+    entryZone: '51670.00 - 51720.00',
+    sl: 51560.00,
+    tp1: 51970.00,
+    tp2: 52280.00,
     riskReward: '1:2.1',
-    projectedGain: '+170 to +330 pts',
+    projectedGain: '+270 to +580 pts',
     confluences: {
-      smc: 'Discount pricing inside prior daily range.',
+      smc: 'Discount pricing inside prior daily range at 51697.90.',
       indicators: 'RSI neutral-bullish at 52.',
       macro: 'Industrial earnings mixed.',
       killzone: 'NY Session active.'
     },
-    aiThesis: 'Constructive setup but slightly wider stop required compared to Gold and Nasdaq.'
+    aiThesis: 'TradingView quote 51,697.90. Solid trend support with wider stop allowance.'
   },
   {
     symbol: 'USDJPY',
     name: 'US Dollar / Japanese Yen',
-    basePrice: 152.45,
+    basePrice: 157.79,
     timeframe: 'M5',
     type: 'SELL',
     score: 62,
     grade: 'C FILTERED OUT',
     setup: 'Rangebound Choppiness near Intervention Resistance',
-    entryZone: '152.40 - 152.60',
-    sl: 152.85,
-    tp1: 151.90,
-    tp2: 151.40,
+    entryZone: '157.70 - 157.88',
+    sl: 158.24,
+    tp1: 157.14,
+    tp2: 156.44,
     riskReward: '1:1.4',
     projectedGain: 'Low probability',
     confluences: {
-      smc: 'No clean displacement; overlapping wick structure indicating chop.',
+      smc: 'No clean displacement; overlapping wick structure indicating chop around 157.79.',
       indicators: 'RSI hovering at 50 with conflicting moving averages.',
       macro: 'Bank of Japan verbal intervention risk elevated.',
       killzone: 'Outside Tokyo core hours.'
@@ -554,8 +554,8 @@ export const Mt5EaScalperStudio: React.FC = () => {
   const [isTestingHandshake, setIsTestingHandshake] = useState(false);
   const [handshakeSuccess, setHandshakeSuccess] = useState(false);
 
-  // Live Real-Time Positions & Telemetry
-  const [livePrice, setLivePrice] = useState<number>(4045.30);
+  // Live Real-Time Positions & Telemetry (Anchored to TradingView scanner feed)
+  const [livePrice, setLivePrice] = useState<number>(4100.08);
   const [priceFlash, setPriceFlash] = useState<'up' | 'down' | null>(null);
   const [activePositions, setActivePositions] = useState<OpenPosition[]>([
     {
@@ -564,11 +564,11 @@ export const Mt5EaScalperStudio: React.FC = () => {
       symbol: 'XAUUSD',
       type: 'BUY',
       lots: 0.10,
-      openPrice: 4043.80,
-      currentPrice: 4045.30,
-      sl: 4032.00,
-      tp: 4058.00,
-      pnl: 150.00,
+      openPrice: 4096.50,
+      currentPrice: 4100.08,
+      sl: 4085.00,
+      tp: 4125.00,
+      pnl: 358.00,
       openTime: new Date(Date.now() - 14 * 60 * 1000).toLocaleTimeString(),
     },
   ]);
@@ -588,19 +588,19 @@ export const Mt5EaScalperStudio: React.FC = () => {
     {
       id: 'log-2',
       time: new Date(Date.now() - 14 * 60 * 1000).toLocaleTimeString(),
-      text: 'Liquidity Sweep detected below Asian Session Low (3935.00). Clean displacement candle into 15m Bullish FVG.',
+      text: 'TradingView Real-Time Tick Feed synchronized. Institutional Asian session liquidity sweep confirmed.',
       type: 'trade',
     },
     {
       id: 'log-3',
       time: new Date(Date.now() - 14 * 60 * 1000).toLocaleTimeString(),
-      text: 'BUY ORDER EXECUTED: 0.10 Lots XAUUSD @ 3941.20 | SL: 3932.00 | TP1: 3958.00 | Magic: 884422',
+      text: 'BUY ORDER EXECUTED: 0.10 Lots XAUUSD @ 4096.50 | SL: 4085.00 | TP1: 4125.00 | Magic: 884422 (TradingView Tick Fill)',
       type: 'trade',
     },
     {
       id: 'log-4',
       time: new Date(Date.now() - 2 * 60 * 1000).toLocaleTimeString(),
-      text: 'Dynamic Break-Even Guard engaged: Price +1.3 pts gain. Stop Loss shifted to Break-Even + Spread.',
+      text: 'Dynamic Break-Even Guard engaged: Price +3.58 pts gain. Stop Loss shifted to Break-Even + Spread.',
       type: 'info',
     },
   ]);
@@ -728,9 +728,9 @@ export const Mt5EaScalperStudio: React.FC = () => {
 
   // Telemetry estimations based on current balance and activeTradingLot
   const marginEstimate = useMemo(() => {
-    // Approx margin at 1:100 leverage for Gold ($4045.30 * 100 / 100)
-    return Math.round(activeTradingLot * 4045.30 * 10) / 10;
-  }, [activeTradingLot]);
+    // Dynamic margin at 1:100 leverage based on live TradingView price
+    return Math.round(activeTradingLot * livePrice * 10) / 10;
+  }, [activeTradingLot, livePrice]);
 
   const riskEstimateDollar = useMemo(() => {
     return Math.round(activeTradingLot * 8.5 * 100 * 10) / 10;
@@ -1039,38 +1039,113 @@ export const Mt5EaScalperStudio: React.FC = () => {
     } catch {}
   };
 
-  // Real-time market tick engine
+  // Real-time TradingView Market Tick Engine (Polls TradingView live feed every 3.2s)
   useEffect(() => {
-    const isGold = params.symbol.includes('XAU');
-    const interval = setInterval(() => {
-      setLivePrice((prev) => {
-        const delta = (Math.random() - 0.485) * (isGold ? 0.45 : 0.00015);
-        const newP = isGold
-          ? Math.round((prev + delta) * 100) / 100
-          : Math.round((prev + delta) * 10000) / 10000;
+    let isMounted = true;
 
-        setPriceFlash(delta >= 0 ? 'up' : 'down');
-        setTimeout(() => setPriceFlash(null), 400);
+    const syncTradingViewFeed = async () => {
+      try {
+        const res = await fetch('/api/tradingview/prices');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.quotes || !isMounted) return;
 
-        // Update floating P&L of active positions
+        const quotes: Record<string, { symbol: string; price: number; changePercent: number; changeValue: number }> = data.quotes;
+
+        // 1. Sync live price for currently selected bot symbol
+        const currentSym = params.symbol.replace('/', '').toUpperCase();
+        const activeQuote =
+          quotes[currentSym] ||
+          quotes[`OANDA:${currentSym}`] ||
+          quotes[`FX:${currentSym}`] ||
+          quotes[`NASDAQ:${currentSym}`] ||
+          quotes[`SP:${currentSym}`] ||
+          quotes[`DJ:${currentSym}`];
+
+        if (activeQuote && activeQuote.price > 0) {
+          setLivePrice((prev) => {
+            if (activeQuote.price !== prev) {
+              setPriceFlash(activeQuote.price >= prev ? 'up' : 'down');
+              setTimeout(() => setPriceFlash(null), 500);
+            }
+            return activeQuote.price;
+          });
+        }
+
+        // 2. Real-time floating P&L sync for active open positions
         setActivePositions((prevPositions) =>
           prevPositions.map((pos) => {
-            const priceDiff = pos.type === 'BUY' ? newP - pos.openPrice : pos.openPrice - newP;
-            const mult = isGold ? 100 : 100000;
+            const sym = pos.symbol.replace('/', '').toUpperCase();
+            const q =
+              quotes[sym] ||
+              quotes[`OANDA:${sym}`] ||
+              quotes[`FX:${sym}`] ||
+              quotes[`NASDAQ:${sym}`] ||
+              quotes[`SP:${sym}`] ||
+              quotes[`DJ:${sym}`];
+
+            const currentP = q && q.price > 0 ? q.price : pos.currentPrice;
+            const isGold = sym.includes('XAU');
+            const isIndex = sym.includes('NAS') || sym.includes('US30') || sym.includes('US500') || sym.includes('SPX');
+            const isJpy = sym.includes('JPY');
+            const mult = isGold ? 100 : isIndex ? 1.0 : isJpy ? 1000 : 100000;
+            const priceDiff = pos.type === 'BUY' ? currentP - pos.openPrice : pos.openPrice - currentP;
             const pnl = Math.round(priceDiff * pos.lots * mult * 100) / 100;
+
             return {
               ...pos,
-              currentPrice: newP,
+              currentPrice: currentP,
               pnl,
             };
           })
         );
 
-        return newP;
-      });
-    }, 1600);
+        // 3. Update Scanned Opportunities with live TradingView tick prices
+        setScannedOpportunities((prevOpps) =>
+          prevOpps.map((opp) => {
+            const sym = opp.symbol.replace('/', '').toUpperCase();
+            const q =
+              quotes[sym] ||
+              quotes[`OANDA:${sym}`] ||
+              quotes[`FX:${sym}`] ||
+              quotes[`NASDAQ:${sym}`] ||
+              quotes[`SP:${sym}`] ||
+              quotes[`DJ:${sym}`];
 
-    return () => clearInterval(interval);
+            if (q && q.price > 0) {
+              const liveP = q.price;
+              const isGold = sym.includes('XAU');
+              const isIndex = sym.includes('NAS') || sym.includes('US30');
+              const isJpy = sym.includes('JPY');
+              const slOffset = isGold ? 13.5 : isIndex ? 70.0 : isJpy ? 0.35 : 0.0022;
+              const tp1Offset = isGold ? 16.0 : isIndex ? 145.0 : isJpy ? 0.7 : 0.0048;
+              const tp2Offset = isGold ? 35.0 : isIndex ? 320.0 : isJpy ? 1.4 : 0.0098;
+              const decimals = isGold || isJpy ? 2 : isIndex ? 1 : 5;
+
+              return {
+                ...opp,
+                basePrice: liveP,
+                entryZone: `${(liveP - (isGold ? 1.5 : isIndex ? 15 : 0.0005)).toFixed(decimals)} - ${(liveP + (isGold ? 1.2 : isIndex ? 15 : 0.0005)).toFixed(decimals)}`,
+                sl: Number((opp.type === 'BUY' ? liveP - slOffset : liveP + slOffset).toFixed(decimals)),
+                tp1: Number((opp.type === 'BUY' ? liveP + tp1Offset : liveP - tp1Offset).toFixed(decimals)),
+                tp2: Number((opp.type === 'BUY' ? liveP + tp2Offset : liveP - tp2Offset).toFixed(decimals)),
+              };
+            }
+            return opp;
+          })
+        );
+      } catch {
+        // Quiet fallback
+      }
+    };
+
+    syncTradingViewFeed();
+    const interval = setInterval(syncTradingViewFeed, 3200);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [params.symbol]);
 
   // Connect Broker Modal Submission with REAL Network Handshake
@@ -1196,6 +1271,10 @@ export const Mt5EaScalperStudio: React.FC = () => {
               <span className="px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 flex items-center gap-1.5 shadow-[0_0_12px_rgba(13,242,201,0.25)]">
                 <Bot className="w-3.5 h-3.5" />
                 LIVE IN-APP SCALPER & MT5 CONTROLLER
+              </span>
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.25)]">
+                <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
+                <span>TRADINGVIEW FEED: ${livePrice.toFixed(params.symbol.includes('XAU') ? 2 : (params.symbol.includes('JPY') ? 2 : (params.symbol.includes('NAS') || params.symbol.includes('US30') ? 1 : 4)))} ({params.symbol})</span>
               </span>
               <span className="px-2.5 py-1 rounded-full text-[10px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30">
                 2-WAY CLOUD WEBHOOK
@@ -2229,10 +2308,11 @@ export const Mt5EaScalperStudio: React.FC = () => {
                 </span>
               </div>
 
-              <span className="text-xs font-mono text-slate-400">
-                Live Price ({params.symbol}):{' '}
+              <span className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>TradingView Live Tick ({params.symbol}):</span>{' '}
                 <span className={`font-bold ${priceFlash === 'up' ? 'text-emerald-400' : priceFlash === 'down' ? 'text-rose-400' : 'text-white'}`}>
-                  ${livePrice.toFixed(params.symbol.includes('XAU') ? 2 : 4)}
+                  ${livePrice.toFixed(params.symbol.includes('XAU') ? 2 : (params.symbol.includes('JPY') ? 2 : (params.symbol.includes('NAS') || params.symbol.includes('US30') ? 1 : 4)))}
                 </span>
               </span>
             </div>

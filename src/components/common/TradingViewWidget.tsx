@@ -57,7 +57,7 @@ export function getTradingViewSymbol(ticker: string, market: 'NSE' | 'US' | 'FOR
     if (clean === 'HK50') return 'INDEX:HSI';
     if (clean === 'AUS200') return 'INDEX:AS51';
     if (clean === 'EUSTX50') return 'INDEX:SX5E';
-    if (clean === 'DXY') return 'CAPITALCOM:DXY';
+    if (clean === 'DXY') return 'TVC:DXY';
     if (clean === 'NASI' || clean === 'NSE20') return null;
     return `INDEX:${clean}`;
   }
@@ -86,6 +86,7 @@ export function getTradingViewSymbol(ticker: string, market: 'NSE' | 'US' | 'FOR
 
   // US Stocks mappings
   if (market === 'US') {
+    if (clean === 'SPY') return 'AMEX:SPY';
     if (['AAPL', 'NVDA', 'MSFT', 'TSLA', 'AMZN', 'GOOGL', 'META'].includes(clean)) {
       return `NASDAQ:${clean}`;
     }

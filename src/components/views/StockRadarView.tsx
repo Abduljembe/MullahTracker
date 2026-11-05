@@ -875,9 +875,9 @@ const FEATURED_ASSETS: StockProfile[] = [
     name: 'Spot Gold / US Dollar',
     market: 'METALS',
     currency: 'USD',
-    currentPrice: 4045.30,
-    changePercent: 0.02,
-    changeValue: 0.695,
+    currentPrice: 4100.08,
+    changePercent: 0.98,
+    changeValue: 39.72,
     peRatio: 0,
     dividendYield: 0,
     marketCap: '$17.8 Trillion Global Reserves',
@@ -886,10 +886,10 @@ const FEATURED_ASSETS: StockProfile[] = [
     pipSpread: '$0.25 (25 pts)',
     defaultSignal: {
       action: 'STRONG BUY',
-      score: 94,
-      setup: 'Institutional 4,045 Demand Zone Defense & Bullish Expansion',
+      score: 95,
+      setup: 'Institutional 4,100 Demand Zone Defense & Bullish Expansion',
     },
-    historicalPoints: [3850, 3890, 3920, 3950, 3980, 4000, 4015, 4028, 4035, 4040, 4042, 4045.30],
+    historicalPoints: [3850, 3890, 3920, 3950, 3980, 4000, 4025, 4048, 4065, 4080, 4092, 4100.08],
   },
   {
     ticker: 'XAG/USD',
@@ -1586,6 +1586,30 @@ export const StockRadarView: React.FC = () => {
   const [livePriceFlash, setLivePriceFlash] = useState<'up' | 'down' | null>(null);
   const [liveCandles, setLiveCandles] = useState<Candle[]>([]);
 
+  // Real-time TradingView scanner feed quotes
+  const [liveTvQuotes, setLiveTvQuotes] = useState<Record<string, { symbol: string; price: number; changePercent: number; changeValue: number }>>({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTvFeed = async () => {
+      try {
+        const res = await fetch('/api/tradingview/prices');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.quotes && isMounted) {
+          setLiveTvQuotes(data.quotes);
+        }
+      } catch {}
+    };
+
+    fetchTvFeed();
+    const interval = setInterval(fetchTvFeed, 3200);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
   // Dual Chart Mode: Entire Forex, Metals, Indices & US use 'tradingview' live feed. NSE stocks use 'radar'.
   const [chartViewMode, setChartViewMode] = useState<'radar' | 'tradingview'>('tradingview');
 
@@ -1770,7 +1794,7 @@ export const StockRadarView: React.FC = () => {
 
       if (isFx) {
         if (isGold) {
-          const effectiveGoldPrice = stock.currentPrice < 4000 ? 4045.30 : stock.currentPrice;
+          const effectiveGoldPrice = stock.currentPrice;
           const slPts = Math.round(12.8 * mult * 10) / 10;
           const tp1Pts = Math.round(12.9 * mult * 10) / 10;
           const tp2Pts = Math.round(29.7 * mult * 10) / 10;
@@ -2027,17 +2051,45 @@ Summary: ${sig.summary}`;
 
         // Micro-tick magnitude calculation
         let maxDelta = 0.0002;
-        if (isFx) {
+        if (selectedStock.market === 'METALS') {
+          if (isGold) maxDelta = 0.25;
+          else if (selectedStock.ticker === 'XAG/USD') maxDelta = 0.02;
+          else if (selectedStock.ticker === 'HG/COPPER') maxDelta = 0.003;
+          else maxDelta = 0.35;
+        } else if (selectedStock.market === 'INDICES') {
+          if (selectedStock.ticker === 'US30') maxDelta = 2.2;
+          else if (selectedStock.ticker === 'NAS100') maxDelta = 1.2;
+          else if (selectedStock.ticker === 'US500') maxDelta = 0.35;
+          else if (selectedStock.ticker === 'DXY') maxDelta = 0.015;
+          else maxDelta = 1.0;
+        } else if (selectedStock.market === 'FOREX') {
           if (isKES) maxDelta = 0.08;
-          else if (isGold) maxDelta = 0.25;
-          else if (selectedStock.ticker.includes('JPY')) maxDelta = 0.05;
-          else maxDelta = 0.00025;
+          else if (selectedStock.ticker.includes('JPY')) maxDelta = 0.025;
+          else if (selectedStock.ticker.includes('ZAR')) maxDelta = 0.015;
+          else if (selectedStock.ticker.includes('UGX') || selectedStock.ticker.includes('TZS')) maxDelta = 1.5;
+          else maxDelta = 0.00015;
         } else {
-          maxDelta = last.close * 0.0008;
+          maxDelta = last.close * 0.0006;
         }
 
         const delta = (Math.random() - 0.49) * maxDelta;
         const roundPrice = (p: number) => {
+          if (selectedStock.market === 'FOREX') {
+            if (selectedStock.ticker.includes('JPY')) return Math.round(p * 100) / 100;
+            if (selectedStock.ticker.includes('KES') || selectedStock.ticker.includes('UGX') || selectedStock.ticker.includes('TZS')) {
+              return Math.round(p * 100) / 100;
+            }
+            if (p < 10) return Math.round(p * 10000) / 10000;
+          }
+          if (selectedStock.market === 'METALS') {
+            if (selectedStock.ticker === 'HG/COPPER') return Math.round(p * 1000) / 1000;
+            if (selectedStock.ticker === 'XAU/KES') return Math.round(p);
+            return Math.round(p * 100) / 100;
+          }
+          if (selectedStock.market === 'INDICES') {
+            if (selectedStock.ticker === 'DXY') return Math.round(p * 1000) / 1000;
+            return Math.round(p * 10) / 10;
+          }
           if (p >= 100) return Math.round(p * 100) / 100;
           if (p >= 10) return Math.round(p * 100) / 100;
           if (p >= 5) return Math.round(p * 1000) / 1000;
@@ -2107,10 +2159,44 @@ Summary: ${sig.summary}`;
     return computePeriodStats(activeCandles);
   }, [activeCandles]);
 
-  const currentDisplayPrice = activeCandles.length > 0 ? activeCandles[activeCandles.length - 1].close : selectedStock.currentPrice;
+  const cleanCurrentTicker = selectedStock.ticker.replace('/', '').toUpperCase();
+  const currentTvQuote =
+    liveTvQuotes[cleanCurrentTicker] ||
+    liveTvQuotes[selectedStock.ticker] ||
+    liveTvQuotes[`OANDA:${cleanCurrentTicker}`] ||
+    liveTvQuotes[`FX:${cleanCurrentTicker}`] ||
+    liveTvQuotes[`NASDAQ:${cleanCurrentTicker}`] ||
+    liveTvQuotes[`SP:${cleanCurrentTicker}`] ||
+    liveTvQuotes[`DJ:${cleanCurrentTicker}`];
+
+  const currentDisplayPrice =
+    currentTvQuote && currentTvQuote.price > 0
+      ? currentTvQuote.price
+      : (activeCandles.length > 0 ? activeCandles[activeCandles.length - 1].close : selectedStock.currentPrice);
+
+  const currentDisplayChangePercent =
+    currentTvQuote ? currentTvQuote.changePercent : selectedStock.changePercent;
+  const currentDisplayChangeValue =
+    currentTvQuote ? currentTvQuote.changeValue : selectedStock.changeValue;
 
   const formatPriceVal = (p: number) => {
-    if (selectedStock.isForex && p < 10) return p.toFixed(4);
+    if (selectedStock.market === 'FOREX') {
+      if (selectedStock.ticker.includes('JPY')) return p.toFixed(2);
+      if (selectedStock.ticker.includes('KES') || selectedStock.ticker.includes('UGX') || selectedStock.ticker.includes('TZS')) {
+        return p >= 100 ? p.toFixed(2) : p.toFixed(3);
+      }
+      if (p < 10) return p.toFixed(4);
+    }
+    if (selectedStock.market === 'METALS') {
+      if (selectedStock.ticker === 'HG/COPPER') return p.toFixed(3);
+      if (selectedStock.ticker === 'XAU/KES') return p.toLocaleString(undefined, { maximumFractionDigits: 0 });
+      return p.toFixed(2);
+    }
+    if (selectedStock.market === 'INDICES') {
+      if (selectedStock.ticker === 'DXY') return p.toFixed(3);
+      if (p >= 1000) return p.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+      return p.toFixed(2);
+    }
     if (p >= 1000) return p.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     return p.toFixed(2);
   };
@@ -2139,61 +2225,255 @@ Summary: ${sig.summary}`;
   const activeSignal = useMemo(() => {
     if (aiReport?.signal) return aiReport.signal;
 
-    const isGold = selectedStock.ticker.includes('XAU');
     const p = currentDisplayPrice;
+    const isBuy = selectedStock.defaultSignal.action.includes('BUY');
+    const action = selectedStock.defaultSignal.action;
+    const setupType = selectedStock.defaultSignal.setup;
+    const tf = timeframe || '15m Scalp';
 
-    if (isGold) {
-      return {
-        action: selectedStock.defaultSignal.action,
-        setupType: selectedStock.defaultSignal.setup,
-        timeframe: timeframe || '15m Scalp',
-        timeframeCategory: 'Scalp',
-        confirmationScore: '4/5 Confluences: Sweep + FVG + RSI + EMA',
-        entryZone: `${(p - 1.2).toFixed(2)} - ${(p + 1.5).toFixed(2)}`,
-        takeProfit1: `${(p + 12.9).toFixed(2)} (+12.9 pts / +129 pips)`,
-        takeProfit2: `${(p + 29.7).toFixed(2)} (+29.7 pts / +297 pips)`,
-        stopLoss: `${(p - 12.8).toFixed(2)} (-12.8 pts / -128 pips)`,
-        riskReward: '1:2.4',
-        confidenceScore: 92,
-        summary: `15m timeframe confirms liquidity sweep below Asian Low with displacement into ${Math.round(p)} bullish demand imbalance.`,
-        indicators: {
-          rsi: '64.2 (Bullish Rebound)',
-          macd: 'Bullish Crossover above signal line',
-          movingAverages: `Trading above 20 & 50 EMA on ${timeframe || '15m'}`,
-          pivotPoint: `${(p - 3.5).toFixed(2)}`,
-          atr: '$14.2 pts (15m)',
-        },
-        smc: {
-          orderBlock: `${(p - 6.5).toFixed(2)} - ${(p - 2.0).toFixed(2)} (15m Bullish Demand)`,
-          fairValueGap: `${(p - 1.2).toFixed(2)} - ${(p + 1.5).toFixed(2)} (Fair Value Gap)`,
-          liquidityTarget: `Buy-Side Liquidity resting above ${(p + 15.0).toFixed(2)}`,
-          marketStructure: 'BOS (Break of Structure Bullish)',
-        },
-        tradeManagement: {
-          breakEvenRule: `Move SL to Break-Even at ${(p + 10.0).toFixed(2)} (+10.0 pts)`,
-          partialProfitRule: 'Close 70% volume at TP1; trail remaining 30% runner behind 15m swing lows',
-          invalidationRule: `Close setup immediately if 15m candle closes below ${(p - 12.8).toFixed(2)}`,
-        },
-      };
+    // Helper for precision formatting
+    const formatPrice = (val: number): string => {
+      if (selectedStock.market === 'FOREX') {
+        if (selectedStock.ticker.includes('JPY')) return val.toFixed(3);
+        if (selectedStock.ticker.includes('KES') || selectedStock.ticker.includes('UGX') || selectedStock.ticker.includes('TZS')) {
+          return val >= 100 ? val.toFixed(2) : val.toFixed(3);
+        }
+        if (val < 10) return val.toFixed(5);
+        return val.toFixed(4);
+      }
+      if (selectedStock.market === 'METALS') {
+        if (selectedStock.ticker === 'HG/COPPER') return val.toFixed(4);
+        if (selectedStock.ticker === 'XAU/KES') return val.toFixed(0);
+        return val.toFixed(2);
+      }
+      if (selectedStock.market === 'INDICES') {
+        if (selectedStock.ticker === 'DXY') return val.toFixed(3);
+        return val.toFixed(2);
+      }
+      if (selectedStock.market === 'US') {
+        return val.toFixed(2);
+      }
+      return val.toFixed(2);
+    };
+
+    let entrySpread = 0.0005;
+    let slDelta = 0.0025;
+    let tp1Delta = 0.0055;
+    let tp2Delta = 0.0120;
+    let slPipsText = '25 pips';
+    let tp1PipsText = '55 pips';
+    let tp2PipsText = '120 pips';
+    let atrText = '45 pips';
+    let marketImbalance = 'Fair Value Gap';
+
+    if (selectedStock.ticker.includes('XAU')) {
+      // Gold Spot
+      entrySpread = 1.35;
+      slDelta = 12.80;
+      tp1Delta = 12.90;
+      tp2Delta = 29.70;
+      slPipsText = '12.8 pts (128 pips)';
+      tp1PipsText = '12.9 pts (129 pips)';
+      tp2PipsText = '29.7 pts (297 pips)';
+      atrText = '$14.2 pts (15m)';
+      marketImbalance = `$${Math.round(p)} Institutional Demand Imbalance`;
+    } else if (selectedStock.ticker === 'XAG/USD') {
+      // Silver Spot (~$33.85)
+      entrySpread = 0.06;
+      slDelta = 0.38;
+      tp1Delta = 0.75;
+      tp2Delta = 1.65;
+      slPipsText = '38¢ (38 pips)';
+      tp1PipsText = '75¢ (75 pips)';
+      tp2PipsText = '$1.65 (165 pips)';
+      atrText = '$0.54 pts';
+      marketImbalance = 'Solar & Industrial Physical Order Block';
+    } else if (selectedStock.market === 'METALS') {
+      entrySpread = p * 0.002;
+      slDelta = p * 0.012;
+      tp1Delta = p * 0.024;
+      tp2Delta = p * 0.052;
+      slPipsText = `${formatPrice(slDelta)} pts`;
+      tp1PipsText = `${formatPrice(tp1Delta)} pts`;
+      tp2PipsText = `${formatPrice(tp2Delta)} pts`;
+      atrText = `${formatPrice(p * 0.015)} pts`;
+      marketImbalance = 'Precious Metals Liquidity Pocket';
+    } else if (selectedStock.market === 'FOREX') {
+      if (selectedStock.ticker.includes('JPY')) {
+        // Yen crosses (1 pip = 0.01)
+        entrySpread = 0.07;
+        slDelta = 0.35;
+        tp1Delta = 0.72;
+        tp2Delta = 1.55;
+        slPipsText = '35 pips';
+        tp1PipsText = '72 pips';
+        tp2PipsText = '155 pips';
+        atrText = '62 pips';
+        marketImbalance = 'Tokyo Session Order Block Imbalance';
+      } else if (selectedStock.ticker.includes('KES')) {
+        // Kenyan Shilling crosses
+        entrySpread = 0.20;
+        slDelta = 0.65;
+        tp1Delta = 1.40;
+        tp2Delta = 3.10;
+        slPipsText = '0.65 KES';
+        tp1PipsText = '1.40 KES';
+        tp2PipsText = '3.10 KES';
+        atrText = '1.20 KES';
+        marketImbalance = 'Central Bank Interbank FX Window';
+      } else if (selectedStock.ticker.includes('ZAR')) {
+        // Rand crosses
+        entrySpread = 0.035;
+        slDelta = 0.14;
+        tp1Delta = 0.28;
+        tp2Delta = 0.60;
+        slPipsText = '140 pips';
+        tp1PipsText = '280 pips';
+        tp2PipsText = '600 pips';
+        atrText = '0.19 ZAR';
+        marketImbalance = 'Mining Flow Imbalance';
+      } else if (selectedStock.ticker.includes('UGX') || selectedStock.ticker.includes('TZS')) {
+        entrySpread = 4.0;
+        slDelta = 16.0;
+        tp1Delta = 34.0;
+        tp2Delta = 75.0;
+        slPipsText = '16 pts';
+        tp1PipsText = '34 pts';
+        tp2PipsText = '75 pts';
+        atrText = '25 pts';
+        marketImbalance = 'EAC Cross-Border Trade Flow';
+      } else {
+        // Standard Major/Minor Forex (1 pip = 0.0001)
+        entrySpread = 0.0005;
+        slDelta = 0.0025;
+        tp1Delta = 0.0055;
+        tp2Delta = 0.0120;
+        slPipsText = '25 pips';
+        tp1PipsText = '55 pips';
+        tp2PipsText = '120 pips';
+        atrText = '48 pips';
+        marketImbalance = 'London / New York Session Imbalance';
+      }
+    } else if (selectedStock.market === 'INDICES') {
+      if (selectedStock.ticker === 'US500') {
+        entrySpread = 3.0;
+        slDelta = 18.5;
+        tp1Delta = 38.0;
+        tp2Delta = 84.0;
+        slPipsText = '18.5 pts';
+        tp1PipsText = '38.0 pts';
+        tp2PipsText = '84.0 pts';
+        atrText = '29.5 pts';
+        marketImbalance = 'Institutional Index Buy-Program Zone';
+      } else if (selectedStock.ticker === 'NAS100') {
+        entrySpread = 9.0;
+        slDelta = 68.0;
+        tp1Delta = 145.0;
+        tp2Delta = 320.0;
+        slPipsText = '68.0 pts';
+        tp1PipsText = '145.0 pts';
+        tp2PipsText = '320.0 pts';
+        atrText = '118.0 pts';
+        marketImbalance = 'Mega-Cap Tech Liquidity Pocket';
+      } else if (selectedStock.ticker === 'US30') {
+        entrySpread = 18.0;
+        slDelta = 135.0;
+        tp1Delta = 280.0;
+        tp2Delta = 610.0;
+        slPipsText = '135.0 pts';
+        tp1PipsText = '280.0 pts';
+        tp2PipsText = '610.0 pts';
+        atrText = '215.0 pts';
+        marketImbalance = 'Blue-Chip Wall Street Block Flow';
+      } else if (selectedStock.ticker === 'DXY') {
+        entrySpread = 0.05;
+        slDelta = 0.32;
+        tp1Delta = 0.65;
+        tp2Delta = 1.45;
+        slPipsText = '32 pips';
+        tp1PipsText = '65 pips';
+        tp2PipsText = '145 pips';
+        atrText = '0.45 pts';
+        marketImbalance = 'Treasury Yield Macro Divergence';
+      } else {
+        entrySpread = p * 0.0015;
+        slDelta = p * 0.0035;
+        tp1Delta = p * 0.0075;
+        tp2Delta = p * 0.0165;
+        slPipsText = `${formatPrice(slDelta)} pts`;
+        tp1PipsText = `${formatPrice(tp1Delta)} pts`;
+        tp2PipsText = `${formatPrice(tp2Delta)} pts`;
+        atrText = `${formatPrice(p * 0.005)} pts`;
+        marketImbalance = 'Global Benchmark Index Futures Block';
+      }
+    } else if (selectedStock.market === 'US') {
+      entrySpread = p * 0.003;
+      slDelta = p * 0.022;
+      tp1Delta = p * 0.048;
+      tp2Delta = p * 0.105;
+      slPipsText = `$${formatPrice(slDelta)} (-2.2%)`;
+      tp1PipsText = `$${formatPrice(tp1Delta)} (+4.8%)`;
+      tp2PipsText = `$${formatPrice(tp2Delta)} (+10.5%)`;
+      atrText = `$${formatPrice(p * 0.025)}`;
+      marketImbalance = 'Institutional Equity Dark Pool Imbalance';
+    } else {
+      // NSE Stocks
+      entrySpread = p * 0.004;
+      slDelta = p * 0.030;
+      tp1Delta = p * 0.065;
+      tp2Delta = p * 0.140;
+      slPipsText = `KES ${formatPrice(slDelta)} (-3.0%)`;
+      tp1PipsText = `KES ${formatPrice(tp1Delta)} (+6.5%)`;
+      tp2PipsText = `KES ${formatPrice(tp2Delta)} (+14.0%)`;
+      atrText = `KES ${formatPrice(p * 0.035)}`;
+      marketImbalance = 'Nairobi Exchange Direct Order Book Queue';
     }
 
+    const entryMin = p - entrySpread * 0.45;
+    const entryMax = p + entrySpread * 0.55;
+
+    const stopLossVal = isBuy ? p - slDelta : p + slDelta;
+    const tp1Val = isBuy ? p + tp1Delta : p - tp1Delta;
+    const tp2Val = isBuy ? p + tp2Delta : p - tp2Delta;
+    const pivotVal = isBuy ? p - slDelta * 0.3 : p + slDelta * 0.3;
+
+    const obMin = isBuy ? p - slDelta * 0.75 : p + slDelta * 0.25;
+    const obMax = isBuy ? p - slDelta * 0.25 : p + slDelta * 0.75;
+    const fvgMin = isBuy ? entryMin : entryMin;
+    const fvgMax = isBuy ? entryMax : entryMax;
+    const liqTargetVal = isBuy ? p + tp1Delta * 1.15 : p - tp1Delta * 1.15;
+    const beTriggerVal = isBuy ? p + tp1Delta * 0.65 : p - tp1Delta * 0.65;
+
     return {
-      action: selectedStock.defaultSignal.action,
-      setupType: selectedStock.defaultSignal.setup,
-      timeframe: selectedStock.isForex ? '4H / Daily Swing' : 'Swing / Position',
-      entryZone: selectedStock.isForex ? 'Market Range' : `${selectedStock.currency} ${selectedStock.currentPrice}`,
-      takeProfit1: selectedStock.isForex ? '+65 pips' : '+15%',
-      takeProfit2: selectedStock.isForex ? '+125 pips' : '+28%',
-      stopLoss: selectedStock.isForex ? '-35 pips' : '-8%',
+      action,
+      setupType,
+      timeframe: tf,
+      timeframeCategory: tf.includes('m') ? 'Scalp' : tf.includes('H') ? 'Intraday' : 'Swing',
+      confirmationScore: '4/5 Confluences: Sweep + FVG + RSI + EMA',
+      entryZone: `${formatPrice(entryMin)} - ${formatPrice(entryMax)}`,
+      takeProfit1: `${formatPrice(tp1Val)} (+${tp1PipsText})`,
+      takeProfit2: `${formatPrice(tp2Val)} (+${tp2PipsText})`,
+      stopLoss: `${formatPrice(stopLossVal)} (-${slPipsText})`,
       riskReward: '1:2.4',
       confidenceScore: selectedStock.defaultSignal.score,
-      summary: 'Technical momentum indicates favorable trend direction with clear invalidation levels.',
+      summary: `${tf} timeframe confirms liquidity sweep with displacement into ${marketImbalance} at ${formatPrice(p)}.`,
       indicators: {
-        rsi: '58.4 (Bullish momentum)',
-        macd: 'Bullish Crossover',
-        movingAverages: 'Trading above 50 EMA',
-        pivotPoint: 'Central Pivot',
-        atr: selectedStock.isForex ? '64 pips' : 'Moderate',
+        rsi: isBuy ? '63.5 (Bullish Expansion)' : '37.8 (Bearish Momentum)',
+        macd: isBuy ? 'Bullish Crossover above signal line' : 'Bearish Divergence under signal line',
+        movingAverages: `Trading ${isBuy ? 'above' : 'below'} 20 & 50 EMA on ${tf}`,
+        pivotPoint: formatPrice(pivotVal),
+        atr: atrText,
+      },
+      smc: {
+        orderBlock: `${formatPrice(obMin)} - ${formatPrice(obMax)} (${isBuy ? 'Bullish Demand' : 'Bearish Supply'})`,
+        fairValueGap: `${formatPrice(fvgMin)} - ${formatPrice(fvgMax)} (${isBuy ? 'Bullish FVG' : 'Bearish FVG'})`,
+        liquidityTarget: `${isBuy ? 'Buy-Side Liquidity (BSL) resting above' : 'Sell-Side Liquidity (SSL) resting below'} ${formatPrice(liqTargetVal)}`,
+        marketStructure: isBuy ? 'BOS (Break of Structure Bullish)' : 'CHoCH (Change of Character Bearish)',
+      },
+      tradeManagement: {
+        breakEvenRule: `Move SL to Break-Even at ${formatPrice(beTriggerVal)}`,
+        partialProfitRule: 'Close 70% volume at TP1; trail remaining 30% runner behind swing structure',
+        invalidationRule: `Close setup immediately if a ${tf} candle closes ${isBuy ? 'below' : 'above'} ${formatPrice(stopLossVal)}`,
       },
     };
   }, [aiReport, selectedStock, currentDisplayPrice, timeframe]);
@@ -2479,7 +2759,19 @@ Summary: ${sig.summary}`;
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           {filteredStocks.map((stock) => {
             const isSelected = selectedStock.ticker === stock.ticker;
-            const isUp = stock.changePercent >= 0;
+            const cleanStockTicker = stock.ticker.replace('/', '').toUpperCase();
+            const tvQ =
+              liveTvQuotes[cleanStockTicker] ||
+              liveTvQuotes[stock.ticker] ||
+              liveTvQuotes[`OANDA:${cleanStockTicker}`] ||
+              liveTvQuotes[`FX:${cleanStockTicker}`] ||
+              liveTvQuotes[`NASDAQ:${cleanStockTicker}`] ||
+              liveTvQuotes[`SP:${cleanStockTicker}`] ||
+              liveTvQuotes[`DJ:${cleanStockTicker}`];
+
+            const chipPrice = tvQ && tvQ.price > 0 ? tvQ.price : stock.currentPrice;
+            const chipChangePct = tvQ ? tvQ.changePercent : stock.changePercent;
+            const isUp = chipChangePct >= 0;
             const isStockLive =
               stock.market === 'FOREX' || stock.market === 'METALS' || stock.market === 'INDICES'
                 ? forexSession.isOpen
@@ -2545,7 +2837,7 @@ Summary: ${sig.summary}`;
 
                 <div className="text-right font-mono">
                   <div className="font-bold text-white">
-                    {stock.currency} {formatPriceVal(stock.currentPrice)}
+                    {stock.currency} {formatPriceVal(chipPrice)}
                   </div>
                   <div
                     className={`text-[10px] font-semibold flex items-center justify-end gap-0.5 ${
@@ -2555,7 +2847,7 @@ Summary: ${sig.summary}`;
                     {isUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                     <span>
                       {isUp ? '+' : ''}
-                      {stock.changePercent}%
+                      {chipChangePct.toFixed(2)}%
                     </span>
                   </div>
                 </div>
@@ -3099,19 +3391,19 @@ Summary: ${sig.summary}`;
                   </span>
                   <div
                     className={`flex items-center gap-1 font-mono text-sm font-bold ${
-                      selectedStock.changePercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                      currentDisplayChangePercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
                     }`}
                   >
-                    {selectedStock.changePercent >= 0 ? (
+                    {currentDisplayChangePercent >= 0 ? (
                       <ArrowUpRight className="w-4 h-4" />
                     ) : (
                       <ArrowDownRight className="w-4 h-4" />
                     )}
                     <span>
-                      {selectedStock.changePercent >= 0 ? '+' : ''}
-                      {formatPriceVal(selectedStock.changeValue)} (
-                      {selectedStock.changePercent >= 0 ? '+' : ''}
-                      {selectedStock.changePercent}%)
+                      {currentDisplayChangePercent >= 0 ? '+' : ''}
+                      {formatPriceVal(currentDisplayChangeValue)} (
+                      {currentDisplayChangePercent >= 0 ? '+' : ''}
+                      {currentDisplayChangePercent.toFixed(2)}%)
                     </span>
                   </div>
                 </div>

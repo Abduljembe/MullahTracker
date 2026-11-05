@@ -223,8 +223,23 @@ export const InstitutionalSignalCard: React.FC<InstitutionalSignalCardProps> = (
       const pipsTp2 = currentPrice < 10 ? tp2Distance * 10000 : tp2Distance * 100;
       estTp1Gain = pipsTp1 * pipValueStandard * computedLot;
       estTp2Gain = pipsTp2 * pipValueStandard * computedLot;
+    } else if (market === 'INDICES') {
+      // Indices CFDs (1 pt move = $1.00 per point per 1.0 lot)
+      const riskPerLot = slDistance * 1.0;
+      computedLot = riskPerLot > 0 ? maxRiskCash / riskPerLot : 0.1;
+      computedLot = Math.max(0.01, Math.round(computedLot * 100) / 100);
+      estTp1Gain = tp1Distance * 1.0 * computedLot;
+      estTp2Gain = tp2Distance * 1.0 * computedLot;
+    } else if (market === 'METALS') {
+      // Silver & other metals CFDs
+      const multiplier = ticker === 'XAG/USD' ? 50 : 10;
+      const riskPerLot = slDistance * multiplier;
+      computedLot = riskPerLot > 0 ? maxRiskCash / riskPerLot : 0.1;
+      computedLot = Math.max(0.01, Math.round(computedLot * 100) / 100);
+      estTp1Gain = tp1Distance * multiplier * computedLot;
+      estTp2Gain = tp2Distance * multiplier * computedLot;
     } else {
-      // Stocks: number of shares
+      // Equities / Stocks: number of shares
       computedLot = slDistance > 0 ? Math.floor(maxRiskCash / slDistance) : 50;
       computedLot = Math.max(1, computedLot);
       estTp1Gain = tp1Distance * computedLot;
