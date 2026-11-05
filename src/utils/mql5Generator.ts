@@ -37,6 +37,8 @@ export interface EaParameters {
   // Institutional Quant Power Boosters
   useMultiTimeframeFilter?: boolean;
   useNewsGuard?: boolean;
+  useAdxChopFilter?: boolean;
+  minAdxLevel?: number;
   maxConsecutiveLosses?: number;
   // Session Killzones
   tradeLondonSession: boolean;
@@ -73,6 +75,8 @@ export const DEFAULT_EA_PARAMS: EaParameters = {
   partialClosePercent: 70,
   useMultiTimeframeFilter: true,
   useNewsGuard: true,
+  useAdxChopFilter: true,
+  minAdxLevel: 22.0,
   maxConsecutiveLosses: 2,
   tradeLondonSession: true,
   tradeNewYorkSession: true,
@@ -143,6 +147,8 @@ input int      InpPartialPercent     = ${p.partialClosePercent};          // % V
 sinput string _sep4_ = "====== INSTITUTIONAL QUANT ARMOR ======";
 input bool     InpUseMtfFilter       = ${p.useMultiTimeframeFilter ? 'true' : 'false'};      // Multi-Timeframe SMC Matrix (H1 Trend Bias Filter)
 input bool     InpUseNewsGuard       = ${p.useNewsGuard ? 'true' : 'false'};      // High-Impact Macro News Guard (Auto-Pause)
+input bool     InpUseAdxChopFilter   = ${p.useAdxChopFilter !== false ? 'true' : 'false'};      // ADX Anti-Whipsaw Filter (Block Chop if ADX < 20)
+input double   InpMinAdxThreshold    = ${p.minAdxLevel ? p.minAdxLevel.toFixed(1) : '22.0'};       // Minimum ADX Trend Threshold
 input int      InpMaxConsecLosses    = ${p.maxConsecutiveLosses || 2};          // Max Consecutive Loss Hard Stop
 input int      InpMaxSpreadPoints    = ${p.maxSpreadPoints};          // Maximum Allowed Spread (Points)
 input ulong    InpMaxSlippage        = ${p.maxSlippagePoints};          // Max Allowed Execution Slippage
@@ -167,6 +173,7 @@ int            h_ema_slow     = INVALID_HANDLE;
 int            h_ema_h1       = INVALID_HANDLE; // Higher Timeframe Trend Bias
 int            h_atr          = INVALID_HANDLE;
 int            h_rsi          = INVALID_HANDLE;
+int            h_adx          = INVALID_HANDLE; // ADX Trend & Chop Filter
 
 datetime       m_last_bar_time = 0;
 double         m_day_start_equity = 0.0;
@@ -206,6 +213,11 @@ int OnInit()
    if(InpUseMtfFilter)
    {
       h_ema_h1 = iMA(_Symbol, PERIOD_H1, 50, 0, MODE_EMA, PRICE_CLOSE);
+   }
+
+   if(InpUseAdxChopFilter)
+   {
+      h_adx = iADX(_Symbol, InpTimeframe, 14);
    }
 
    if(h_ema_fast == INVALID_HANDLE || h_ema_slow == INVALID_HANDLE ||
@@ -277,6 +289,7 @@ void OnDeinit(const int reason)
    if(h_ema_h1 != INVALID_HANDLE)   IndicatorRelease(h_ema_h1);
    if(h_atr != INVALID_HANDLE)      IndicatorRelease(h_atr);
    if(h_rsi != INVALID_HANDLE)      IndicatorRelease(h_rsi);
+   if(h_adx != INVALID_HANDLE)      IndicatorRelease(h_adx);
 
    Comment(""); // Clear chart HUD
    Print("[-] ${p.eaName} Deinitialized. Reason: ", reason);
@@ -381,6 +394,21 @@ int EvaluateSmcSignal()
    ArraySetAsSeries(rates, true);
    if(CopyRates(_Symbol, InpTimeframe, 1, InpSweepLookbackBars + 3, rates) < InpSweepLookbackBars + 3)
       return 0;
+
+   // 0. ADX Anti-Whipsaw Guard (Block flat/choppy consolidation when ADX < Threshold)
+   if(InpUseAdxChopFilter && h_adx != INVALID_HANDLE)
+   {
+      double adx_buf[];
+      ArraySetAsSeries(adx_buf, true);
+      if(CopyBuffer(h_adx, 0, 1, 2, adx_buf) > 0)
+      {
+         if(adx_buf[0] < InpMinAdxThreshold)
+         {
+            // Market lacks directional momentum / dangerous sideways chop
+            return 0;
+         }
+      }
+   }
 
    // 1. Trend Direction Alignment
    bool is_bullish_trend = (ema_fast[0] > ema_slow[0]) && (rates[0].close > ema_fast[0]);

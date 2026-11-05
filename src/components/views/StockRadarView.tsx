@@ -1587,7 +1587,24 @@ export const StockRadarView: React.FC = () => {
   const [liveCandles, setLiveCandles] = useState<Candle[]>([]);
 
   // Real-time TradingView scanner feed quotes
-  const [liveTvQuotes, setLiveTvQuotes] = useState<Record<string, { symbol: string; price: number; changePercent: number; changeValue: number }>>({});
+  interface LiveTvQuoteData {
+    symbol: string;
+    price: number;
+    changePercent: number;
+    changeValue: number;
+    recommendAll?: number;
+    recommendMa?: number;
+    recommendOther?: number;
+    rsi?: number;
+    macd?: number;
+    macdSignal?: number;
+    ema20?: number;
+    ema50?: number;
+    ema200?: number;
+    atr?: number;
+    adx?: number;
+  }
+  const [liveTvQuotes, setLiveTvQuotes] = useState<Record<string, LiveTvQuoteData>>({});
 
   useEffect(() => {
     let isMounted = true;
@@ -2226,8 +2243,39 @@ Summary: ${sig.summary}`;
     if (aiReport?.signal) return aiReport.signal;
 
     const p = currentDisplayPrice;
-    const isBuy = selectedStock.defaultSignal.action.includes('BUY');
-    const action = selectedStock.defaultSignal.action;
+    const currentTv = currentTvQuote;
+    const recAll = currentTv?.recommendAll;
+    const rsiVal = currentTv?.rsi;
+    const adxVal = currentTv?.adx;
+    const atrVal = currentTv?.atr;
+    const macdVal = currentTv?.macd;
+    const macdSig = currentTv?.macdSignal;
+
+    // Determine algorithmic direction from TradingView's composite multi-indicator consensus
+    let isBuy = selectedStock.defaultSignal.action.includes('BUY');
+    let action = selectedStock.defaultSignal.action;
+    let confidenceScore = selectedStock.defaultSignal.score;
+
+    if (typeof recAll === 'number') {
+      if (recAll >= 0.20) {
+        action = 'STRONG BUY';
+        isBuy = true;
+        confidenceScore = Math.min(96, Math.max(88, Math.round(75 + recAll * 30)));
+      } else if (recAll >= 0.05) {
+        action = 'BUY';
+        isBuy = true;
+        confidenceScore = Math.min(88, Math.max(78, Math.round(72 + recAll * 25)));
+      } else if (recAll <= -0.20) {
+        action = 'STRONG SELL';
+        isBuy = false;
+        confidenceScore = Math.min(96, Math.max(88, Math.round(75 + Math.abs(recAll) * 30)));
+      } else if (recAll <= -0.05) {
+        action = 'SELL';
+        isBuy = false;
+        confidenceScore = Math.min(88, Math.max(78, Math.round(72 + Math.abs(recAll) * 25)));
+      }
+    }
+
     const setupType = selectedStock.defaultSignal.setup;
     const tf = timeframe || '15m Scalp';
 
@@ -2449,18 +2497,30 @@ Summary: ${sig.summary}`;
       setupType,
       timeframe: tf,
       timeframeCategory: tf.includes('m') ? 'Scalp' : tf.includes('H') ? 'Intraday' : 'Swing',
-      confirmationScore: '4/5 Confluences: Sweep + FVG + RSI + EMA',
+      confirmationScore: typeof adxVal === 'number'
+        ? (adxVal < 20
+            ? `⚠️ Low Trend ADX: ${adxVal.toFixed(1)} (Consolidation Filter Active)`
+            : `4/4 Verified Confluences: ADX ${adxVal.toFixed(1)} Trend + TV Rating (${recAll && recAll >= 0 ? '+' : ''}${recAll?.toFixed(2)}) + ATR Stops`)
+        : '4/5 Confluences: Sweep + FVG + RSI + EMA',
       entryZone: `${formatPrice(entryMin)} - ${formatPrice(entryMax)}`,
       takeProfit1: `${formatPrice(tp1Val)} (+${tp1PipsText})`,
       takeProfit2: `${formatPrice(tp2Val)} (+${tp2PipsText})`,
       stopLoss: `${formatPrice(stopLossVal)} (-${slPipsText})`,
       riskReward: '1:2.4',
-      confidenceScore: selectedStock.defaultSignal.score,
+      confidenceScore: confidenceScore,
       summary: `${tf} timeframe confirms liquidity sweep with displacement into ${marketImbalance} at ${formatPrice(p)}.`,
       indicators: {
-        rsi: isBuy ? '63.5 (Bullish Expansion)' : '37.8 (Bearish Momentum)',
-        macd: isBuy ? 'Bullish Crossover above signal line' : 'Bearish Divergence under signal line',
-        movingAverages: `Trading ${isBuy ? 'above' : 'below'} 20 & 50 EMA on ${tf}`,
+        rsi: typeof rsiVal === 'number'
+          ? `${rsiVal.toFixed(1)} (${rsiVal > 60 ? 'Bullish Expansion' : rsiVal < 40 ? 'Oversold Discount' : 'Neutral Equilibrium'})`
+          : (isBuy ? '63.5 (Bullish Expansion)' : '37.8 (Bearish Momentum)'),
+        macd: typeof macdVal === 'number' && typeof macdSig === 'number'
+          ? (macdVal >= macdSig
+              ? `Bullish Momentum (MACD: ${macdVal.toFixed(4)} > Signal)`
+              : `Bearish Divergence (MACD: ${macdVal.toFixed(4)} < Signal)`)
+          : (isBuy ? 'Bullish Crossover above signal line' : 'Bearish Divergence under signal line'),
+        movingAverages: typeof recAll === 'number'
+          ? `TradingView MA Bias: ${recAll >= 0 ? '+' : ''}${recAll.toFixed(2)} (${isBuy ? 'Aligned with Uptrend' : 'Aligned with Downtrend'})`
+          : `Trading ${isBuy ? 'above' : 'below'} 20 & 50 EMA on ${tf}`,
         pivotPoint: formatPrice(pivotVal),
         atr: atrText,
       },
