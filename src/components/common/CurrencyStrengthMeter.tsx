@@ -24,13 +24,16 @@ interface CurrencyStrengthMeterProps {
 }
 
 export const CurrencyStrengthMeter: React.FC<CurrencyStrengthMeterProps> = ({ onSelectPair }) => {
-  // Live dynamic currency scores
+  // Live dynamic currency scores across all global reserve currencies + Gold + KES
   const [currencies, setCurrencies] = useState<CurrencyScore[]>([
+    { code: 'XAU', name: 'Gold Bullion', score: 9.4, change24h: 0.71, bias: 'BULLISH', status: 'Strong' },
     { code: 'USD', name: 'US Dollar', score: 8.6, change24h: 0.42, bias: 'BULLISH', status: 'Strong' },
     { code: 'KES', name: 'Kenyan Shilling', score: 7.8, change24h: 0.28, bias: 'BULLISH', status: 'Strong' },
     { code: 'GBP', name: 'British Pound', score: 6.4, change24h: 0.15, bias: 'NEUTRAL', status: 'Moderate' },
     { code: 'CAD', name: 'Canadian Dollar', score: 5.7, change24h: -0.05, bias: 'NEUTRAL', status: 'Moderate' },
+    { code: 'CHF', name: 'Swiss Franc', score: 5.2, change24h: -0.12, bias: 'NEUTRAL', status: 'Moderate' },
     { code: 'AUD', name: 'Australian Dollar', score: 4.8, change24h: -0.22, bias: 'NEUTRAL', status: 'Moderate' },
+    { code: 'NZD', name: 'New Zealand Dollar', score: 4.1, change24h: -0.31, bias: 'BEARISH', status: 'Weak' },
     { code: 'EUR', name: 'Euro', score: 3.5, change24h: -0.38, bias: 'BEARISH', status: 'Weak' },
     { code: 'JPY', name: 'Japanese Yen', score: 2.4, change24h: -0.65, bias: 'BEARISH', status: 'Weak' },
   ]);
@@ -108,7 +111,7 @@ export const CurrencyStrengthMeter: React.FC<CurrencyStrengthMeterProps> = ({ on
           Relative Strength Rankings (Score 0 to 10)
         </h4>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-2.5">
           {currencies.map((c) => {
             const isStrong = c.score >= 7.0;
             const isWeak = c.score < 4.5;
