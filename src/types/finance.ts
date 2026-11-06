@@ -21,7 +21,8 @@ export type TabType =
   | 'chama'
   | 'cashflow'
   | 'milestones'
-  | 'mt5-ea';
+  | 'mt5-ea'
+  | 'forex-suite';
 
 export type CurrencyCode = 'KES' | 'USD' | 'EUR' | 'GBP' | 'TZS' | 'UGX';
 

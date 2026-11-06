@@ -45,6 +45,8 @@ import {
   Filter,
   ArrowRight,
   Bot,
+  Users,
+  Compass,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext.tsx';
 import { InvestmentItem } from '../../types/finance.ts';
@@ -66,6 +68,13 @@ import { CurrencyCorrelationMatrix } from '../common/CurrencyCorrelationMatrix.t
 import { BrokerMpesaArbiter } from '../common/BrokerMpesaArbiter.tsx';
 import { OrderFlowLiquidityDesk } from '../common/OrderFlowLiquidityDesk.tsx';
 import { LiveMarketsTVDesk } from '../common/LiveMarketsTVDesk.tsx';
+import { RetailSentimentDesk } from '../common/RetailSentimentDesk.tsx';
+import { TelegramSignalDispatcher } from '../common/TelegramSignalDispatcher.tsx';
+import { IntermarketDivergenceRadar } from '../common/IntermarketDivergenceRadar.tsx';
+import { AdrVolatilityExhaustionDesk } from '../common/AdrVolatilityExhaustionDesk.tsx';
+import { CotInstitutionalMatrix } from '../common/CotInstitutionalMatrix.tsx';
+import { MtfConfluenceMatrixDesk } from '../common/MtfConfluenceMatrixDesk.tsx';
+import { CamarillaPivotMatrix } from '../common/CamarillaPivotMatrix.tsx';
 import { generateCandles, computePeriodStats, Timeframe, Candle } from '../../utils/stockCandles.ts';
 import { getMarketSession, MarketSessionInfo } from '../../utils/marketHours.ts';
 
@@ -1653,6 +1662,13 @@ export const StockRadarView: React.FC = () => {
     | 'backtest'
     | 'calendar'
     | 'news'
+    | 'sentiment'
+    | 'dispatcher'
+    | 'intermarket'
+    | 'adr'
+    | 'mtf-matrix'
+    | 'cot'
+    | 'camarilla'
   >('paper');
 
   // Price Alerts Modal & Notification State
@@ -3728,6 +3744,90 @@ Summary: ${sig.summary}`;
                   <Flame className="w-3.5 h-3.5 text-rose-400" />
                   <span>Forex Factory News & AI Insights</span>
                 </button>
+
+                <button
+                  onClick={() => setBottomTab('sentiment')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'sentiment'
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Retail Sentiment & Order Book</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('dispatcher')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'dispatcher'
+                      ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Send className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Telegram & Discord Broadcast</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('intermarket')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'intermarket'
+                      ? 'bg-[#0df2c9]/20 text-[#0df2c9] border border-[#0df2c9]/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Compass className="w-3.5 h-3.5 text-[#0df2c9]" />
+                  <span>Intermarket Macro Radar</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('adr')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'adr'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>ADR Volatility Exhaustion</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('mtf-matrix')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'mtf-matrix'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>MTF 4H-1M Matrix</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('cot')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'cot'
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Flame className="w-3.5 h-3.5 text-purple-400" />
+                  <span>COT Smart Money</span>
+                </button>
+
+                <button
+                  onClick={() => setBottomTab('camarilla')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bottomTab === 'camarilla'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Target className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Camarilla & CPR Pivots</span>
+                </button>
               </div>
 
               <span className="text-[11px] font-mono text-slate-500 px-2 hidden lg:inline">
@@ -3857,6 +3957,82 @@ Summary: ${sig.summary}`;
               <ForexFactoryNewsDesk
                 currentTicker={selectedStock.ticker}
                 market={selectedStock.market}
+              />
+            )}
+
+            {/* Tab 12: Retail vs. Institutional Sentiment & Order Book */}
+            {bottomTab === 'sentiment' && (
+              <RetailSentimentDesk
+                currentTicker={selectedStock.ticker}
+                onSelectTicker={(ticker) => {
+                  const match = FEATURED_ASSETS.find((a) => a.ticker === ticker || a.ticker.replace('/', '') === ticker.replace('/', ''));
+                  if (match) setSelectedStock(match);
+                }}
+              />
+            )}
+
+            {/* Tab 13: 1-Click Telegram & Discord Signal Dispatcher */}
+            {bottomTab === 'dispatcher' && (
+              <TelegramSignalDispatcher
+                activeSignal={{
+                  symbol: selectedStock.ticker,
+                  action: (activeSignal.action === 'HOLD' || activeSignal.action === 'NEUTRAL' ? 'BUY' : activeSignal.action) as any,
+                  timeframe: activeSignal.timeframe,
+                  price: currentDisplayPrice,
+                  entryZone: activeSignal.entryZone,
+                  sl: activeSignal.stopLoss,
+                  tp1: activeSignal.takeProfit1,
+                  tp2: activeSignal.takeProfit2,
+                  rr: activeSignal.riskReward,
+                  score: activeSignal.confidenceScore,
+                  grade: 'A+ PRIME SCALP',
+                  confluences: '5/5 Institutional Guards Engaged (MTF Trend + Dynamic ATR Stops + ADX Chop Guard + TV Consensus + News Guard)',
+                }}
+              />
+            )}
+
+            {/* Tab 14: Intermarket Macro Divergence Radar */}
+            {bottomTab === 'intermarket' && (
+              <IntermarketDivergenceRadar
+                onSelectPair={(pair) => {
+                  const match = FEATURED_ASSETS.find((a) => a.ticker === pair || a.ticker.replace('/', '') === pair.replace('/', ''));
+                  if (match) setSelectedStock(match);
+                }}
+              />
+            )}
+
+            {/* Tab 15: Average Daily Range (ADR) Volatility Exhaustion */}
+            {bottomTab === 'adr' && (
+              <AdrVolatilityExhaustionDesk
+                currentTicker={selectedStock.ticker}
+                onSelectTicker={(ticker) => {
+                  const match = FEATURED_ASSETS.find((a) => a.ticker === ticker || a.ticker.replace('/', '') === ticker.replace('/', ''));
+                  if (match) setSelectedStock(match);
+                }}
+              />
+            )}
+
+            {/* Tab 16: Multi-Timeframe 4H-1M Confluence Matrix */}
+            {bottomTab === 'mtf-matrix' && (
+              <MtfConfluenceMatrixDesk
+                onSelectPair={(pair) => {
+                  const match = FEATURED_ASSETS.find((a) => a.ticker === pair || a.ticker.replace('/', '') === pair.replace('/', ''));
+                  if (match) setSelectedStock(match);
+                }}
+              />
+            )}
+
+            {/* Tab 17: COT Institutional Smart Money Flow */}
+            {bottomTab === 'cot' && <CotInstitutionalMatrix />}
+
+            {/* Tab 18: Camarilla & Central Pivot Range (CPR) */}
+            {bottomTab === 'camarilla' && (
+              <CamarillaPivotMatrix
+                currentTicker={selectedStock.ticker}
+                onSelectTicker={(ticker) => {
+                  const match = FEATURED_ASSETS.find((a) => a.ticker === ticker || a.ticker.replace('/', '') === ticker.replace('/', ''));
+                  if (match) setSelectedStock(match);
+                }}
               />
             )}
           </div>

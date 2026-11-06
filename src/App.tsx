@@ -31,6 +31,7 @@ import { StockRadarView } from './components/views/StockRadarView.tsx';
 import { OrderFlowView } from './components/views/OrderFlowView.tsx';
 import { LiveTvView } from './components/views/LiveTvView.tsx';
 import { Mt5EaScalperStudio } from './components/views/Mt5EaScalperStudio.tsx';
+import { ForexPowerSuiteView } from './components/views/ForexPowerSuiteView.tsx';
 import { QuickAddModal } from './components/modals/QuickAddModal.tsx';
 import { HealthScoreModal } from './components/modals/HealthScoreModal.tsx';
 import { ClearDataModal } from './components/modals/ClearDataModal.tsx';
@@ -73,6 +74,8 @@ const MainContent: React.FC = () => {
         return <StockRadarView />;
       case 'mt5-ea':
         return <Mt5EaScalperStudio />;
+      case 'forex-suite':
+        return <ForexPowerSuiteView />;
       case 'orderflow':
         return <OrderFlowView />;
       case 'livetv':

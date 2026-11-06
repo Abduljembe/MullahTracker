@@ -57,8 +57,17 @@ import {
   Percent,
   Calculator,
   Tag,
+  Users,
+  Globe2,
+  Send,
 } from 'lucide-react';
 import { EaParameters, DEFAULT_EA_PARAMS, generateMql5Code } from '../../utils/mql5Generator.ts';
+import { PropFirmRiskGuardian } from '../common/PropFirmRiskGuardian.tsx';
+import { CurrencyStrengthMeter } from '../common/CurrencyStrengthMeter.tsx';
+import { RetailSentimentDesk } from '../common/RetailSentimentDesk.tsx';
+import { TelegramSignalDispatcher } from '../common/TelegramSignalDispatcher.tsx';
+import { ForexSessionsKillzones } from '../common/ForexSessionsKillzones.tsx';
+import { EconomicCalendar } from '../common/EconomicCalendar.tsx';
 
 export interface ScannedOpportunity {
   symbol: string;
@@ -513,7 +522,19 @@ const POPULAR_BROKERS: BrokerPreset[] = [
 
 export const Mt5EaScalperStudio: React.FC = () => {
   // Navigation tab
-  const [activeTab, setActiveTab] = useState<'live-engine' | 'config' | 'backtest' | 'code' | 'guide'>('live-engine');
+  const [activeTab, setActiveTab] = useState<
+    | 'live-engine'
+    | 'config'
+    | 'backtest'
+    | 'code'
+    | 'guide'
+    | 'prop-shield'
+    | 'sentiment'
+    | 'csm'
+    | 'sessions'
+    | 'calendar'
+    | 'dispatcher'
+  >('live-engine');
   const [selectedPreset, setSelectedPreset] = useState<string>('gold-titanium');
   const [params, setParams] = useState<EaParameters>(DEFAULT_EA_PARAMS);
 
@@ -1508,14 +1529,86 @@ export const Mt5EaScalperStudio: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('guide')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
             activeTab === 'guide'
               ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
               : 'text-slate-400 hover:text-white'
           }`}
         >
           <BookOpen className="w-4 h-4 text-emerald-400" />
-          <span>MT5 Installation & Connection Guide</span>
+          <span>MT5 Guide</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('prop-shield')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'prop-shield'
+              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <ShieldAlert className="w-4 h-4 text-purple-400" />
+          <span>Prop Firm Shield</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('sentiment')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'sentiment'
+              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Users className="w-4 h-4 text-rose-400" />
+          <span>Retail Sentiment</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('csm')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'csm'
+              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Globe2 className="w-4 h-4 text-cyan-400" />
+          <span>Currency Strength (CSM)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('calendar')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'calendar'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Flame className="w-4 h-4 text-amber-400" />
+          <span>News Calendar</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('sessions')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'sessions'
+              ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Clock className="w-4 h-4 text-teal-400" />
+          <span>Killzones</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('dispatcher')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'dispatcher'
+              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Send className="w-4 h-4 text-blue-400" />
+          <span>Signal Broadcast</span>
         </button>
       </div>
 
@@ -3189,6 +3282,62 @@ export const Mt5EaScalperStudio: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Tab: Prop Firm Shield & Drawdown Meter */}
+      {activeTab === 'prop-shield' && (
+        <div className="space-y-4">
+          <PropFirmRiskGuardian currentTicker="XAU/USD" />
+        </div>
+      )}
+
+      {/* Tab: Retail vs. Institutional Sentiment */}
+      {activeTab === 'sentiment' && (
+        <div className="space-y-4">
+          <RetailSentimentDesk currentTicker="XAU/USD" />
+        </div>
+      )}
+
+      {/* Tab: Currency Strength Meter (CSM) */}
+      {activeTab === 'csm' && (
+        <div className="space-y-4">
+          <CurrencyStrengthMeter />
+        </div>
+      )}
+
+      {/* Tab: Economic Calendar */}
+      {activeTab === 'calendar' && (
+        <div className="space-y-4">
+          <EconomicCalendar currentTicker="XAU/USD" />
+        </div>
+      )}
+
+      {/* Tab: Session Killzone Clock */}
+      {activeTab === 'sessions' && (
+        <div className="space-y-4">
+          <ForexSessionsKillzones />
+        </div>
+      )}
+
+      {/* Tab: 1-Click Telegram & Discord Dispatcher */}
+      {activeTab === 'dispatcher' && (
+        <div className="space-y-4">
+          <TelegramSignalDispatcher
+            activeSignal={{
+              symbol: 'XAUUSD',
+              action: 'STRONG BUY',
+              price: 4089.08,
+              entryZone: '4087.50 - 4091.00',
+              sl: 4067.08,
+              tp1: 4122.08,
+              tp2: 4150.68,
+              rr: '1:2.6',
+              score: 95,
+              grade: 'A+ PRIME SCALP',
+              confluences: '5/5 Guards Engaged • Liquidity Sweep + FVG Retest + ADX Trend + H1 Matrix',
+            }}
+          />
         </div>
       )}
 
