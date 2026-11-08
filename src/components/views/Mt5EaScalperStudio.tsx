@@ -62,6 +62,7 @@ import {
   Send,
   Key,
   Wallet,
+  Gamepad2,
 } from 'lucide-react';
 import { EaParameters, DEFAULT_EA_PARAMS, generateMql5Code } from '../../utils/mql5Generator.ts';
 import { PropFirmRiskGuardian } from '../common/PropFirmRiskGuardian.tsx';
@@ -81,6 +82,7 @@ import { DerivSpikeCrashRadar } from '../trading/DerivSpikeCrashRadar.tsx';
 import { DerivWebTraderTerminal } from '../trading/DerivWebTraderTerminal.tsx';
 import { TradeJournalAnalytics } from '../trading/TradeJournalAnalytics.tsx';
 import { MarginLotCalculatorModal } from '../trading/MarginLotCalculatorModal.tsx';
+import { GamerTradingCockpit } from '../trading/GamerTradingCockpit.tsx';
 
 export interface ScannedOpportunity {
   symbol: string;
@@ -776,6 +778,9 @@ export const Mt5EaScalperStudio: React.FC = () => {
   const [trailingStopEnabled, setTrailingStopEnabled] = useState<boolean>(true);
   const [breakEvenEnabled, setBreakEvenEnabled] = useState<boolean>(true);
   const [newsFilterEnabled, setNewsFilterEnabled] = useState<boolean>(true);
+  const [deckDisplayMode, setDeckDisplayMode] = useState<'GAMER' | 'CLASSIC'>(() => {
+    return (localStorage.getItem('trader_deck_mode') as 'GAMER' | 'CLASSIC') || 'GAMER';
+  });
 
   // Master Bot State (Running vs Stopped)
   const [isBotRunning, setIsBotRunning] = useState<boolean>(() => {
@@ -1449,6 +1454,55 @@ export const Mt5EaScalperStudio: React.FC = () => {
     ]);
   };
 
+  // Close position by numeric ticket (used by GamerTradingCockpit)
+  const handleClosePositionByTicket = async (ticket: number) => {
+    const pos = activePositions.find((p) => p.ticket === ticket);
+    if (pos && pos.id) {
+      await handleCloseSinglePosition(pos.id);
+    }
+  };
+
+  // Open trade from GamerTradingCockpit with precision risk parameters
+  const handleOpenTradeFromCockpit = async (
+    sym: string,
+    type: 'BUY' | 'SELL',
+    lots: number,
+    slDist?: number,
+    tpDist?: number
+  ) => {
+    try {
+      const res = await fetch('/api/ea/open-trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          symbol: sym,
+          type,
+          lots,
+          sl: slDist ? (type === 'BUY' ? livePrice - slDist : livePrice + slDist) : undefined,
+          tp: tpDist ? (type === 'BUY' ? livePrice + tpDist : livePrice - tpDist) : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.position) {
+        setActivePositions((prev) => [data.position, ...prev]);
+        setIsBotRunning(true);
+        localStorage.setItem('mullah_bot_running', 'true');
+        setTerminalLogs((prev) => [
+          {
+            id: `log-${Date.now()}`,
+            time: new Date().toLocaleTimeString(),
+            text: `🎯 ARCADE HUD FIRE: ${data.position.type} ${data.position.lots} Lots ${data.position.symbol} @ ${data.position.openPrice} | Ticket #${data.position.ticket}`,
+            type: 'trade',
+          },
+          ...prev.slice(0, 40),
+        ]);
+        playChime('trade');
+      }
+    } catch (err) {
+      console.error('Tactical fire failed:', err);
+    }
+  };
+
   // Audio chimes
   const playChime = (type: 'start' | 'stop' | 'trade' | 'alert') => {
     if (!audioAlerts) return;
@@ -2112,12 +2166,44 @@ export const Mt5EaScalperStudio: React.FC = () => {
             {audioAlerts ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
 
+          {/* Mode Switcher: Arcade HUD vs Classic Desk */}
+          <div className="flex items-center p-1 rounded-xl bg-[#09111e] border border-[#1b2c47]">
+            <button
+              onClick={() => {
+                setDeckDisplayMode('GAMER');
+                localStorage.setItem('trader_deck_mode', 'GAMER');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                deckDisplayMode === 'GAMER'
+                  ? 'bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 shadow-md shadow-teal-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Gamepad2 className="w-3.5 h-3.5" />
+              <span>Arcade HUD</span>
+            </button>
+            <button
+              onClick={() => {
+                setDeckDisplayMode('CLASSIC');
+                localStorage.setItem('trader_deck_mode', 'CLASSIC');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                deckDisplayMode === 'CLASSIC'
+                  ? 'bg-slate-800 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>Classic Desk</span>
+            </button>
+          </div>
+
           <button
             onClick={() => setIsLotSizerModalOpen(true)}
             className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-[#0df2c9] border border-teal-500/30 text-xs font-bold transition-all cursor-pointer"
           >
             <Calculator className="w-3.5 h-3.5" />
-            <span>Lot Sizer Calculator</span>
+            <span>Lot Sizer</span>
           </button>
           <button
             onClick={() => setIsBrokerModalOpen(true)}
@@ -2415,8 +2501,29 @@ export const Mt5EaScalperStudio: React.FC = () => {
             </div>
           </div>
 
-          {/* Real-time Statistics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+          {deckDisplayMode === 'GAMER' ? (
+            <GamerTradingCockpit
+              currentSymbol={params.symbol}
+              onSymbolChange={(sym) => {
+                setParams((prev) => ({ ...prev, symbol: sym }));
+                const inst = getDerivInstrument(sym);
+                if (inst) setLivePrice(inst.basePrice);
+              }}
+              livePrice={livePrice}
+              activePositions={activePositions}
+              onOpenTrade={handleOpenTradeFromCockpit}
+              onClosePosition={handleClosePositionByTicket}
+              onCloseAll={async () => handleEmergencyPanicCloseAll()}
+              realizedPnlToday={realizedPnlToday}
+              maxDailyLoss={maxDailyLoss}
+              isBotRunning={isBotRunning}
+              onToggleBot={() => handleToggleBotRunning(!isBotRunning)}
+              onOpenLotSizer={() => setIsLotSizerModalOpen(true)}
+            />
+          ) : (
+            <>
+              {/* Real-time Statistics Bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
             <div className="p-4 rounded-2xl bg-[#090f1a] border border-[#16233a] space-y-1">
               <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Bot Operating Mode</span>
               <div className="flex items-center gap-2">
@@ -3533,6 +3640,8 @@ export const Mt5EaScalperStudio: React.FC = () => {
               </div>
             </div>
           </div>
+            </>
+          )}
         </div>
       )}
 
