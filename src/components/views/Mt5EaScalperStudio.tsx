@@ -60,6 +60,8 @@ import {
   Users,
   Globe2,
   Send,
+  Key,
+  Wallet,
 } from 'lucide-react';
 import { EaParameters, DEFAULT_EA_PARAMS, generateMql5Code } from '../../utils/mql5Generator.ts';
 import { PropFirmRiskGuardian } from '../common/PropFirmRiskGuardian.tsx';
@@ -68,6 +70,17 @@ import { RetailSentimentDesk } from '../common/RetailSentimentDesk.tsx';
 import { TelegramSignalDispatcher } from '../common/TelegramSignalDispatcher.tsx';
 import { ForexSessionsKillzones } from '../common/ForexSessionsKillzones.tsx';
 import { EconomicCalendar } from '../common/EconomicCalendar.tsx';
+import {
+  DERIV_INSTRUMENTS,
+  DerivInstrument,
+  getDerivInstrument,
+  getInstrumentsByCategory,
+  POPULAR_DERIV_SYMBOLS,
+} from '../../utils/derivInstruments.ts';
+import { DerivSpikeCrashRadar } from '../trading/DerivSpikeCrashRadar.tsx';
+import { DerivWebTraderTerminal } from '../trading/DerivWebTraderTerminal.tsx';
+import { TradeJournalAnalytics } from '../trading/TradeJournalAnalytics.tsx';
+import { MarginLotCalculatorModal } from '../trading/MarginLotCalculatorModal.tsx';
 
 export interface ScannedOpportunity {
   symbol: string;
@@ -84,6 +97,8 @@ export interface ScannedOpportunity {
   tp2: number;
   riskReward: string;
   projectedGain: string;
+  category?: 'VOLATILITY' | 'CRASH_BOOM' | 'STEP_JUMP' | 'CRYPTO' | 'INDICES' | 'COMMODITIES' | 'FOREX';
+  marketHours?: '24/7' | 'WEEKDAYS';
   confluences: {
     smc: string;
     indicators: string;
@@ -98,6 +113,156 @@ export interface ScannedOpportunity {
 
 export const INITIAL_SCANNED_OPPORTUNITIES: ScannedOpportunity[] = [
   {
+    symbol: 'R_75',
+    name: 'Deriv Volatility 75 Index (24/7)',
+    basePrice: 428950.40,
+    timeframe: 'M5',
+    type: 'BUY',
+    score: 96,
+    grade: 'A+ PRIME SCALP',
+    category: 'VOLATILITY',
+    marketHours: '24/7',
+    setup: 'Continuous 75% Volatility Bullish FVG & 20 EMA Dynamic Bounce',
+    entryZone: '428,200.00 - 429,100.00',
+    sl: 425450.00,
+    tp1: 435800.00,
+    tp2: 442500.00,
+    riskReward: '1:2.8',
+    projectedGain: '+$210 - $480 (0.01 lots)',
+    confluences: {
+      smc: 'Institutional liquidity sweep of prior 1H swing low at 428,950; massive bullish expansion displacement.',
+      indicators: 'SuperTrend bullish green; RSI 14 at 58.2 surging above equilibrium; 20/50 EMA golden cross.',
+      macro: 'Synthetic index 100% immune to central bank interest rate announcements & real-world news volatility.',
+      killzone: '24/7/365 uninterrupted liquidity with instantaneous order routing.'
+    },
+    aiThesis: 'Deriv flagship Volatility 75 index at 428,950. High asymmetric payoff with 1:2.8 R:R and tight noise-insulation stop.'
+  },
+  {
+    symbol: 'BOOM1000',
+    name: 'Deriv Boom 1000 Index (24/7)',
+    basePrice: 15420.30,
+    timeframe: 'M1',
+    type: 'BUY',
+    score: 93,
+    grade: 'A+ PRIME SCALP',
+    category: 'CRASH_BOOM',
+    marketHours: '24/7',
+    setup: 'Demand Zone FVG Spike Hunter & Volume Accumulation',
+    entryZone: '15,415.00 - 15,425.00',
+    sl: 15385.00,
+    tp1: 15540.00,
+    tp2: 15680.00,
+    riskReward: '1:3.4',
+    projectedGain: '+$120 - $260 (0.20 lots)',
+    confluences: {
+      smc: 'Price compressed into high-timeframe order block demand. High statistical likelihood of imminent green spike.',
+      indicators: 'Stochastic Oscillator oversold at 14.5; RSI diverging bullishly on 1-minute tick chart.',
+      macro: 'Continuous synthetic algorithmic generation without weekend market halts.',
+      killzone: 'Optimal statistical spike distribution cycle.'
+    },
+    aiThesis: 'Boom 1000 trades at 15,420.30. Spike Hunter model triggers buy entry ahead of algorithmic tick expansion.'
+  },
+  {
+    symbol: 'CRASH1000',
+    name: 'Deriv Crash 1000 Index (24/7)',
+    basePrice: 8750.60,
+    timeframe: 'M1',
+    type: 'SELL',
+    score: 92,
+    grade: 'A+ PRIME SCALP',
+    category: 'CRASH_BOOM',
+    marketHours: '24/7',
+    setup: 'Resistance Rejection & Algorithmic Drop Cascade',
+    entryZone: '8,748.00 - 8,755.00',
+    sl: 8780.00,
+    tp1: 8640.00,
+    tp2: 8520.00,
+    riskReward: '1:3.7',
+    projectedGain: '+$110 - $230 (0.20 lots)',
+    confluences: {
+      smc: 'Overextended upward trend tapping institutional supply threshold at 8,750.60.',
+      indicators: 'RSI printing extreme overbought at 79.4; MACD momentum flattening.',
+      macro: 'Synthetic algorithmic drop probability elevated.',
+      killzone: 'Crash drop cascade window active.'
+    },
+    aiThesis: 'Crash 1000 drop hunter scalp. Short entry primed for catastrophic red candle drop.'
+  },
+  {
+    symbol: 'BTCUSD',
+    name: 'Bitcoin / US Dollar (Deriv Crypto 24/7)',
+    basePrice: 104250.00,
+    timeframe: 'M5',
+    type: 'BUY',
+    score: 94,
+    grade: 'A+ PRIME SCALP',
+    category: 'CRYPTO',
+    marketHours: '24/7',
+    setup: 'Asian Session Liquidity Sweep & 15m Demand FVG Expansion',
+    entryZone: '103,900.00 - 104,300.00',
+    sl: 103300.00,
+    tp1: 106200.00,
+    tp2: 108500.00,
+    riskReward: '1:2.9',
+    projectedGain: '+$195 - $425 (0.10 lots)',
+    confluences: {
+      smc: 'Sell-Side Liquidity swept at 104,250 with aggressive displacement buying candle.',
+      indicators: '20 EMA dynamic support holding; RSI 14 at 61.2 in bullish continuation.',
+      macro: 'Global spot ETF accumulation and institutional on-chain reserves depleting.',
+      killzone: 'Weekend & weekday 24/7 continuous crypto liquidity on Deriv.'
+    },
+    aiThesis: 'Deriv BTCUSD CFD with 1:100 leverage. Clean high-timeframe trend continuation.'
+  },
+  {
+    symbol: 'STP',
+    name: 'Deriv Step Index (24/7)',
+    basePrice: 9140.20,
+    timeframe: 'M5',
+    type: 'BUY',
+    score: 90,
+    grade: 'A+ PRIME SCALP',
+    category: 'STEP_JUMP',
+    marketHours: '24/7',
+    setup: 'Statistical Mean Reversion & Discrete 0.1 Step Accumulation',
+    entryZone: '9,135.00 - 9,142.00',
+    sl: 9125.00,
+    tp1: 9172.00,
+    tp2: 9205.00,
+    riskReward: '1:2.1',
+    projectedGain: '+$32 - $65 (0.10 lots)',
+    confluences: {
+      smc: 'Equal probability 0.1 steps clustered at discount support band 9,140.20.',
+      indicators: 'Bollinger Band squeeze expansion; ADX 26 confirming steady trend momentum.',
+      macro: 'Zero unexpected black swan event spikes.',
+      killzone: 'Continuous 24/7 statistical distribution.'
+    },
+    aiThesis: 'Step Index offers predictable pip distribution math. Unmatched consistency for systematic scalping.'
+  },
+  {
+    symbol: 'SOLUSD',
+    name: 'Solana / US Dollar (Deriv Crypto 24/7)',
+    basePrice: 245.80,
+    timeframe: 'M5',
+    type: 'BUY',
+    score: 89,
+    grade: 'A HIGH PROBABILITY',
+    category: 'CRYPTO',
+    marketHours: '24/7',
+    setup: 'High-Beta Momentum Breakout & Order Block Retest',
+    entryZone: '244.50 - 246.20',
+    sl: 241.30,
+    tp1: 255.00,
+    tp2: 264.00,
+    riskReward: '1:2.6',
+    projectedGain: '+$92 - $182 (1.0 lots)',
+    confluences: {
+      smc: 'Bullish Break of Structure (BOS) confirmed on M5 close above 245.00.',
+      indicators: 'MACD histogram printing green bars; RSI at 63.5.',
+      macro: 'DeFi transaction volume leading crypto ecosystem.',
+      killzone: '24/7 high volume order flow.'
+    },
+    aiThesis: 'Solana moves rapidly on Deriv CFDs. High percentage impulse potential.'
+  },
+  {
     symbol: 'XAUUSD',
     name: 'Spot Gold / US Dollar',
     basePrice: 4100.08,
@@ -105,6 +270,8 @@ export const INITIAL_SCANNED_OPPORTUNITIES: ScannedOpportunity[] = [
     type: 'BUY',
     score: 95,
     grade: 'A+ PRIME SCALP',
+    category: 'COMMODITIES',
+    marketHours: 'WEEKDAYS',
     setup: 'Asian Session SSL Liquidity Sweep & 15m Demand FVG Retest',
     entryZone: '4098.50 - 4101.20',
     sl: 4086.50,
@@ -121,13 +288,15 @@ export const INITIAL_SCANNED_OPPORTUNITIES: ScannedOpportunity[] = [
     aiThesis: 'XAUUSD trades at live TradingView benchmark 4,100.08. Clean institutional footprint with 1:2.6 Risk-to-Reward ratio.'
   },
   {
-    symbol: 'NAS100',
-    name: 'Nasdaq 100 Tech Index',
+    symbol: 'US_TECH',
+    name: 'Deriv US Tech 100 Index (Nasdaq)',
     basePrice: 26954.00,
     timeframe: 'M1',
     type: 'BUY',
     score: 91,
     grade: 'A+ PRIME SCALP',
+    category: 'INDICES',
+    marketHours: 'WEEKDAYS',
     setup: 'Opening Bell 3-Bar Imbalance & Bullish Order Block Expansion',
     entryZone: '26940.00 - 26965.00',
     sl: 26880.00,
@@ -141,7 +310,7 @@ export const INITIAL_SCANNED_OPPORTUNITIES: ScannedOpportunity[] = [
       macro: 'Tech sector earnings tailwind, Nasdaq futures trading above VWAP.',
       killzone: 'US New York morning session peak momentum.'
     },
-    aiThesis: 'TradingView quote 26,954.00. Aggressive institutional buying following opening range break.'
+    aiThesis: 'Deriv US_TECH index quote 26,954.00. Aggressive institutional buying following opening range break.'
   },
   {
     symbol: 'EURUSD',
@@ -149,8 +318,10 @@ export const INITIAL_SCANNED_OPPORTUNITIES: ScannedOpportunity[] = [
     basePrice: 1.1221,
     timeframe: 'M5',
     type: 'BUY',
-    score: 89,
+    score: 88,
     grade: 'A HIGH PROBABILITY',
+    category: 'FOREX',
+    marketHours: 'WEEKDAYS',
     setup: 'London Killzone Trendline Breakout & 20 EMA Dynamic Retest',
     entryZone: '1.1218 - 1.1226',
     sl: 1.1201,
@@ -165,75 +336,6 @@ export const INITIAL_SCANNED_OPPORTUNITIES: ScannedOpportunity[] = [
       killzone: 'London afternoon session liquidity intact.'
     },
     aiThesis: 'TradingView quote 1.1221. Reliable trend continuation setup with minimal drawdown risk.'
-  },
-  {
-    symbol: 'GBPUSD',
-    name: 'British Pound / US Dollar',
-    basePrice: 1.3452,
-    timeframe: 'M5',
-    type: 'BUY',
-    score: 86,
-    grade: 'A HIGH PROBABILITY',
-    setup: 'Equal Lows Liquidity Run into 1-Hour Order Block',
-    entryZone: '1.3448 - 1.3456',
-    sl: 1.3427,
-    tp1: 1.3505,
-    tp2: 1.3565,
-    riskReward: '1:2.3',
-    projectedGain: '+53 to +113 pips',
-    confluences: {
-      smc: 'Double bottom liquidity engineered and swept during London fixing around 1.3452.',
-      indicators: 'Price holding above central pivot point.',
-      macro: 'Bank of England policy remarks supportive; UK Gilts yield steady.',
-      killzone: 'Active London/NY transition.'
-    },
-    aiThesis: 'TradingView quote 1.3452. High-conviction scalp with structural support.'
-  },
-  {
-    symbol: 'US30',
-    name: 'Dow Jones Industrial Average',
-    basePrice: 51697.90,
-    timeframe: 'M5',
-    type: 'BUY',
-    score: 84,
-    grade: 'B+ OPPORTUNITY',
-    setup: 'Support Zone Pullback into Discount Demand',
-    entryZone: '51670.00 - 51720.00',
-    sl: 51560.00,
-    tp1: 51970.00,
-    tp2: 52280.00,
-    riskReward: '1:2.1',
-    projectedGain: '+270 to +580 pts',
-    confluences: {
-      smc: 'Discount pricing inside prior daily range at 51697.90.',
-      indicators: 'RSI neutral-bullish at 52.',
-      macro: 'Industrial earnings mixed.',
-      killzone: 'NY Session active.'
-    },
-    aiThesis: 'TradingView quote 51,697.90. Solid trend support with wider stop allowance.'
-  },
-  {
-    symbol: 'USDJPY',
-    name: 'US Dollar / Japanese Yen',
-    basePrice: 157.79,
-    timeframe: 'M5',
-    type: 'SELL',
-    score: 62,
-    grade: 'C FILTERED OUT',
-    setup: 'Rangebound Choppiness near Intervention Resistance',
-    entryZone: '157.70 - 157.88',
-    sl: 158.24,
-    tp1: 157.14,
-    tp2: 156.44,
-    riskReward: '1:1.4',
-    projectedGain: 'Low probability',
-    confluences: {
-      smc: 'No clean displacement; overlapping wick structure indicating chop around 157.79.',
-      indicators: 'RSI hovering at 50 with conflicting moving averages.',
-      macro: 'Bank of Japan verbal intervention risk elevated.',
-      killzone: 'Outside Tokyo core hours.'
-    },
-    aiThesis: 'FILTERED OUT: AI model detected poor risk-to-reward and high chop probability. Bypassing trade.'
   }
 ];
 
@@ -279,6 +381,131 @@ interface PresetStrategy {
 
 const PRESET_STRATEGIES: PresetStrategy[] = [
   {
+    id: 'deriv-vol-75',
+    name: 'Deriv Volatility 75 Titanium Scalper',
+    asset: 'R_75 (Volatility 75)',
+    timeframe: 'M5',
+    tag: '24/7 DERIV SYNTHETIC',
+    description: 'Specialized for Deriv\'s premier synthetic index. Operates 24/7/365 with continuous 75% volatility swings, tight ATR trailing stop, and institutional FVG entries.',
+    params: {
+      eaName: 'MullahTracker_Deriv_Vol75_Scalper',
+      symbol: 'R_75',
+      timeframe: 'M5',
+      riskPercent: 1.0,
+      fixedLot: 0.005,
+      atrSlMultiplier: 1.4,
+      atrTp1Multiplier: 2.5,
+      atrTp2Multiplier: 4.5,
+      maxSpreadPoints: 120,
+      useBreakEven: true,
+      beTriggerAtr: 1.0,
+      useTrailingStop: true,
+      tradeLondonSession: true,
+      tradeNewYorkSession: true,
+      tradeAsianSession: true,
+    },
+  },
+  {
+    id: 'deriv-crash-1000',
+    name: 'Deriv Crash 1000 Drop Catcher',
+    asset: 'CRASH1000',
+    timeframe: 'M1',
+    tag: '24/7 DROP SPIKE',
+    description: 'Engineered specifically for Deriv Crash indices. Catches the violent downward drops by entering short at key resistance FVG supply zones.',
+    params: {
+      eaName: 'MullahTracker_Crash1000_Hunter',
+      symbol: 'CRASH1000',
+      timeframe: 'M1',
+      riskPercent: 1.0,
+      fixedLot: 0.20,
+      atrSlMultiplier: 1.2,
+      atrTp1Multiplier: 3.2,
+      atrTp2Multiplier: 5.5,
+      maxSpreadPoints: 50,
+      useBreakEven: true,
+      beTriggerAtr: 0.8,
+      useTrailingStop: true,
+      tradeLondonSession: true,
+      tradeNewYorkSession: true,
+      tradeAsianSession: true,
+    },
+  },
+  {
+    id: 'deriv-boom-1000',
+    name: 'Deriv Boom 1000 Spike Sniper',
+    asset: 'BOOM1000',
+    timeframe: 'M1',
+    tag: '24/7 SPIKE HUNTER',
+    description: 'Specialized for Deriv Boom indices. Enters buy positions at demand order blocks right before algorithmic upward spikes occur.',
+    params: {
+      eaName: 'MullahTracker_Boom1000_Sniper',
+      symbol: 'BOOM1000',
+      timeframe: 'M1',
+      riskPercent: 1.0,
+      fixedLot: 0.20,
+      atrSlMultiplier: 1.2,
+      atrTp1Multiplier: 3.2,
+      atrTp2Multiplier: 5.5,
+      maxSpreadPoints: 50,
+      useBreakEven: true,
+      beTriggerAtr: 0.8,
+      useTrailingStop: true,
+      tradeLondonSession: true,
+      tradeNewYorkSession: true,
+      tradeAsianSession: true,
+    },
+  },
+  {
+    id: 'deriv-step-index',
+    name: 'Deriv Step Index High-Frequency Scalper',
+    asset: 'STP (Step Index)',
+    timeframe: 'M5',
+    tag: '24/7 STAT ARBITRAGE',
+    description: 'Designed for Deriv Step Index with discrete 0.1 step math. Highly reliable statistical mean reversion with zero unpredictable spike tail risk.',
+    params: {
+      eaName: 'MullahTracker_StepIndex_Arb',
+      symbol: 'STP',
+      timeframe: 'M5',
+      riskPercent: 1.0,
+      fixedLot: 0.10,
+      atrSlMultiplier: 1.3,
+      atrTp1Multiplier: 2.2,
+      atrTp2Multiplier: 3.8,
+      maxSpreadPoints: 25,
+      useBreakEven: true,
+      beTriggerAtr: 0.9,
+      useTrailingStop: true,
+      tradeLondonSession: true,
+      tradeNewYorkSession: true,
+      tradeAsianSession: true,
+    },
+  },
+  {
+    id: 'deriv-crypto-btc',
+    name: 'Deriv Bitcoin 24/7 Momentum Scalper',
+    asset: 'BTCUSD (Deriv Crypto)',
+    timeframe: 'M5',
+    tag: '24/7 1:100 LEVERAGE',
+    description: 'Trades Bitcoin 24/7 with 1:100 leverage on Deriv. Exploits session liquidity sweeps and institutional momentum expansions.',
+    params: {
+      eaName: 'MullahTracker_Deriv_Btc_Scalper',
+      symbol: 'BTCUSD',
+      timeframe: 'M5',
+      riskPercent: 1.0,
+      fixedLot: 0.05,
+      atrSlMultiplier: 1.5,
+      atrTp1Multiplier: 2.6,
+      atrTp2Multiplier: 4.5,
+      maxSpreadPoints: 80,
+      useBreakEven: true,
+      beTriggerAtr: 1.0,
+      useTrailingStop: true,
+      tradeLondonSession: true,
+      tradeNewYorkSession: true,
+      tradeAsianSession: true,
+    },
+  },
+  {
     id: 'gold-titanium',
     name: 'Titanium Gold Scalper',
     asset: 'XAUUSD (Gold)',
@@ -290,6 +517,7 @@ const PRESET_STRATEGIES: PresetStrategy[] = [
       symbol: 'XAUUSD',
       timeframe: 'M5',
       riskPercent: 1.0,
+      fixedLot: 0.10,
       atrSlMultiplier: 1.5,
       atrTp1Multiplier: 2.4,
       atrTp2Multiplier: 4.2,
@@ -314,6 +542,7 @@ const PRESET_STRATEGIES: PresetStrategy[] = [
       symbol: 'EURUSD',
       timeframe: 'M5',
       riskPercent: 1.0,
+      fixedLot: 0.10,
       atrSlMultiplier: 1.2,
       atrTp1Multiplier: 2.2,
       atrTp2Multiplier: 3.8,
@@ -329,15 +558,16 @@ const PRESET_STRATEGIES: PresetStrategy[] = [
   {
     id: 'nas-sniper',
     name: 'Nasdaq 100 Index Sniper',
-    asset: 'NAS100 / US100',
+    asset: 'US_TECH / NAS100',
     timeframe: 'M1',
     tag: 'M1 DISPLACEMENT',
     description: 'High-frequency momentum scalp for US Tech indices at the 09:30 AM EST New York bell. Capitalizes on 3-bar order block imbalances.',
     params: {
       eaName: 'MullahTracker_Nasdaq_Sniper_EA',
-      symbol: 'NAS100',
+      symbol: 'US_TECH',
       timeframe: 'M1',
       riskPercent: 0.8,
+      fixedLot: 0.10,
       atrSlMultiplier: 1.8,
       atrTp1Multiplier: 2.8,
       atrTp2Multiplier: 5.0,
@@ -524,6 +754,9 @@ export const Mt5EaScalperStudio: React.FC = () => {
   // Navigation tab
   const [activeTab, setActiveTab] = useState<
     | 'live-engine'
+    | 'spike-radar'
+    | 'web-trader'
+    | 'journal'
     | 'config'
     | 'backtest'
     | 'code'
@@ -537,6 +770,12 @@ export const Mt5EaScalperStudio: React.FC = () => {
   >('live-engine');
   const [selectedPreset, setSelectedPreset] = useState<string>('gold-titanium');
   const [params, setParams] = useState<EaParameters>(DEFAULT_EA_PARAMS);
+  const [isLotSizerModalOpen, setIsLotSizerModalOpen] = useState<boolean>(false);
+  const [circuitBreakerTripped, setCircuitBreakerTripped] = useState<boolean>(false);
+  const [maxDailyLoss, setMaxDailyLoss] = useState<number>(50.0);
+  const [trailingStopEnabled, setTrailingStopEnabled] = useState<boolean>(true);
+  const [breakEvenEnabled, setBreakEvenEnabled] = useState<boolean>(true);
+  const [newsFilterEnabled, setNewsFilterEnabled] = useState<boolean>(true);
 
   // Master Bot State (Running vs Stopped)
   const [isBotRunning, setIsBotRunning] = useState<boolean>(() => {
@@ -551,80 +790,97 @@ export const Mt5EaScalperStudio: React.FC = () => {
     const saved = localStorage.getItem('mullah_broker_config');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.loginId && parsed.loginId !== '68492041' && parsed.isConnected) {
+          return parsed;
+        }
       } catch {}
     }
     return {
-      brokerName: 'Exness',
-      loginId: '68492041',
-      server: 'Exness-Real21',
+      brokerName: 'Not Connected',
+      loginId: '',
+      server: '',
       accountType: 'LIVE',
-      balance: 10450.0,
-      equity: 10670.0,
+      balance: 0.0,
+      equity: 0.0,
       currency: 'USD',
-      pingMs: 16,
-      isConnected: true,
+      pingMs: 0,
+      isConnected: false,
     };
   });
 
   const [isBrokerModalOpen, setIsBrokerModalOpen] = useState(false);
   const [brokerForm, setBrokerForm] = useState({
-    brokerName: brokerConfig.brokerName,
+    brokerName: brokerConfig.brokerName === 'Not Connected' ? 'Deriv' : brokerConfig.brokerName,
     loginId: brokerConfig.loginId,
     server: brokerConfig.server,
-    accountType: brokerConfig.accountType,
-    password: '••••••••••••',
+    accountType: brokerConfig.accountType || 'LIVE',
+    password: '',
+    manualBalance: '',
   });
   const [isTestingHandshake, setIsTestingHandshake] = useState(false);
   const [handshakeSuccess, setHandshakeSuccess] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [connectionSuccessMsg, setConnectionSuccessMsg] = useState<string | null>(null);
 
   // Live Real-Time Positions & Telemetry (Anchored to TradingView scanner feed)
   const [livePrice, setLivePrice] = useState<number>(4100.08);
   const [priceFlash, setPriceFlash] = useState<'up' | 'down' | null>(null);
-  const [activePositions, setActivePositions] = useState<OpenPosition[]>([
-    {
-      id: 'pos-1',
-      ticket: 98451201,
-      symbol: 'XAUUSD',
-      type: 'BUY',
-      lots: 0.10,
-      openPrice: 4096.50,
-      currentPrice: 4100.08,
-      sl: 4085.00,
-      tp: 4125.00,
-      pnl: 358.00,
-      openTime: new Date(Date.now() - 14 * 60 * 1000).toLocaleTimeString(),
-    },
-  ]);
+  const [activePositions, setActivePositions] = useState<OpenPosition[]>(() => {
+    const saved = localStorage.getItem('mullah_active_positions');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((p: OpenPosition) => p.ticket !== 98451201);
+        }
+      } catch {}
+    }
+    return [];
+  });
 
-  const [realizedPnlToday, setRealizedPnlToday] = useState<number>(485.50);
-  const [tradesCountToday, setTradesCountToday] = useState<number>(4);
-  const [winsCountToday, setWinsCountToday] = useState<number>(3);
+  const [realizedPnlToday, setRealizedPnlToday] = useState<number>(() => {
+    const saved = localStorage.getItem('mullah_realized_pnl_today');
+    if (saved) {
+      const num = parseFloat(saved);
+      if (!isNaN(num)) return num;
+    }
+    return 0.0;
+  });
+  const [tradesCountToday, setTradesCountToday] = useState<number>(() => {
+    const saved = localStorage.getItem('mullah_trades_count_today');
+    if (saved) {
+      const num = parseInt(saved, 10);
+      if (!isNaN(num)) return num;
+    }
+    return 0;
+  });
+  const [winsCountToday, setWinsCountToday] = useState<number>(() => {
+    const saved = localStorage.getItem('mullah_wins_count_today');
+    if (saved) {
+      const num = parseInt(saved, 10);
+      if (!isNaN(num)) return num;
+    }
+    return 0;
+  });
+
+  // Sync state changes with localStorage
+  useEffect(() => {
+    localStorage.setItem('mullah_active_positions', JSON.stringify(activePositions));
+  }, [activePositions]);
+
+  useEffect(() => {
+    localStorage.setItem('mullah_realized_pnl_today', String(realizedPnlToday));
+    localStorage.setItem('mullah_trades_count_today', String(tradesCountToday));
+    localStorage.setItem('mullah_wins_count_today', String(winsCountToday));
+  }, [realizedPnlToday, tradesCountToday, winsCountToday]);
 
   // Live Terminal Log stream
   const [terminalLogs, setTerminalLogs] = useState<Array<{ id: string; time: string; text: string; type: 'info' | 'trade' | 'alert' | 'warn' }>>([
     {
-      id: 'log-1',
-      time: new Date(Date.now() - 18 * 60 * 1000).toLocaleTimeString(),
-      text: 'MT5 Cloud Controller initialized. 2-way WebHook handshake verified with Exness-Real21.',
-      type: 'info',
-    },
-    {
-      id: 'log-2',
-      time: new Date(Date.now() - 14 * 60 * 1000).toLocaleTimeString(),
-      text: 'TradingView Real-Time Tick Feed synchronized. Institutional Asian session liquidity sweep confirmed.',
-      type: 'trade',
-    },
-    {
-      id: 'log-3',
-      time: new Date(Date.now() - 14 * 60 * 1000).toLocaleTimeString(),
-      text: 'BUY ORDER EXECUTED: 0.10 Lots XAUUSD @ 4096.50 | SL: 4085.00 | TP1: 4125.00 | Magic: 884422 (TradingView Tick Fill)',
-      type: 'trade',
-    },
-    {
-      id: 'log-4',
-      time: new Date(Date.now() - 2 * 60 * 1000).toLocaleTimeString(),
-      text: 'Dynamic Break-Even Guard engaged: Price +3.58 pts gain. Stop Loss shifted to Break-Even + Spread.',
+      id: 'log-init',
+      time: new Date().toLocaleTimeString(),
+      text: 'MT5 Cloud Controller initialized. Ready to connect broker (Deriv API or MT5 Broker) or start live paper simulation.',
       type: 'info',
     },
   ]);
@@ -654,6 +910,100 @@ export const Mt5EaScalperStudio: React.FC = () => {
   } | null>(null);
   const [executingSymbol, setExecutingSymbol] = useState<string | null>(null);
   const [scanFilter, setScanFilter] = useState<'ALL' | 'A_PLUS' | 'A' | 'FILTERED'>('ALL');
+  const [scanCategoryFilter, setScanCategoryFilter] = useState<'ALL' | 'VOLATILITY' | 'CRASH_BOOM' | 'STEP_JUMP' | 'CRYPTO' | 'INDICES' | 'COMMODITIES' | 'FOREX'>('ALL');
+  const [isInstrumentModalOpen, setIsInstrumentModalOpen] = useState(false);
+  const [instrumentSearch, setInstrumentSearch] = useState('');
+  const [instrumentCategoryFilter, setInstrumentCategoryFilter] = useState<'ALL' | 'VOLATILITY' | 'CRASH_BOOM' | 'STEP_JUMP' | 'CRYPTO' | 'INDICES' | 'COMMODITIES' | 'FOREX'>('ALL');
+
+  // Format price helper according to symbol precision
+  const formatPrice = (price: number, sym: string) => {
+    if (typeof price !== 'number' || isNaN(price)) return '0.00';
+    const s = sym.toUpperCase();
+    if (s.includes('R_75') || s.includes('1HZ75V') || s.includes('BTC') || s.includes('WALL_ST') || s.includes('US30')) {
+      return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    if (s.includes('XAU') || s.includes('BOOM') || s.includes('CRASH') || s.includes('R_100') || s.includes('1HZ100V') || s.includes('ETH') || s.includes('SOL') || s.includes('NAS') || s.includes('US_TECH') || s.includes('US500') || s.includes('GER')) {
+      return price.toFixed(2);
+    }
+    if (s.includes('STP')) {
+      return price.toFixed(1);
+    }
+    if (s.includes('JPY') || s.includes('XAG') || s.includes('R_25') || s.includes('R_10') || s.includes('1HZ25V') || s.includes('1HZ10V')) {
+      return price.toFixed(3);
+    }
+    if (s.includes('DOGE')) {
+      return price.toFixed(5);
+    }
+    return price.toFixed(4);
+  };
+
+  // Real-time Native Deriv WebSocket Tick Feed for Deriv synthetic symbols & crypto
+  const derivWsRef = useRef<WebSocket | null>(null);
+  const [derivWsConnected, setDerivWsConnected] = useState(false);
+
+  useEffect(() => {
+    const isDerivSym =
+      params.symbol.startsWith('R_') ||
+      params.symbol.includes('HZ') ||
+      params.symbol.includes('BOOM') ||
+      params.symbol.includes('CRASH') ||
+      params.symbol.includes('STP') ||
+      params.symbol.includes('JD') ||
+      params.symbol.includes('RB');
+
+    if (!isDerivSym && brokerConfig.brokerName !== 'Deriv') {
+      if (derivWsRef.current) {
+        derivWsRef.current.close();
+        derivWsRef.current = null;
+      }
+      setDerivWsConnected(false);
+      return;
+    }
+
+    try {
+      const ws = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+      derivWsRef.current = ws;
+
+      ws.onopen = () => {
+        setDerivWsConnected(true);
+        ws.send(JSON.stringify({ ticks: params.symbol, subscribe: 1 }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const res = JSON.parse(event.data);
+          if (res.tick && res.tick.symbol === params.symbol && typeof res.tick.quote === 'number') {
+            const newPrice = res.tick.quote;
+            setLivePrice((prev) => {
+              if (newPrice !== prev) {
+                setPriceFlash(newPrice >= prev ? 'up' : 'down');
+                setTimeout(() => setPriceFlash(null), 350);
+              }
+              return newPrice;
+            });
+          }
+        } catch {}
+      };
+
+      ws.onerror = () => {
+        setDerivWsConnected(false);
+      };
+
+      ws.onclose = () => {
+        setDerivWsConnected(false);
+      };
+    } catch {
+      setDerivWsConnected(false);
+    }
+
+    return () => {
+      if (derivWsRef.current) {
+        derivWsRef.current.close();
+        derivWsRef.current = null;
+      }
+      setDerivWsConnected(false);
+    };
+  }, [params.symbol, brokerConfig.brokerName]);
 
   // Institutional Quant Power Boosters State
   const [powerBoosters, setPowerBoosters] = useState<{
@@ -810,13 +1160,17 @@ export const Mt5EaScalperStudio: React.FC = () => {
     return Math.round((riskEstimateDollar / (brokerConfig.balance || 10000)) * 100 * 10) / 10;
   }, [riskEstimateDollar, brokerConfig.balance]);
 
-  // Filtered opportunities
+  // Filtered opportunities with Deriv categories & grades
   const filteredOpportunities = useMemo(() => {
-    if (scanFilter === 'A_PLUS') return scannedOpportunities.filter((o) => o.score >= 90);
-    if (scanFilter === 'A') return scannedOpportunities.filter((o) => o.score >= 85 && o.score < 90);
-    if (scanFilter === 'FILTERED') return scannedOpportunities.filter((o) => o.score < 75);
-    return scannedOpportunities;
-  }, [scannedOpportunities, scanFilter]);
+    let list = scannedOpportunities;
+    if (scanCategoryFilter !== 'ALL') {
+      list = list.filter((o) => o.category === scanCategoryFilter);
+    }
+    if (scanFilter === 'A_PLUS') return list.filter((o) => o.score >= 90);
+    if (scanFilter === 'A') return list.filter((o) => o.score >= 85 && o.score < 90);
+    if (scanFilter === 'FILTERED') return list.filter((o) => o.score < 75);
+    return list;
+  }, [scannedOpportunities, scanFilter, scanCategoryFilter]);
 
   // Run AI Omni-Market Scanner & optionally auto-snipe the top #1 A+ trade
   const handleRunAiScan = async (autoOpenTrade: boolean = true) => {
@@ -826,7 +1180,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
     setAiExecutionNotice(null);
 
     const steps = [
-      { text: 'Auditing 6 Candidate Asset Classes (Gold, NAS100, Major FX, Dow Jones)...', pct: 25 },
+      { text: 'Auditing Deriv 24/7 Synthetics, Cryptos & Global Assets (Vol 75, Crash, Boom, Step, BTC, Gold)...', pct: 25 },
       { text: 'Scanning Institutional SMC: Asian/London Liquidity Sweeps, FVGs & Order Blocks...', pct: 50 },
       { text: 'Calculating Technical Confluence: 20/50/200 EMAs, RSI 14 & ATR Volatility...', pct: 75 },
       { text: 'Verifying Forex Factory News Guard & London/NY Overlap Killzone Liquidity...', pct: 90 },
@@ -942,6 +1296,34 @@ export const Mt5EaScalperStudio: React.FC = () => {
       console.error('Snipe failed:', err);
     } finally {
       setExecutingSymbol(null);
+    }
+  };
+
+  // Quick trade execution from Deriv Spike Radar
+  const handleQuickTrade = async (sym: string, type: 'BUY' | 'SELL', lots: number) => {
+    try {
+      const res = await fetch('/api/ea/open-trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol: sym, type, lots }),
+      });
+      const data = await res.json();
+      if (data.position) {
+        setActivePositions((prev) => [data.position, ...prev]);
+        setIsBotRunning(true);
+        setTerminalLogs((prev) => [
+          {
+            id: `log-${Date.now()}`,
+            time: new Date().toLocaleTimeString(),
+            text: `🎯 RADAR QUICK TRADE: ${data.position.type} ${data.position.lots} Lots ${data.position.symbol} @ ${data.position.openPrice}`,
+            type: 'trade',
+          },
+          ...prev.slice(0, 40),
+        ]);
+        playChime('trade');
+      }
+    } catch (err) {
+      console.error('Quick trade failed:', err);
     }
   };
 
@@ -1125,6 +1507,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
         // 1. Sync live price for currently selected bot symbol
         const currentSym = params.symbol.replace('/', '').toUpperCase();
         const activeQuote =
+          quotes[params.symbol] ||
           quotes[currentSym] ||
           quotes[`OANDA:${currentSym}`] ||
           quotes[`FX:${currentSym}`] ||
@@ -1147,6 +1530,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
           prevPositions.map((pos) => {
             const sym = pos.symbol.replace('/', '').toUpperCase();
             const q =
+              quotes[pos.symbol] ||
               quotes[sym] ||
               quotes[`OANDA:${sym}`] ||
               quotes[`FX:${sym}`] ||
@@ -1156,9 +1540,12 @@ export const Mt5EaScalperStudio: React.FC = () => {
 
             const currentP = q && q.price > 0 ? q.price : pos.currentPrice;
             const isGold = sym.includes('XAU');
-            const isIndex = sym.includes('NAS') || sym.includes('US30') || sym.includes('US500') || sym.includes('SPX');
+            const isSilver = sym.includes('XAG');
+            const isIndex = sym.includes('NAS') || sym.includes('US30') || sym.includes('US500') || sym.includes('SPX') || sym.includes('TECH') || sym.includes('GER') || sym.includes('WALL');
+            const isCrypto = sym.includes('BTC') || sym.includes('ETH') || sym.includes('SOL') || sym.includes('XRP') || sym.includes('LTC') || sym.includes('DOGE') || sym.includes('ADA') || sym.includes('BNB');
+            const isDerivSynthetics = sym.startsWith('R') || sym.includes('HZ') || sym.includes('BOOM') || sym.includes('CRASH') || sym.includes('STP') || sym.includes('JD') || sym.includes('RB');
             const isJpy = sym.includes('JPY');
-            const mult = isGold ? 100 : isIndex ? 1.0 : isJpy ? 1000 : 100000;
+            const mult = isGold ? 100 : isSilver ? 5000 : (isIndex || isCrypto || isDerivSynthetics) ? 1.0 : isJpy ? 1000 : 100000;
             const priceDiff = pos.type === 'BUY' ? currentP - pos.openPrice : pos.openPrice - currentP;
             const pnl = Math.round(priceDiff * pos.lots * mult * 100) / 100;
 
@@ -1218,38 +1605,188 @@ export const Mt5EaScalperStudio: React.FC = () => {
     };
   }, [params.symbol]);
 
+  // Real Deriv WebSocket Client-Side Token Authenticator
+  const authenticateDerivToken = (token: string): Promise<{
+    balance: number;
+    currency: string;
+    loginid: string;
+    email: string;
+    isVirtual: boolean;
+  }> => {
+    return new Promise((resolve, reject) => {
+      const clean = token.trim();
+      if (!clean) {
+        return reject(new Error('Deriv API Token is required. Please paste your token from Deriv Settings → API Token.'));
+      }
+      if (clean.length < 8) {
+        return reject(
+          new Error('Invalid token length. Deriv API tokens are alphanumeric and typically 12–32 characters long.')
+        );
+      }
+
+      let isFinished = false;
+      let ws: WebSocket | null = null;
+
+      const timer = setTimeout(() => {
+        if (!isFinished) {
+          isFinished = true;
+          try {
+            ws?.close();
+          } catch {}
+          reject(
+            new Error(
+              'Deriv connection timed out after 8 seconds. Please check your internet connection and verify that wss://ws.derivws.com is accessible.'
+            )
+          );
+        }
+      }, 8500);
+
+      try {
+        ws = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+
+        ws.onopen = () => {
+          try {
+            ws?.send(JSON.stringify({ authorize: clean }));
+          } catch (err: any) {
+            if (!isFinished) {
+              isFinished = true;
+              clearTimeout(timer);
+              reject(new Error(`Failed to transmit authorization payload: ${err.message}`));
+            }
+          }
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.error) {
+              if (!isFinished) {
+                isFinished = true;
+                clearTimeout(timer);
+                try {
+                  ws?.close();
+                } catch {}
+                const reason = data.error.message || data.error.code || 'Authorization rejected';
+                reject(new Error(`Deriv Authorization Failed: ${reason} (Code: ${data.error.code || 'AUTH_FAIL'})`));
+              }
+              return;
+            }
+
+            if (data.msg_type === 'authorize' && data.authorize) {
+              const auth = data.authorize;
+              if (!isFinished) {
+                isFinished = true;
+                clearTimeout(timer);
+                try {
+                  ws?.close();
+                } catch {}
+                resolve({
+                  balance: typeof auth.balance === 'number' ? auth.balance : parseFloat(auth.balance || '0'),
+                  currency: auth.currency || 'USD',
+                  loginid: auth.loginid || 'CR_USER',
+                  email: auth.email || '',
+                  isVirtual: Boolean(auth.is_virtual),
+                });
+              }
+            }
+          } catch (err: any) {
+            if (!isFinished) {
+              isFinished = true;
+              clearTimeout(timer);
+              try {
+                ws?.close();
+              } catch {}
+              reject(new Error('Unexpected response format received from Deriv API.'));
+            }
+          }
+        };
+
+        ws.onerror = () => {
+          if (!isFinished) {
+            isFinished = true;
+            clearTimeout(timer);
+            reject(
+              new Error(
+                'Network Handshake Failed: Unable to establish secure WebSocket connection with Deriv (wss://ws.derivws.com). Please verify internet access.'
+              )
+            );
+          }
+        };
+      } catch (err: any) {
+        clearTimeout(timer);
+        reject(new Error(`Could not initiate WebSocket: ${err.message}`));
+      }
+    });
+  };
+
   // Connect Broker Modal Submission with REAL Network Handshake
   const handleSaveBrokerConfig = async (e: React.FormEvent) => {
     e.preventDefault();
+    setConnectionError(null);
+    setConnectionSuccessMsg(null);
     setIsTestingHandshake(true);
 
     try {
+      let realBalance: number | undefined = undefined;
+      let realCurrency: string | undefined = undefined;
+      let verifiedLogin = brokerForm.loginId.trim();
+
+      // 1. If Deriv, run real Deriv WebSocket authorization directly from browser
+      if (brokerForm.brokerName === 'Deriv') {
+        const tokenCandidate = (brokerForm.password || brokerForm.loginId).trim();
+        if (!tokenCandidate || tokenCandidate.length < 8) {
+          throw new Error(
+            'Invalid Deriv Credentials: Deriv API tokens are alphanumeric and typically 12–32 characters long. Please open Deriv.com → Manage Account Settings → API Token, create a token with "Read" and "Trade" scopes, and paste it into the field.'
+          );
+        }
+
+        const derivAuth = await authenticateDerivToken(tokenCandidate);
+        realBalance = derivAuth.balance;
+        realCurrency = derivAuth.currency;
+        verifiedLogin = derivAuth.loginid;
+      } else {
+        // If user entered a manual actual balance for MT5
+        if (brokerForm.manualBalance && !isNaN(parseFloat(brokerForm.manualBalance))) {
+          realBalance = parseFloat(brokerForm.manualBalance);
+        }
+      }
+
+      // 2. Transmit to server to lock in verified session and backend bot state
+      const payload = {
+        ...brokerForm,
+        loginId: verifiedLogin,
+        realBalance,
+        realCurrency,
+      };
+
       const resp = await fetch('/api/ea/broker/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(brokerForm),
+        body: JSON.stringify(payload),
       });
 
       const data = await resp.json();
 
-      if (!resp.ok) {
-        throw new Error(data.error || `HTTP ${resp.status}`);
+      if (!resp.ok || data.success === false) {
+        throw new Error(data.error || `Server Handshake Rejected (HTTP ${resp.status})`);
       }
 
+      const brokerData = data.broker;
       const updated: BrokerConfig = {
         ...brokerConfig,
-        brokerName: brokerForm.brokerName,
-        loginId: brokerForm.loginId,
-        server: brokerForm.server,
-        accountType: brokerForm.accountType,
+        brokerName: brokerData.brokerName,
+        loginId: brokerData.loginId,
+        server: brokerData.server,
+        accountType: brokerData.accountType,
         isConnected: true,
-        pingMs: data.pingMs || Math.floor(Math.random() * 6 + 9),
-        balance: data.balance || brokerConfig.balance,
-        equity: data.equity || brokerConfig.equity,
-        regulation: data.regulation,
-        leverage: data.leverage,
-        webhookUrl: data.webhookUrl,
-        sessionToken: data.sessionToken,
+        pingMs: brokerData.pingMs || Math.floor(Math.random() * 6 + 9),
+        balance: brokerData.balance,
+        equity: brokerData.equity,
+        currency: brokerData.currency || 'USD',
+        regulation: brokerData.regulation,
+        leverage: brokerData.leverage,
+        webhookUrl: brokerData.webhookUrl,
+        sessionToken: brokerData.sessionToken,
       };
 
       setBrokerConfig(updated);
@@ -1257,13 +1794,16 @@ export const Mt5EaScalperStudio: React.FC = () => {
 
       setIsTestingHandshake(false);
       setHandshakeSuccess(true);
+      setConnectionSuccessMsg(
+        `✓ Connected to ${brokerData.brokerName} (${brokerData.loginId})! Real Balance: ${brokerData.currency} ${brokerData.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+      );
       playChime('start');
 
       setTerminalLogs((prev) => [
         {
           id: `log-${Date.now()}`,
           time: new Date().toLocaleTimeString(),
-          text: `🟢 MT5 BRIDGE CONNECTED: ${data.broker} (${data.server}) #${brokerForm.loginId} | Ping: ${data.pingMs}ms | ${data.regulation || 'Verified'} | Leverage ${data.leverage || '1:500'}`,
+          text: `🟢 REAL BROKER CONNECTED: ${brokerData.brokerName} (${brokerData.server}) #${brokerData.loginId} | Real Balance: ${brokerData.currency} ${brokerData.balance.toFixed(2)} | Ping: ${brokerData.pingMs}ms | ${brokerData.regulation}`,
           type: 'info',
         },
         ...prev.slice(0, 40),
@@ -1272,28 +1812,57 @@ export const Mt5EaScalperStudio: React.FC = () => {
       setTimeout(() => {
         setHandshakeSuccess(false);
         setIsBrokerModalOpen(false);
-      }, 900);
+      }, 1600);
     } catch (err: any) {
-      console.warn('Real broker handshake fallback:', err);
-      // Fallback local update
-      const updated: BrokerConfig = {
-        ...brokerConfig,
-        brokerName: brokerForm.brokerName,
-        loginId: brokerForm.loginId,
-        server: brokerForm.server,
-        accountType: brokerForm.accountType,
-        isConnected: true,
-        pingMs: 12,
-      };
-      setBrokerConfig(updated);
-      localStorage.setItem('mullah_broker_config', JSON.stringify(updated));
+      console.error('Broker connection failed:', err);
       setIsTestingHandshake(false);
-      setHandshakeSuccess(true);
-      setTimeout(() => {
-        setHandshakeSuccess(false);
-        setIsBrokerModalOpen(false);
-      }, 900);
+      setHandshakeSuccess(false);
+      const errMsg = err?.message || 'Connection failed: Unable to verify broker credentials.';
+      setConnectionError(errMsg);
+      playChime('alert');
+
+      setTerminalLogs((prev) => [
+        {
+          id: `log-${Date.now()}`,
+          time: new Date().toLocaleTimeString(),
+          text: `🔴 BROKER CONNECTION FAILED: ${errMsg}`,
+          type: 'alert',
+        },
+        ...prev.slice(0, 40),
+      ]);
     }
+  };
+
+  // Disconnect active broker cleanly and switch to offline paper simulation
+  const handleDisconnectBroker = async () => {
+    try {
+      await fetch('/api/ea/broker/disconnect', { method: 'POST' });
+    } catch {}
+    const disconnected: BrokerConfig = {
+      brokerName: 'Not Connected',
+      loginId: '',
+      server: '',
+      accountType: 'LIVE',
+      balance: 0.0,
+      equity: 0.0,
+      currency: 'USD',
+      pingMs: 0,
+      isConnected: false,
+    };
+    setBrokerConfig(disconnected);
+    localStorage.removeItem('mullah_broker_config');
+    setConnectionSuccessMsg(null);
+    setConnectionError(null);
+    setIsBrokerModalOpen(false);
+    setTerminalLogs((prev) => [
+      {
+        id: `log-${Date.now()}`,
+        time: new Date().toLocaleTimeString(),
+        text: 'Broker disconnected cleanly. Switched to offline / paper simulation mode.',
+        type: 'info',
+      },
+      ...prev.slice(0, 40),
+    ]);
   };
 
   // Generate MQL5 code dynamically
@@ -1343,8 +1912,10 @@ export const Mt5EaScalperStudio: React.FC = () => {
                 LIVE IN-APP SCALPER & MT5 CONTROLLER
               </span>
               <span className="px-2.5 py-1 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.25)]">
-                <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
-                <span>TRADINGVIEW FEED: ${livePrice.toFixed(params.symbol.includes('XAU') ? 2 : (params.symbol.includes('JPY') ? 2 : (params.symbol.includes('NAS') || params.symbol.includes('US30') ? 1 : 4)))} ({params.symbol})</span>
+                <Radio className={`w-3 h-3 ${derivWsConnected ? 'text-teal-400 animate-ping' : 'text-emerald-400 animate-pulse'}`} />
+                <span>
+                  {derivWsConnected ? 'DERIV 24/7 LIVE WS' : 'LIVE MARKET FEED'}: ${formatPrice(livePrice, params.symbol)} ({params.symbol})
+                </span>
               </span>
               <span className="px-2.5 py-1 rounded-full text-[10px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30">
                 2-WAY CLOUD WEBHOOK
@@ -1364,8 +1935,60 @@ export const Mt5EaScalperStudio: React.FC = () => {
               />
             </h1>
             <p className="text-sm text-slate-300 leading-relaxed">
-              Run your scalping bot directly in this app or connect to your live broker (Exness, IC Markets, FTMO, Deriv). You can Start, Stop, and Panic-Close trades directly from your phone or browser in real time.
+              Run your scalping bot directly in this app or connect to your live broker (Deriv, Exness, IC Markets, FTMO). Trade all 38+ Deriv synthetic indices, Crash/Boom, Step, 24/7 Cryptocurrencies, and Forex directly in real time.
             </p>
+
+            {/* Deriv 24/7 Traded Pairs Quick Bar */}
+            <div className="pt-1 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              <span className="text-[10px] font-mono text-teal-400 font-bold shrink-0 flex items-center gap-1 mr-1">
+                <Zap className="w-3 h-3" /> DERIV 24/7:
+              </span>
+              {POPULAR_DERIV_SYMBOLS.map((inst) => {
+                const isSelected = params.symbol === inst.symbol;
+                return (
+                  <button
+                    key={inst.symbol}
+                    onClick={() => {
+                      setParams((prev) => ({
+                        ...prev,
+                        symbol: inst.symbol,
+                        fixedLot: Math.max(prev.fixedLot, inst.minLot),
+                      }));
+                      setLivePrice(inst.basePrice);
+                      setTerminalLogs((prev) => [
+                        {
+                          id: `log-${Date.now()}`,
+                          time: new Date().toLocaleTimeString(),
+                          text: `⚡ 1-Click Switch to ${inst.displayName} (${inst.symbol}). Category: ${inst.category} | Market: ${inst.marketHours} | Min Lot: ${inst.minLot}.`,
+                          type: 'info',
+                        },
+                        ...prev.slice(0, 40),
+                      ]);
+                      playChime('trade');
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                      isSelected
+                        ? 'bg-teal-500/25 text-[#0df2c9] border border-teal-500/60 shadow-[0_0_10px_rgba(13,242,201,0.3)]'
+                        : 'bg-[#091222] hover:bg-[#12223a] text-slate-300 border border-[#162740]'
+                    }`}
+                  >
+                    <span>{inst.displayName.replace('Deriv ', '')}</span>
+                    {inst.badge && (
+                      <span className="text-[8px] px-1 py-0.2 rounded bg-black/60 text-teal-300 border border-teal-500/30">
+                        {inst.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setIsInstrumentModalOpen(true)}
+                className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer"
+              >
+                <Search className="w-3 h-3" />
+                <span>All 38 Deriv Pairs...</span>
+              </button>
+            </div>
           </div>
 
           {/* Master Controller & Panic Action */}
@@ -1425,32 +2048,55 @@ export const Mt5EaScalperStudio: React.FC = () => {
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-bold text-white">{brokerConfig.brokerName}</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                {brokerConfig.accountType} #{brokerConfig.loginId}
+              <span className="text-sm font-bold text-white">
+                {brokerConfig.isConnected ? brokerConfig.brokerName : 'No Broker Connected'}
               </span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-800">
-                {brokerConfig.server}
-              </span>
-              {brokerConfig.regulation && (
-                <span className="hidden sm:inline-flex px-2 py-0.5 rounded text-[10px] font-mono text-teal-300 bg-teal-950/60 border border-teal-500/30">
-                  {brokerConfig.regulation}
+              {brokerConfig.isConnected ? (
+                <>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    {brokerConfig.accountType} #{brokerConfig.loginId}
+                  </span>
+                  {brokerConfig.server && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-800">
+                      {brokerConfig.server}
+                    </span>
+                  )}
+                  {brokerConfig.regulation && (
+                    <span className="hidden sm:inline-flex px-2 py-0.5 rounded text-[10px] font-mono text-teal-300 bg-teal-950/60 border border-teal-500/30">
+                      {brokerConfig.regulation}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  Paper / Simulation Mode
                 </span>
               )}
             </div>
             <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 mt-1 font-mono">
-              <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Broker Bridge Connected ({brokerConfig.pingMs}ms latency)</span>
-              </span>
-              {brokerConfig.leverage && (
+              {brokerConfig.isConnected ? (
                 <>
+                  <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Real Broker Bridge Connected ({brokerConfig.pingMs}ms latency)</span>
+                  </span>
+                  {brokerConfig.leverage && (
+                    <>
+                      <span>•</span>
+                      <span className="text-amber-300">Lev: {brokerConfig.leverage}</span>
+                    </>
+                  )}
                   <span>•</span>
-                  <span className="text-amber-300">Lev: {brokerConfig.leverage}</span>
+                  <span className="text-[#0df2c9] font-bold">
+                    Balance: ${brokerConfig.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {brokerConfig.currency}
+                  </span>
                 </>
+              ) : (
+                <span className="flex items-center gap-1.5 text-slate-400">
+                  <span className="w-2 h-2 rounded-full bg-slate-500" />
+                  <span>Connect your Deriv API token or MT5 Account to sync live real balance</span>
+                </span>
               )}
-              <span>•</span>
-              <span>Balance: ${brokerConfig.balance.toLocaleString()} {brokerConfig.currency}</span>
             </div>
           </div>
         </div>
@@ -1467,6 +2113,13 @@ export const Mt5EaScalperStudio: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setIsLotSizerModalOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-[#0df2c9] border border-teal-500/30 text-xs font-bold transition-all cursor-pointer"
+          >
+            <Calculator className="w-3.5 h-3.5" />
+            <span>Lot Sizer Calculator</span>
+          </button>
+          <button
             onClick={() => setIsBrokerModalOpen(true)}
             className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#111e33] hover:bg-[#182b4a] text-slate-200 border border-[#1e3459] text-xs font-bold transition-all cursor-pointer"
           >
@@ -1480,7 +2133,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
       <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#090f1a] border border-[#16233a] overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveTab('live-engine')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
             activeTab === 'live-engine'
               ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 shadow-sm'
               : 'text-slate-400 hover:text-white'
@@ -1489,6 +2142,45 @@ export const Mt5EaScalperStudio: React.FC = () => {
           <Bot className="w-4 h-4 text-teal-400" />
           <span>Live In-App Scalp Deck</span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+        </button>
+
+        <button
+          onClick={() => setActiveTab('spike-radar')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'spike-radar'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Flame className="w-4 h-4 text-amber-400" />
+          <span>Deriv Spike & Crash Radar</span>
+          <span className="px-1.5 py-0.2 rounded text-[9px] bg-amber-500/20 text-amber-300 font-mono">24/7</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('web-trader')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'web-trader'
+              ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Key className="w-4 h-4 text-[#0df2c9]" />
+          <span>Deriv Web Trader</span>
+          <span className="px-1.5 py-0.2 rounded text-[9px] bg-teal-500/20 text-teal-300 font-mono">API</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('journal')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'journal'
+              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Wallet className="w-4 h-4 text-emerald-400" />
+          <span>Journal & Profit Sweep</span>
+          <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300 font-mono">M-PESA</span>
         </button>
 
         <button
@@ -1615,6 +2307,114 @@ export const Mt5EaScalperStudio: React.FC = () => {
       {/* Tab 1: Live In-App Scalper Deck */}
       {activeTab === 'live-engine' && (
         <div className="space-y-6">
+          {/* Daily Drawdown Circuit Breaker & Automation Protection Bar */}
+          <div
+            className={`p-4 rounded-2xl border transition-all ${
+              circuitBreakerTripped
+                ? 'bg-rose-950/40 border-rose-500/70 shadow-[0_0_20px_rgba(244,63,94,0.3)]'
+                : 'bg-[#0a1220] border-[#17253b]'
+            }`}
+          >
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                    circuitBreakerTripped
+                      ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50 animate-bounce'
+                      : 'bg-teal-500/15 text-[#0df2c9] border border-teal-500/30'
+                  }`}
+                >
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white tracking-wide">
+                      Daily Drawdown Circuit Breaker & Risk Shield
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        circuitBreakerTripped
+                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                          : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                      }`}
+                    >
+                      {circuitBreakerTripped ? 'CIRCUIT TRIPPED (LOCKED)' : 'PROTECTION ACTIVE'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">
+                    <span>
+                      Max Daily Loss Limit: <strong className="text-slate-200 font-mono">${maxDailyLoss.toFixed(2)}</strong>
+                    </span>
+                    <span>·</span>
+                    <span>
+                      Today's Realized:{' '}
+                      <strong
+                        className={`font-mono ${realizedPnlToday >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}
+                      >
+                        {realizedPnlToday >= 0 ? '+' : ''}${realizedPnlToday.toFixed(2)}
+                      </strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Automation Toggles & Actions */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setBreakEvenEnabled(!breakEvenEnabled)}
+                  className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-mono font-semibold transition-all cursor-pointer ${
+                    breakEvenEnabled
+                      ? 'bg-teal-500/20 border-teal-500/40 text-teal-300'
+                      : 'bg-slate-800/60 border-slate-700 text-slate-500'
+                  }`}
+                  title="Auto-shift Stop Loss to Break-Even when profit >= 1.5R"
+                >
+                  {breakEvenEnabled ? '✓ Auto Break-Even (1.5R)' : 'Break-Even: OFF'}
+                </button>
+
+                <button
+                  onClick={() => setTrailingStopEnabled(!trailingStopEnabled)}
+                  className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-mono font-semibold transition-all cursor-pointer ${
+                    trailingStopEnabled
+                      ? 'bg-teal-500/20 border-teal-500/40 text-teal-300'
+                      : 'bg-slate-800/60 border-slate-700 text-slate-500'
+                  }`}
+                  title="Dynamic ATR trailing stop moves stop loss as trade advances"
+                >
+                  {trailingStopEnabled ? '✓ ATR Trailing Stop' : 'Trailing: OFF'}
+                </button>
+
+                <button
+                  onClick={() => setNewsFilterEnabled(!newsFilterEnabled)}
+                  className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-mono font-semibold transition-all cursor-pointer ${
+                    newsFilterEnabled
+                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                      : 'bg-slate-800/60 border-slate-700 text-slate-500'
+                  }`}
+                  title="Freeze trade entries 15 mins before & after high-impact economic news"
+                >
+                  {newsFilterEnabled ? '✓ News Freeze Active' : 'News Filter: OFF'}
+                </button>
+
+                {circuitBreakerTripped && (
+                  <button
+                    onClick={async () => {
+                      await fetch('/api/ea/circuit-breaker', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ resetCircuitBreaker: true }),
+                      });
+                      setCircuitBreakerTripped(false);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs shadow-lg transition-colors cursor-pointer"
+                  >
+                    Reset Circuit Breaker
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Real-time Statistics Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
             <div className="p-4 rounded-2xl bg-[#090f1a] border border-[#16233a] space-y-1">
@@ -2351,48 +3151,67 @@ export const Mt5EaScalperStudio: React.FC = () => {
                   </h3>
                 </div>
 
-                {/* Filter Tabs */}
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-[#091120] border border-[#16233a] self-start sm:self-auto text-xs">
-                  <button
-                    onClick={() => setScanFilter('ALL')}
-                    className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                      scanFilter === 'ALL'
-                        ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    All Candidate Assets ({scannedOpportunities.length})
-                  </button>
-                  <button
-                    onClick={() => setScanFilter('A_PLUS')}
-                    className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                      scanFilter === 'A_PLUS'
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    A+ Prime (&ge;90%)
-                  </button>
-                  <button
-                    onClick={() => setScanFilter('A')}
-                    className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                      scanFilter === 'A'
-                        ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    A Grade (85-89%)
-                  </button>
-                  <button
-                    onClick={() => setScanFilter('FILTERED')}
-                    className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                      scanFilter === 'FILTERED'
-                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Filtered Out
-                  </button>
+                {/* Filter Tabs: Deriv Categories & Grades */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 self-start sm:self-auto">
+                  <div className="flex items-center gap-1 p-1 rounded-xl bg-[#070d18] border border-[#14233a] overflow-x-auto max-w-full text-xs">
+                    {(
+                      [
+                        { id: 'ALL', label: 'All Pairs' },
+                        { id: 'VOLATILITY', label: 'Volatilities 24/7' },
+                        { id: 'CRASH_BOOM', label: 'Crash / Boom' },
+                        { id: 'STEP_JUMP', label: 'Step / Jump' },
+                        { id: 'CRYPTO', label: 'Crypto 24/7' },
+                        { id: 'INDICES', label: 'Indices' },
+                        { id: 'COMMODITIES', label: 'Gold / Metals' },
+                        { id: 'FOREX', label: 'Forex' },
+                      ] as const
+                    ).map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => setScanCategoryFilter(cat.id)}
+                        className={`px-2.5 py-1 rounded-lg font-bold text-[11px] whitespace-nowrap transition-all cursor-pointer ${
+                          scanCategoryFilter === cat.id
+                            ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 shadow-sm'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-1 p-1 rounded-xl bg-[#091120] border border-[#16233a] text-xs shrink-0">
+                    <button
+                      onClick={() => setScanFilter('ALL')}
+                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                        scanFilter === 'ALL'
+                          ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/40'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      All Grades ({filteredOpportunities.length})
+                    </button>
+                    <button
+                      onClick={() => setScanFilter('A_PLUS')}
+                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                        scanFilter === 'A_PLUS'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      A+ Prime (&ge;90%)
+                    </button>
+                    <button
+                      onClick={() => setScanFilter('A')}
+                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                        scanFilter === 'A'
+                          ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      A Grade (85-89%)
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -2717,6 +3536,19 @@ export const Mt5EaScalperStudio: React.FC = () => {
         </div>
       )}
 
+      {/* Tab: Deriv Spike & Crash Warning Radar */}
+      {activeTab === 'spike-radar' && (
+        <DerivSpikeCrashRadar
+          onQuickTrade={(sym, type, lots) => handleQuickTrade(sym, type, lots)}
+        />
+      )}
+
+      {/* Tab: Direct Deriv Web API Terminal */}
+      {activeTab === 'web-trader' && <DerivWebTraderTerminal />}
+
+      {/* Tab: Trader's Journal & Wealth Analytics */}
+      {activeTab === 'journal' && <TradeJournalAnalytics />}
+
       {/* Tab 2: EA Parameter Customizer */}
       {activeTab === 'config' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -2812,14 +3644,33 @@ export const Mt5EaScalperStudio: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-slate-300 mb-1 font-mono">Execution Asset:</label>
-                <input
-                  type="text"
-                  value={params.symbol}
-                  onChange={(e) => setParams({ ...params, symbol: e.target.value.toUpperCase() })}
-                  className="w-full px-3 py-2 rounded-xl bg-[#0e1627] border border-[#1c2c48] text-xs text-white font-mono font-bold"
-                  placeholder="XAUUSD"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-slate-300 font-mono">Execution Asset:</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsInstrumentModalOpen(true)}
+                    className="text-[10px] text-[#0df2c9] hover:underline font-bold flex items-center gap-0.5 cursor-pointer"
+                  >
+                    <span>Browse 38 Deriv Pairs →</span>
+                  </button>
+                </div>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={params.symbol}
+                    onChange={(e) => setParams({ ...params, symbol: e.target.value.toUpperCase() })}
+                    className="w-full px-3 py-2 rounded-xl bg-[#0e1627] border border-[#1c2c48] text-xs text-white font-mono font-bold"
+                    placeholder="e.g. R_75, BOOM1000, BTCUSD"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsInstrumentModalOpen(true)}
+                    className="px-2.5 py-2 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 text-[#0df2c9] border border-teal-500/40 text-xs shrink-0 cursor-pointer"
+                    title="Select from Deriv Catalog"
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -3364,6 +4215,40 @@ export const Mt5EaScalperStudio: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveBrokerConfig} className="space-y-4 text-xs font-mono">
+              {/* Failure Error Alert with Explicit Reason */}
+              {connectionError && (
+                <div className="p-4 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs space-y-2 animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-center gap-2 font-bold text-rose-300">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span className="uppercase tracking-wider">Failed to Connect Broker</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-black/50 border border-rose-500/30 text-rose-100 font-mono text-[11px] leading-relaxed break-words">
+                    {connectionError}
+                  </div>
+                  <div className="text-[10px] text-slate-300 space-y-1 pt-1">
+                    <p className="font-semibold text-slate-200">Troubleshooting Steps:</p>
+                    <ul className="list-disc list-inside space-y-0.5 text-slate-400">
+                      <li><strong>Deriv API Token:</strong> In Deriv.com, go to <em>Manage Account Settings → API Token</em>. Ensure both <strong>Read</strong> and <strong>Trade</strong> checkboxes are selected when creating your token.</li>
+                      <li><strong>Deriv MT5:</strong> If connecting Deriv MT5, use your MT5 account number and select the exact server (e.g. <span className="text-[#0df2c9]">Deriv-Server-02</span>).</li>
+                      <li><strong>Trailing Spaces:</strong> Make sure no extra spaces were accidentally pasted before or after the token.</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Success Alert with Verified Real Balance */}
+              {connectionSuccessMsg && (
+                <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-200 text-xs space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-center gap-2 font-bold text-emerald-300">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Connection Handshake Verified!</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-black/50 border border-emerald-500/30 text-emerald-100 font-mono text-[11px] font-bold">
+                    {connectionSuccessMsg}
+                  </div>
+                </div>
+              )}
+
               {/* Popular Broker Selector */}
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -3381,13 +4266,15 @@ export const Mt5EaScalperStudio: React.FC = () => {
                       <button
                         key={b.name}
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
+                          setConnectionError(null);
+                          setConnectionSuccessMsg(null);
                           setBrokerForm({
                             ...brokerForm,
                             brokerName: b.name,
                             server: b.defaultServer,
-                          })
-                        }
+                          });
+                        }}
                         className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative ${
                           isSelected
                             ? 'bg-teal-500/20 text-[#0df2c9] border-teal-500/60 shadow-[0_0_12px_rgba(13,242,201,0.2)]'
@@ -3421,13 +4308,15 @@ export const Mt5EaScalperStudio: React.FC = () => {
               {/* Login ID and Server Selection */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 mb-1 font-bold">MT5 Account Login Number:</label>
+                  <label className="block text-slate-300 mb-1 font-bold">
+                    {brokerForm.brokerName === 'Deriv' ? 'Deriv CR / Account ID (Optional):' : 'MT5 Account Login Number:'}
+                  </label>
                   <input
                     type="text"
                     value={brokerForm.loginId}
                     onChange={(e) => setBrokerForm({ ...brokerForm, loginId: e.target.value })}
-                    placeholder="e.g. 68492041"
-                    required
+                    placeholder={brokerForm.brokerName === 'Deriv' ? 'e.g. CR1234567 or leave blank' : 'e.g. 1092834'}
+                    required={brokerForm.brokerName !== 'Deriv'}
                     className="w-full px-3 py-2.5 rounded-xl bg-[#0c1322] border border-[#18263e] text-white font-bold text-xs focus:border-teal-500 focus:outline-none"
                   />
                 </div>
@@ -3481,15 +4370,57 @@ export const Mt5EaScalperStudio: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 mb-1 font-bold">Investor / Trade API Key:</label>
+                  <label className="block text-slate-300 mb-1 font-bold">
+                    {brokerForm.brokerName === 'Deriv' ? 'Deriv API Token (Read & Trade):' : 'Investor / Trade API Key:'}
+                  </label>
                   <input
                     type="password"
                     value={brokerForm.password}
                     onChange={(e) => setBrokerForm({ ...brokerForm, password: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#0c1322] border border-[#18263e] text-white text-xs focus:border-teal-500 focus:outline-none"
+                    placeholder={brokerForm.brokerName === 'Deriv' ? 'Paste Deriv API Token here' : '••••••••••••'}
+                    className="w-full px-3 py-2.5 rounded-xl bg-[#0c1322] border border-[#18263e] text-white text-xs focus:border-teal-500 focus:outline-none font-mono"
                   />
                 </div>
               </div>
+
+              {/* Optional Real Balance for MT5 brokers before desktop EA sync */}
+              {brokerForm.brokerName !== 'Deriv' && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-slate-300 font-bold">Your Live Account Balance (USD):</label>
+                    <span className="text-[10px] text-teal-400">Real Balance Sync</span>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={brokerForm.manualBalance}
+                    onChange={(e) => setBrokerForm({ ...brokerForm, manualBalance: e.target.value })}
+                    placeholder={`e.g. 500.00 (Current: ${brokerConfig.balance} USD)`}
+                    className="w-full px-3 py-2.5 rounded-xl bg-[#0c1322] border border-[#18263e] text-white text-xs focus:border-teal-500 focus:outline-none font-mono"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">
+                    Enter your actual broker account balance to reflect your real equity.
+                  </span>
+                </div>
+              )}
+
+              {/* Deriv Specific Guide */}
+              {brokerForm.brokerName === 'Deriv' && (
+                <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-200 text-xs space-y-1.5 animate-in fade-in">
+                  <div className="flex items-center gap-2 font-bold text-teal-300">
+                    <Check className="w-4 h-4 text-[#0df2c9] shrink-0" />
+                    <span>Deriv Connection Options (Both Supported):</span>
+                  </div>
+                  <div className="space-y-1 text-[11px] text-slate-300 leading-relaxed">
+                    <p>
+                      <strong>1. Deriv API Token:</strong> In Deriv, go to <em>Manage Account Settings → API Token</em>. Create a token with <span className="text-[#0df2c9] font-mono">Read</span> &amp; <span className="text-[#0df2c9] font-mono">Trade</span> permissions, then paste it above.
+                    </p>
+                    <p>
+                      <strong>2. Deriv MT5 Account:</strong> In Deriv <em>Traders Hub → CFDs</em>, copy your <strong>MT5 Login ID</strong> and select your server (<span className="text-teal-300 font-mono">Deriv-Server-02</span>, <span className="text-teal-300 font-mono">Deriv-Server</span>, or <span className="text-teal-300 font-mono">Deriv-Demo</span>).
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* 2-Way MT5 WebRequest URL Banner */}
               <div className="p-3 rounded-xl bg-[#070d18] border border-teal-500/30 space-y-1.5">
@@ -3536,34 +4467,50 @@ export const Mt5EaScalperStudio: React.FC = () => {
                 </button>
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#16233a]">
-                <button
-                  type="button"
-                  onClick={() => setIsBrokerModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs cursor-pointer"
-                >
-                  Cancel
-                </button>
+              <div className="pt-2 flex items-center justify-between border-t border-[#16233a]">
+                {brokerConfig.isConnected ? (
+                  <button
+                    type="button"
+                    onClick={handleDisconnectBroker}
+                    className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Disconnect Broker
+                  </button>
+                ) : (
+                  <div className="text-[11px] text-slate-500 font-mono">
+                    Currently in Paper / Simulator mode
+                  </div>
+                )}
 
-                <button
-                  type="submit"
-                  disabled={isTestingHandshake}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#0df2c9] to-teal-500 text-slate-950 font-bold text-xs hover:brightness-110 transition-all shadow-[0_0_18px_rgba(13,242,201,0.35)] cursor-pointer disabled:opacity-50"
-                >
-                  {isTestingHandshake ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Verifying Handshake with Broker...</span>
-                    </>
-                  ) : handshakeSuccess ? (
-                    <>
-                      <Check className="w-4 h-4 text-emerald-950" />
-                      <span>Bridge Handshake Verified!</span>
-                    </>
-                  ) : (
-                    <span>Test Handshake &amp; Connect Broker</span>
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsBrokerModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isTestingHandshake}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#0df2c9] to-teal-500 text-slate-950 font-bold text-xs hover:brightness-110 transition-all shadow-[0_0_18px_rgba(13,242,201,0.35)] cursor-pointer disabled:opacity-50"
+                  >
+                    {isTestingHandshake ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Verifying Handshake with Broker...</span>
+                      </>
+                    ) : handshakeSuccess ? (
+                      <>
+                        <Check className="w-4 h-4 text-emerald-950" />
+                        <span>Bridge Handshake Verified!</span>
+                      </>
+                    ) : (
+                      <span>Test Handshake &amp; Connect Broker</span>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -3699,6 +4646,199 @@ export const Mt5EaScalperStudio: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Deriv Instrument Catalog & Pair Selection Modal */}
+      {isInstrumentModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#091120] border border-teal-500/40 rounded-3xl max-w-4xl w-full p-6 space-y-5 shadow-2xl relative animate-in zoom-in-95 max-h-[92vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-[#16233a] pb-4 shrink-0">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-[#0df2c9]">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <span>Deriv Market Universe &amp; Traded Pairs</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-teal-500/20 text-[#0df2c9] border border-teal-500/30">
+                      {DERIV_INSTRUMENTS.length} PAIRS READY
+                    </span>
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Select any Deriv Synthetic Volatility Index, Crash/Boom, Step Index, 24/7 Cryptocurrency, Stock Index, or Commodity to trade immediately.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsInstrumentModalOpen(false)}
+                className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search and Category Filter Bar */}
+            <div className="space-y-3 shrink-0">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                <input
+                  type="text"
+                  value={instrumentSearch}
+                  onChange={(e) => setInstrumentSearch(e.target.value)}
+                  placeholder="Search by symbol or name (e.g. 75, Boom, Crash, BTC, Step, Solana, Nasdaq)..."
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0e1728] border border-[#1b2b46] text-white text-xs font-mono focus:border-teal-500 focus:outline-none"
+                  autoFocus
+                />
+              </div>
+
+              {/* Category Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+                {(
+                  [
+                    { id: 'ALL', label: 'All Pairs (38)' },
+                    { id: 'VOLATILITY', label: 'Synthetic Volatility (14)' },
+                    { id: 'CRASH_BOOM', label: 'Crash & Boom (6)' },
+                    { id: 'STEP_JUMP', label: 'Step & Jump (8)' },
+                    { id: 'CRYPTO', label: 'Cryptocurrencies (8)' },
+                    { id: 'INDICES', label: 'Stock Indices (6)' },
+                    { id: 'COMMODITIES', label: 'Commodities & Metals' },
+                    { id: 'FOREX', label: 'Forex Pairs' },
+                  ] as const
+                ).map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setInstrumentCategoryFilter(cat.id)}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-[11px] whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                      instrumentCategoryFilter === cat.id
+                        ? 'bg-teal-500/20 text-[#0df2c9] border border-teal-500/50 shadow-sm'
+                        : 'bg-[#0a1322] hover:bg-[#111f36] text-slate-400 border border-[#16233a]'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Instruments Grid List */}
+            <div className="overflow-y-auto space-y-2 pr-1 flex-1">
+              {DERIV_INSTRUMENTS.filter((inst) => {
+                const matchesCat =
+                  instrumentCategoryFilter === 'ALL' || inst.category === instrumentCategoryFilter;
+                const matchesSearch =
+                  !instrumentSearch ||
+                  inst.symbol.toLowerCase().includes(instrumentSearch.toLowerCase()) ||
+                  inst.displayName.toLowerCase().includes(instrumentSearch.toLowerCase()) ||
+                  inst.description.toLowerCase().includes(instrumentSearch.toLowerCase());
+                return matchesCat && matchesSearch;
+              }).map((inst) => {
+                const isSelected = params.symbol === inst.symbol;
+                return (
+                  <div
+                    key={inst.symbol}
+                    onClick={() => {
+                      setParams((prev) => ({
+                        ...prev,
+                        symbol: inst.symbol,
+                        fixedLot: Math.max(prev.fixedLot, inst.minLot),
+                      }));
+                      setLivePrice(inst.basePrice);
+                      setIsInstrumentModalOpen(false);
+                      setTerminalLogs((prev) => [
+                        {
+                          id: `log-${Date.now()}`,
+                          time: new Date().toLocaleTimeString(),
+                          text: `Selected ${inst.displayName} (${inst.symbol}). Category: ${inst.category} | Hours: ${inst.marketHours} | Min Lot: ${inst.minLot}. Live telemetry activated.`,
+                          type: 'info',
+                        },
+                        ...prev.slice(0, 40),
+                      ]);
+                      playChime('trade');
+                    }}
+                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                      isSelected
+                        ? 'bg-teal-500/15 border-teal-500/60 shadow-[0_0_15px_rgba(13,242,201,0.2)]'
+                        : 'bg-[#0a1220] hover:bg-[#111e33] border-[#182844] hover:border-teal-500/40'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-bold text-white text-sm">{inst.displayName}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#070e1c] text-[#0df2c9] border border-[#1a2f50]">
+                          {inst.symbol}
+                        </span>
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${
+                            inst.marketHours === '24/7'
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                          }`}
+                        >
+                          {inst.marketHours}
+                        </span>
+                        {inst.badge && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            {inst.badge}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-300 line-clamp-1">{inst.description}</p>
+                      <div className="text-[11px] text-teal-300/80 font-mono flex items-center gap-2">
+                        <span>💡 Tip: {inst.tradingTip}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex sm:flex-col items-end justify-between sm:justify-center gap-1 shrink-0 text-right font-mono">
+                      <div className="text-sm font-bold text-white">
+                        ${formatPrice(inst.basePrice, inst.symbol)}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        Min Lot: <strong className="text-slate-200">{inst.minLot}</strong> · Digits: {inst.digits}
+                      </div>
+                      <div className="text-[11px] text-[#0df2c9] font-bold flex items-center gap-1">
+                        <span>Select to Trade →</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-[#16233a] flex items-center justify-between text-xs text-slate-400 shrink-0">
+              <span className="font-mono">
+                Active Symbol: <strong className="text-[#0df2c9]">{params.symbol}</strong>
+              </span>
+              <button
+                onClick={() => setIsInstrumentModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Margin & Lot Size Sizer Modal */}
+      <MarginLotCalculatorModal
+        isOpen={isLotSizerModalOpen}
+        onClose={() => setIsLotSizerModalOpen(false)}
+        initialSymbol={params.symbol}
+        accountBalance={brokerConfig.balance || 2450}
+        onApplyLot={(lot, sym) => {
+          setParams((prev) => ({ ...prev, symbol: sym, fixedLot: lot }));
+          setTerminalLogs((prev) => [
+            {
+              id: `log-${Date.now()}`,
+              time: new Date().toLocaleTimeString(),
+              text: `📐 SIZER APPLIED: Selected ${sym} with ${lot} lots.`,
+              type: 'info',
+            },
+            ...prev.slice(0, 40),
+          ]);
+        }}
+      />
     </div>
   );
 };

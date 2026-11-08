@@ -61,10 +61,43 @@ export function getStoredExchangeRates(): ExchangeRates {
 }
 
 /**
- * Fetches real-time exchange rates from open exchange API.
+ * Fetches real-time exchange rates from local API and open exchange API.
  */
 export async function fetchLiveExchangeRates(): Promise<ExchangeRates> {
   try {
+    // 1. Try local server proxy which has live TradingView & Forex scanner feeds
+    try {
+      const localRes = await fetch('/api/tradingview/prices');
+      if (localRes.ok) {
+        const localData = await localRes.json();
+        const quotes = localData.quotes || {};
+        const kesQuote = quotes['USD/KES'] || quotes['USDKES'];
+        const eurQuote = quotes['EUR/USD'] || quotes['EURUSD'];
+        const gbpQuote = quotes['GBP/USD'] || quotes['GBPUSD'];
+        const ugxQuote = quotes['USD/UGX'] || quotes['USDUGX'];
+        const tzsQuote = quotes['USD/TZS'] || quotes['USDTZS'];
+
+        if (kesQuote?.price) {
+          const newRates: ExchangeRates = {
+            USD: 1.0,
+            KES: Number(kesQuote.price),
+            EUR: eurQuote?.price ? Number((1 / eurQuote.price).toFixed(4)) : DEFAULT_RATES.EUR,
+            GBP: gbpQuote?.price ? Number((1 / gbpQuote.price).toFixed(4)) : DEFAULT_RATES.GBP,
+            TZS: tzsQuote?.price ? Number(tzsQuote.price) : DEFAULT_RATES.TZS,
+            UGX: ugxQuote?.price ? Number(ugxQuote.price) : DEFAULT_RATES.UGX,
+            lastUpdated: new Date().toISOString(),
+          };
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(newRates));
+          } catch (e) {}
+          return newRates;
+        }
+      }
+    } catch (e) {
+      /* ignore and try external */
+    }
+
+    // 2. Fallback to open exchange rates API
     const res = await fetch('https://open.er-api.com/v6/latest/USD');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();

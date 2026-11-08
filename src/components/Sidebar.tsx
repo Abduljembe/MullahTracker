@@ -100,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'emergency', label: 'Emergency Fund', icon: Shield },
         { id: 'investments', label: 'Investments', icon: TrendingUp },
         { id: 'stocks', label: 'Stocks & Forex Signals', icon: BarChart2 },
-        { id: 'mt5-ea', label: 'MT5 Scalper Bot EA', icon: Bot },
+        { id: 'mt5-ea', label: 'MT5 & Deriv Scalper Studio', icon: Bot },
         { id: 'forex-suite', label: 'Forex Quant & Prop Firm Suite', icon: Zap },
         { id: 'orderflow', label: 'Order Flow & Liquidity', icon: Layers },
         { id: 'livetv', label: 'World Monitor & Bloomberg TV', icon: Tv },

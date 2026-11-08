@@ -53,6 +53,22 @@ export const Header: React.FC<HeaderProps> = ({
 
   const { user, setIsAuthModalOpen, setAuthMode, logout } = useAuth();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [isRefreshingRates, setIsRefreshingRates] = useState(false);
+  const [ratesSyncSuccess, setRatesSyncSuccess] = useState(false);
+
+  const handleRefreshRates = async () => {
+    if (isRefreshingRates) return;
+    setIsRefreshingRates(true);
+    try {
+      await refreshExchangeRates();
+      setRatesSyncSuccess(true);
+      setTimeout(() => setRatesSyncSuccess(false), 2600);
+    } catch (err) {
+      console.warn('Failed to refresh exchange rates:', err);
+    } finally {
+      setTimeout(() => setIsRefreshingRates(false), 600);
+    }
+  };
 
   // Title mapped from activeTab
   const getTabTitle = () => {
@@ -237,13 +253,34 @@ export const Header: React.FC<HeaderProps> = ({
                 Convert
               </span>
             </button>
-            <button
-              onClick={() => refreshExchangeRates()}
-              className="p-1.5 rounded-lg bg-[#0a1220] hover:bg-[#121f33] border border-[#17253b] hover:text-teal-300 text-slate-500 transition-colors"
-              title="Refresh live exchange rates"
-            >
-              <RefreshCw className="w-3 h-3" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={handleRefreshRates}
+                disabled={isRefreshingRates}
+                aria-label="Sync & refresh live FX exchange rates (USD, KES, EUR, GBP)"
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                  isRefreshingRates
+                    ? 'bg-teal-500/20 border-teal-500/50 text-[#0df2c9] shadow-[0_0_10px_rgba(13,242,201,0.3)]'
+                    : ratesSyncSuccess
+                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                    : 'bg-[#0a1220] hover:bg-[#121f33] border-[#17253b] hover:border-teal-500/40 text-slate-400 hover:text-teal-300'
+                }`}
+                title="Sync & refresh live FX exchange rates (USD, KES, EUR, GBP)"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${
+                    isRefreshingRates ? 'animate-spin text-[#0df2c9]' : ratesSyncSuccess ? 'text-emerald-400' : ''
+                  }`}
+                />
+              </button>
+
+              {ratesSyncSuccess && (
+                <div className="absolute top-9 right-0 z-50 px-2.5 py-1 rounded-lg bg-[#091322] border border-emerald-500/40 shadow-xl text-[10px] font-mono text-emerald-300 whitespace-nowrap animate-in fade-in slide-in-from-top-1 flex items-center gap-1.5 pointer-events-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  <span>Rates synced: 1 USD = {exchangeRates.KES ? `${exchangeRates.KES.toFixed(2)} KES` : '129.20 KES'}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
