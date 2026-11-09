@@ -25,7 +25,7 @@ interface LiveMarketTickerTapeProps {
 }
 
 const DEFAULT_TICKERS: TickerItem[] = [
-  { symbol: 'XAUUSD', name: 'Gold Spot', price: 2884.50, changePercent: +1.42, category: 'METALS', is24_7: false, digits: 2 },
+  { symbol: 'XAUUSD', name: 'Gold Spot', price: 4102.90, changePercent: +1.42, category: 'METALS', is24_7: false, digits: 2 },
   { symbol: 'BTCUSD', name: 'Bitcoin', price: 96450.00, changePercent: +3.18, category: 'CRYPTO', is24_7: true, digits: 2 },
   { symbol: 'R_75', name: 'Deriv Vol 75', price: 428950.40, changePercent: +2.85, category: 'DERIV_24_7', is24_7: true, digits: 2 },
   { symbol: 'BOOM1000', name: 'Boom 1000', price: 15420.30, changePercent: +0.94, category: 'DERIV_24_7', is24_7: true, digits: 2 },
@@ -94,7 +94,7 @@ export const LiveMarketTickerTape: React.FC<LiveMarketTickerTapeProps> = ({
     };
 
     fetchPrices();
-    const interval = setInterval(fetchPrices, 3000);
+    const interval = setInterval(fetchPrices, 1200);
     return () => {
       isMounted = false;
       clearInterval(interval);

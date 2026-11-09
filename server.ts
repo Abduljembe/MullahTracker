@@ -213,8 +213,8 @@ function injectDerivQuotes(target: Record<string, TradingViewQuote>, timeIso: st
 
 export async function fetchLiveTradingViewQuotes(): Promise<Record<string, TradingViewQuote>> {
   const now = Date.now();
-  // Return cached quotes if less than 8 seconds old
-  if (now - lastTvQuotesFetch < 8000 && Object.keys(tvQuotesCache).length > 0) {
+  // Return cached quotes if less than 1.2 seconds old (with subtle sub-second MT5 tick simulation)
+  if (now - lastTvQuotesFetch < 1200 && Object.keys(tvQuotesCache).length > 0) {
     return tvQuotesCache;
   }
 
