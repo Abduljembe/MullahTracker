@@ -83,6 +83,7 @@ import { DerivWebTraderTerminal } from '../trading/DerivWebTraderTerminal.tsx';
 import { TradeJournalAnalytics } from '../trading/TradeJournalAnalytics.tsx';
 import { MarginLotCalculatorModal } from '../trading/MarginLotCalculatorModal.tsx';
 import { GamerTradingCockpit } from '../trading/GamerTradingCockpit.tsx';
+import { LiveMarketTickerTape } from '../trading/LiveMarketTickerTape.tsx';
 
 export interface ScannedOpportunity {
   symbol: string;
@@ -1952,220 +1953,91 @@ export const Mt5EaScalperStudio: React.FC = () => {
   const winRatePercent = tradesCountToday > 0 ? Math.round((winsCountToday / tradesCountToday) * 100) : 75;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Top Hero Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0c1629] via-[#080f1e] to-[#040812] border border-teal-500/30 p-6 sm:p-8 shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="space-y-4 animate-in fade-in duration-200">
+      {/* Real-time Global Ticker Ribbon */}
+      <LiveMarketTickerTape
+        activeSymbol={params.symbol}
+        onSelectSymbol={(sym) => {
+          const inst = getDerivInstrument(sym);
+          if (inst) {
+            setParams((prev) => ({
+              ...prev,
+              symbol: inst.symbol,
+              fixedLot: Math.max(prev.fixedLot, inst.minLot),
+            }));
+            setLivePrice(inst.basePrice);
+          } else {
+            setParams((prev) => ({ ...prev, symbol: sym }));
+          }
+          playChime('trade');
+        }}
+      />
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-teal-500/20 text-[#0df2c9] border border-teal-500/40 flex items-center gap-1.5 shadow-[0_0_12px_rgba(13,242,201,0.25)]">
-                <Bot className="w-3.5 h-3.5" />
-                LIVE IN-APP SCALPER & MT5 CONTROLLER
-              </span>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.25)]">
-                <Radio className={`w-3 h-3 ${derivWsConnected ? 'text-teal-400 animate-ping' : 'text-emerald-400 animate-pulse'}`} />
-                <span>
-                  {derivWsConnected ? 'DERIV 24/7 LIVE WS' : 'LIVE MARKET FEED'}: ${formatPrice(livePrice, params.symbol)} ({params.symbol})
-                </span>
-              </span>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                2-WAY CLOUD WEBHOOK
-              </span>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                REAL-TIME BROKER BRIDGE
-              </span>
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-              <span>Apex MT5 Scalper Bot Controller</span>
-              <span
-                className={`w-3 h-3 rounded-full ${
-                  isBotRunning ? 'bg-emerald-400 animate-ping' : 'bg-rose-500'
-                }`}
-                title={isBotRunning ? 'Bot Running' : 'Bot Paused'}
-              />
-            </h1>
-            <p className="text-sm text-slate-300 leading-relaxed">
-              Run your scalping bot directly in this app or connect to your live broker (Deriv, Exness, IC Markets, FTMO). Trade all 38+ Deriv synthetic indices, Crash/Boom, Step, 24/7 Cryptocurrencies, and Forex directly in real time.
-            </p>
-
-            {/* Deriv 24/7 Traded Pairs Quick Bar */}
-            <div className="pt-1 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              <span className="text-[10px] font-mono text-teal-400 font-bold shrink-0 flex items-center gap-1 mr-1">
-                <Zap className="w-3 h-3" /> DERIV 24/7:
-              </span>
-              {POPULAR_DERIV_SYMBOLS.map((inst) => {
-                const isSelected = params.symbol === inst.symbol;
-                return (
-                  <button
-                    key={inst.symbol}
-                    onClick={() => {
-                      setParams((prev) => ({
-                        ...prev,
-                        symbol: inst.symbol,
-                        fixedLot: Math.max(prev.fixedLot, inst.minLot),
-                      }));
-                      setLivePrice(inst.basePrice);
-                      setTerminalLogs((prev) => [
-                        {
-                          id: `log-${Date.now()}`,
-                          time: new Date().toLocaleTimeString(),
-                          text: `⚡ 1-Click Switch to ${inst.displayName} (${inst.symbol}). Category: ${inst.category} | Market: ${inst.marketHours} | Min Lot: ${inst.minLot}.`,
-                          type: 'info',
-                        },
-                        ...prev.slice(0, 40),
-                      ]);
-                      playChime('trade');
-                    }}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                      isSelected
-                        ? 'bg-teal-500/25 text-[#0df2c9] border border-teal-500/60 shadow-[0_0_10px_rgba(13,242,201,0.3)]'
-                        : 'bg-[#091222] hover:bg-[#12223a] text-slate-300 border border-[#162740]'
-                    }`}
-                  >
-                    <span>{inst.displayName.replace('Deriv ', '')}</span>
-                    {inst.badge && (
-                      <span className="text-[8px] px-1 py-0.2 rounded bg-black/60 text-teal-300 border border-teal-500/30">
-                        {inst.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-              <button
-                onClick={() => setIsInstrumentModalOpen(true)}
-                className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer"
-              >
-                <Search className="w-3 h-3" />
-                <span>All 38 Deriv Pairs...</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Master Controller & Panic Action */}
-          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
-            {/* Giant START / STOP Switch */}
-            <button
-              onClick={() => handleToggleBotRunning(!isBotRunning)}
-              className={`flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-extrabold text-sm sm:text-base transition-all cursor-pointer shadow-xl ${
-                isBotRunning
-                  ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:shadow-[0_0_40px_rgba(16,185,129,0.6)] hover:scale-[1.02]'
-                  : 'bg-gradient-to-r from-rose-600 to-red-700 text-white shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:bg-rose-500'
-              }`}
-            >
-              <Power className={`w-5 h-5 ${isBotRunning ? 'animate-pulse' : ''}`} />
-              <div className="text-left">
-                <div className="text-[10px] font-mono tracking-wider uppercase opacity-85">Master Switch:</div>
-                <div className="font-mono">{isBotRunning ? 'BOT IS RUNNING [STOP]' : 'BOT IS STOPPED [START]'}</div>
-              </div>
-            </button>
-
-            {/* Emergency Panic Button */}
-            <button
-              onClick={handleEmergencyPanicCloseAll}
-              disabled={activePositions.length === 0}
-              className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border font-bold text-xs transition-all cursor-pointer ${
-                activePositions.length > 0
-                  ? 'bg-red-950/70 hover:bg-red-900 border-red-500/60 text-red-200 shadow-md hover:scale-[1.01]'
-                  : 'bg-slate-900/60 border-slate-800 text-slate-500 cursor-not-allowed'
-              }`}
-              title="Instantly liquidate all open positions on broker/chart and halt the bot"
-            >
-              <ShieldAlert className="w-4 h-4 text-red-400" />
-              <span>EMERGENCY: CLOSE ALL POSITIONS</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {panicTriggered && (
-        <div className="p-4 rounded-2xl bg-red-950/80 border border-red-500 text-red-200 text-xs sm:text-sm flex items-center justify-between shadow-2xl animate-in zoom-in-95">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-red-400 animate-bounce" />
-            <div>
-              <div className="font-bold">EMERGENCY PANIC TRIGGERED!</div>
-              <div className="text-xs text-red-300">All open positions closed. Remote MT5 EA commanded to halt trading immediately.</div>
-            </div>
-          </div>
-          <span className="font-mono text-xs text-red-400 font-bold px-3 py-1 bg-black/40 rounded-lg">ZERO POSITIONS</span>
-        </div>
-      )}
-
-      {/* Broker Connection Status Card */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#0d1627] via-[#091120] to-[#0a1424] border border-[#182845] shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-[#0df2c9] shadow-inner shrink-0">
-            <Server className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-bold text-white">
-                {brokerConfig.isConnected ? brokerConfig.brokerName : 'No Broker Connected'}
-              </span>
-              {brokerConfig.isConnected ? (
-                <>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    {brokerConfig.accountType} #{brokerConfig.loginId}
-                  </span>
-                  {brokerConfig.server && (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-800">
-                      {brokerConfig.server}
-                    </span>
-                  )}
-                  {brokerConfig.regulation && (
-                    <span className="hidden sm:inline-flex px-2 py-0.5 rounded text-[10px] font-mono text-teal-300 bg-teal-950/60 border border-teal-500/30">
-                      {brokerConfig.regulation}
-                    </span>
-                  )}
-                </>
-              ) : (
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  Paper / Simulation Mode
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 mt-1 font-mono">
-              {brokerConfig.isConnected ? (
-                <>
-                  <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Real Broker Bridge Connected ({brokerConfig.pingMs}ms latency)</span>
-                  </span>
-                  {brokerConfig.leverage && (
-                    <>
-                      <span>•</span>
-                      <span className="text-amber-300">Lev: {brokerConfig.leverage}</span>
-                    </>
-                  )}
-                  <span>•</span>
-                  <span className="text-[#0df2c9] font-bold">
-                    Balance: ${brokerConfig.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {brokerConfig.currency}
-                  </span>
-                </>
-              ) : (
-                <span className="flex items-center gap-1.5 text-slate-400">
-                  <span className="w-2 h-2 rounded-full bg-slate-500" />
-                  <span>Connect your Deriv API token or MT5 Account to sync live real balance</span>
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 self-start md:self-auto">
+      {/* Unified Apex Cyber Command Strip */}
+      <div className="rounded-2xl bg-gradient-to-r from-[#070d18] via-[#0a1424] to-[#060b14] border border-[#162742] p-4 sm:p-5 shadow-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        {/* Left: Master Bot Power Switch & Active Asset Quote */}
+        <div className="flex flex-wrap items-center gap-4">
           <button
-            onClick={() => setAudioAlerts(!audioAlerts)}
-            className={`p-2 rounded-xl border text-xs font-mono transition-colors cursor-pointer ${
-              audioAlerts ? 'bg-teal-500/20 text-[#0df2c9] border-teal-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'
+            onClick={() => handleToggleBotRunning(!isBotRunning)}
+            className={`flex items-center gap-3 px-5 py-3 rounded-2xl font-mono font-black text-xs sm:text-sm transition-all cursor-pointer shadow-xl ${
+              isBotRunning
+                ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.45)] hover:scale-[1.02]'
+                : 'bg-gradient-to-r from-rose-600 to-red-700 text-white shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:bg-rose-500'
             }`}
-            title="Toggle Bot Audio Execution Chimes"
           >
-            {audioAlerts ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            <Power className={`w-5 h-5 ${isBotRunning ? 'animate-pulse' : ''}`} />
+            <div className="text-left">
+              <div className="text-[9px] uppercase tracking-wider opacity-80">MASTER ENGINE</div>
+              <div>{isBotRunning ? 'BOT: ACTIVE [STOP]' : 'BOT: HALTED [START]'}</div>
+            </div>
           </button>
 
+          {/* Active Pair Spot & Feed Status */}
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <span className="font-mono font-black text-sm text-white">{params.symbol}</span>
+              <span className="text-[10px] font-mono text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">
+                {derivWsConnected ? 'DERIV 24/7 WS' : 'FEED ACTIVE'}
+              </span>
+            </div>
+            <div className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
+              <span className="text-teal-300 font-bold">${formatPrice(livePrice, params.symbol)}</span>
+              <span>·</span>
+              <span>Lot: {params.fixedLot}L</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Center: Connected Broker Hub with Real Balance in USD & KES */}
+        <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-[#050b16] border border-[#14233a]">
+          <div className="w-9 h-9 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-[#0df2c9] shrink-0">
+            <Server className="w-4 h-4" />
+          </div>
+          <div className="space-y-0.5 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-white">
+                {brokerConfig.isConnected ? brokerConfig.brokerName : 'Deriv API / Paper Bridge'}
+              </span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                {brokerConfig.isConnected ? `${brokerConfig.accountType} #${brokerConfig.loginId}` : 'Sim / Demo Mode'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 font-mono text-[11px] text-slate-400">
+              <span className="text-[#0df2c9] font-extrabold">
+                ${brokerConfig.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {brokerConfig.currency}
+              </span>
+              <span>·</span>
+              <span className="text-slate-300 font-semibold">
+                ~KSh {(brokerConfig.balance * 129.5).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </span>
+              <span>·</span>
+              <span className="text-emerald-400">{brokerConfig.pingMs}ms</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Mode Switcher, Audio, Sizer, Broker Modal, Emergency Panic */}
+        <div className="flex flex-wrap items-center gap-2">
           {/* Mode Switcher: Arcade HUD vs Classic Desk */}
           <div className="flex items-center p-1 rounded-xl bg-[#09111e] border border-[#1b2c47]">
             <button
@@ -2198,22 +2070,73 @@ export const Mt5EaScalperStudio: React.FC = () => {
             </button>
           </div>
 
+          {/* Audio Alert Toggle */}
+          <button
+            onClick={() => setAudioAlerts(!audioAlerts)}
+            className={`p-2 rounded-xl border text-xs font-mono transition-colors cursor-pointer ${
+              audioAlerts ? 'bg-teal-500/20 text-[#0df2c9] border-teal-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'
+            }`}
+            title="Toggle Bot Audio Execution Chimes"
+          >
+            {audioAlerts ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+
+          {/* Lot Sizer */}
           <button
             onClick={() => setIsLotSizerModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-[#0df2c9] border border-teal-500/30 text-xs font-bold transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-[#0df2c9] border border-teal-500/30 text-xs font-bold transition-all cursor-pointer"
           >
             <Calculator className="w-3.5 h-3.5" />
             <span>Lot Sizer</span>
           </button>
+
+          {/* Broker Bridge */}
           <button
             onClick={() => setIsBrokerModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#111e33] hover:bg-[#182b4a] text-slate-200 border border-[#1e3459] text-xs font-bold transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#111e33] hover:bg-[#182b4a] text-slate-200 border border-[#1e3459] text-xs font-bold transition-all cursor-pointer"
           >
-            <Sliders className="w-3.5 h-3.5 text-teal-400" />
-            <span>Connect / Change Broker</span>
+            <Server className="w-3.5 h-3.5 text-teal-400" />
+            <span>Broker</span>
+          </button>
+
+          {/* 38 Pairs */}
+          <button
+            onClick={() => setIsInstrumentModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span>38 Pairs</span>
+          </button>
+
+          {/* Emergency Panic */}
+          <button
+            onClick={handleEmergencyPanicCloseAll}
+            disabled={activePositions.length === 0}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border font-bold text-xs transition-all cursor-pointer ${
+              activePositions.length > 0
+                ? 'bg-rose-950/70 hover:bg-rose-900 border-rose-500/60 text-rose-200 shadow-md'
+                : 'bg-slate-900/60 border-slate-800 text-slate-500 cursor-not-allowed'
+            }`}
+            title="Instantly liquidate all open positions and halt bot"
+          >
+            <ShieldAlert className="w-4 h-4 text-rose-400" />
+            <span>PANIC [X]</span>
           </button>
         </div>
       </div>
+
+      {panicTriggered && (
+        <div className="p-4 rounded-2xl bg-red-950/80 border border-red-500 text-red-200 text-xs sm:text-sm flex items-center justify-between shadow-2xl animate-in zoom-in-95">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-6 h-6 text-red-400 animate-bounce" />
+            <div>
+              <div className="font-bold">EMERGENCY PANIC TRIGGERED!</div>
+              <div className="text-xs text-red-300">All open positions closed. Remote MT5 EA commanded to halt trading immediately.</div>
+            </div>
+          </div>
+          <span className="font-mono text-xs text-red-400 font-bold px-3 py-1 bg-black/40 rounded-lg">ZERO POSITIONS</span>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#090f1a] border border-[#16233a] overflow-x-auto scrollbar-none">
