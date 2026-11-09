@@ -29,10 +29,11 @@ import { useFinance } from '../../context/FinanceContext.tsx';
 import { AppLogo } from '../common/AppLogo.tsx';
 
 interface LandingPageProps {
-  onEnterApp: () => void;
+  onEnterApp?: () => void;
+  initialMode?: 'signup' | 'login';
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, initialMode = 'login' }) => {
   const {
     user,
     signInWithEmail,
@@ -45,7 +46,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
   const { formatCurrency } = useFinance();
 
-  const [authTab, setAuthTab] = useState<'signup' | 'login'>('signup');
+  const [authTab, setAuthTab] = useState<'signup' | 'login'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -63,7 +64,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       } else {
         await signInWithEmail(email, password);
       }
-      onEnterApp();
+      onEnterApp?.();
     } catch (err) {
       // Handled in context
     } finally {
@@ -75,7 +76,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
     setLoading(true);
     try {
       await signInWithGoogle();
-      onEnterApp();
+      onEnterApp?.();
     } catch (err) {
       // Handled in context
     } finally {
@@ -87,9 +88,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
     setLoading(true);
     try {
       await signInAsGuest();
-      onEnterApp();
+      onEnterApp?.();
     } catch (err) {
-      onEnterApp();
+      onEnterApp?.();
     } finally {
       setLoading(false);
     }

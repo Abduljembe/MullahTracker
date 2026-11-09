@@ -39,10 +39,33 @@ import { CurrencyConverterModal } from './components/modals/CurrencyConverterMod
 import { BackupRestoreModal } from './components/modals/BackupRestoreModal.tsx';
 import { OfflineIndicator } from './components/pwa/OfflineIndicator.tsx';
 import { AuthModal } from './components/auth/AuthModal.tsx';
+import { useAuth } from './context/AuthContext.tsx';
+import { LandingPage } from './components/landing/LandingPage.tsx';
 
 const MainContent: React.FC = () => {
+  const { user, loading } = useAuth();
   const { activeTab } = useFinance();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Loading state while checking authentication credentials
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#070b14] flex flex-col items-center justify-center text-slate-300">
+        <div className="w-10 h-10 border-2 border-teal-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <span className="text-xs font-mono text-slate-400">Loading NjiaFedha Security Vault...</span>
+      </div>
+    );
+  }
+
+  // When logged out or not authenticated, redirect directly to Landing Page for Sign In or Create Account
+  if (!user) {
+    return (
+      <>
+        <LandingPage initialMode="login" />
+        <AuthModal />
+      </>
+    );
+  }
 
   const renderActiveView = () => {
     switch (activeTab) {
