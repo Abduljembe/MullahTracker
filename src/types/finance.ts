@@ -22,7 +22,8 @@ export type TabType =
   | 'cashflow'
   | 'milestones'
   | 'mt5-ea'
-  | 'forex-suite';
+  | 'forex-suite'
+  | 'bot-studio';
 
 export type CurrencyCode = 'KES' | 'USD' | 'EUR' | 'GBP' | 'TZS' | 'UGX';
 

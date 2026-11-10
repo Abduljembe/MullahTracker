@@ -84,6 +84,8 @@ import { TradeJournalAnalytics } from '../trading/TradeJournalAnalytics.tsx';
 import { MarginLotCalculatorModal } from '../trading/MarginLotCalculatorModal.tsx';
 import { GamerTradingCockpit } from '../trading/GamerTradingCockpit.tsx';
 import { LiveMarketTickerTape } from '../trading/LiveMarketTickerTape.tsx';
+import { BotArsenalHub } from '../trading/BotArsenalHub.tsx';
+import { BotDefinition, getBotById } from '../../utils/eaCatalog.ts';
 
 export interface ScannedOpportunity {
   symbol: string;
@@ -757,6 +759,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
   // Navigation tab
   const [activeTab, setActiveTab] = useState<
     | 'live-engine'
+    | 'bot-arsenal'
     | 'spike-radar'
     | 'web-trader'
     | 'journal'
@@ -771,6 +774,7 @@ export const Mt5EaScalperStudio: React.FC = () => {
     | 'calendar'
     | 'dispatcher'
   >('live-engine');
+  const [selectedBotId, setSelectedBotId] = useState<string>('forex-smc-orderblock');
   const [selectedPreset, setSelectedPreset] = useState<string>('gold-titanium');
   const [params, setParams] = useState<EaParameters>(DEFAULT_EA_PARAMS);
   const [isLotSizerModalOpen, setIsLotSizerModalOpen] = useState<boolean>(false);
@@ -1326,11 +1330,34 @@ export const Mt5EaScalperStudio: React.FC = () => {
           },
           ...prev.slice(0, 40),
         ]);
-        playChime('trade');
       }
     } catch (err) {
       console.error('Quick trade failed:', err);
     }
+  };
+
+  // Deploy an EA from the Bot Arsenal directly to the Live Scalp Deck
+  const handleDeployBot = (bot: BotDefinition) => {
+    setSelectedBotId(bot.id);
+    setParams((prev) => ({
+      ...prev,
+      eaName: bot.name.replace(/[^a-zA-Z0-9]/g, '_'),
+      symbol: bot.defaultSymbol,
+      timeframe: (bot.defaultTimeframe === 'H4' ? 'H1' : bot.defaultTimeframe) as any,
+      magicNumber: bot.magicNumber,
+    }));
+    setIsBotRunning(true);
+    setTerminalLogs((prev) => [
+      {
+        id: `log-${Date.now()}`,
+        time: new Date().toLocaleTimeString(),
+        text: `🤖 [EA DEPLOYED] Loaded ${bot.name} (${bot.category}) into Scalper Deck. Magic #${bot.magicNumber} | Target: ${bot.defaultSymbol} ${bot.defaultTimeframe}`,
+        type: 'info',
+      },
+      ...prev.slice(0, 40),
+    ]);
+    playChime('trade');
+    setActiveTab('live-engine');
   };
 
   // Autonomous background scan interval (every 3 minutes)
@@ -2336,6 +2363,19 @@ export const Mt5EaScalperStudio: React.FC = () => {
           <Bot className="w-4 h-4 text-teal-400" />
           <span>Live In-App Scalp Deck</span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+        </button>
+
+        <button
+          onClick={() => setActiveTab('bot-arsenal')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'bot-arsenal'
+              ? 'bg-gradient-to-r from-teal-500/25 to-cyan-500/25 text-[#0df2c9] border border-teal-400/50 shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-[#0df2c9]" />
+          <span>Bot Arsenal (Forex & Deriv)</span>
+          <span className="px-1.5 py-0.2 rounded text-[9px] bg-teal-500/20 text-[#0df2c9] font-mono font-bold">8 EAs</span>
         </button>
 
         <button
@@ -3751,6 +3791,14 @@ export const Mt5EaScalperStudio: React.FC = () => {
             </>
           )}
         </div>
+      )}
+
+      {/* Tab: Bot Arsenal (Forex MT5 & Deriv 24/7 EAs) */}
+      {activeTab === 'bot-arsenal' && (
+        <BotArsenalHub
+          activeBotId={selectedBotId}
+          onDeployBot={handleDeployBot}
+        />
       )}
 
       {/* Tab: Deriv Spike & Crash Warning Radar */}

@@ -30,6 +30,7 @@ import {
   Tv,
   Bot,
   Zap,
+  Cpu,
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -100,6 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'emergency', label: 'Emergency Fund', icon: Shield },
         { id: 'investments', label: 'Investments', icon: TrendingUp },
         { id: 'stocks', label: 'Stocks & Forex Signals', icon: BarChart2 },
+        { id: 'bot-studio', label: 'Algorithmic Bot Studio (12 EAs)', icon: Cpu },
         { id: 'mt5-ea', label: 'MT5 & Deriv Scalper Studio', icon: Bot },
         { id: 'forex-suite', label: 'Forex Quant & Prop Firm Suite', icon: Zap },
         { id: 'orderflow', label: 'Order Flow & Liquidity', icon: Layers },
